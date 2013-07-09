@@ -1,0 +1,111 @@
+<ObjectComposerProject Size="12" NoteSpace="16"><Score><Staff Name="New Staff"><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="3" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="1" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="4" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="0" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="2" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="2" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="1" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+<Staff><Voice><Symbol SymbolName="Clef" Clef="1" Top="0" Left="0" Visible="True"></Symbol>
+<Symbol SymbolName="EndOfVoice"></Symbol>
+</Voice>
+</Staff>
+</Score>
+<Templates><AllTemplate><TemplateStaff Name="Piccolo" Abbreviation="Picc" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="0" AllTemplateIndex="0"></TemplateStaff>
+<TemplateStaff Name="Flute I" Abbreviation="Fl I" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="1" AllTemplateIndex="1"></TemplateStaff>
+<TemplateStaff Name="Flute II" Abbreviation="Fl II" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="2" AllTemplateIndex="2"></TemplateStaff>
+<TemplateStaff Name="Oboe I" Abbreviation="Ob I" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="3" AllTemplateIndex="3"></TemplateStaff>
+<TemplateStaff Name="Oboe II" Abbreviation="Ob II" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="4" AllTemplateIndex="4"></TemplateStaff>
+<TemplateStaff Name="Clarinet I in Bb" Abbreviation="Cl I in Bb" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="5" AllTemplateIndex="5"></TemplateStaff>
+<TemplateStaff Name="Clarinet II in Bb" Abbreviation="Cl II in Bb" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="6" AllTemplateIndex="6"></TemplateStaff>
+<TemplateStaff Name="Clarinet I in A" Abbreviation="Cl I in A" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="7" AllTemplateIndex="7"></TemplateStaff>
+<TemplateStaff Name="Clarinet II in A" Abbreviation="Cl II in A" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="8" AllTemplateIndex="8"></TemplateStaff>
+<TemplateStaff Name="Bass Clarinet II in Bb" Abbreviation="Cl Bass II in Bb" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="9" AllTemplateIndex="9"></TemplateStaff>
+<TemplateStaff Name="Bassoon I" Abbreviation="Bn I" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="10" AllTemplateIndex="10"></TemplateStaff>
+<TemplateStaff Name="Bassoon II" Abbreviation="Bn II" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="11" AllTemplateIndex="11"></TemplateStaff>
+<TemplateStaff Name="Horn in F" Abbreviation="Hn in F" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="12" AllTemplateIndex="12"></TemplateStaff>
+<TemplateStaff Name="Glockenspiel" Abbreviation="Camp" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="13" AllTemplateIndex="13"></TemplateStaff>
+<TemplateStaff Name="Side Drum" Abbreviation="SD" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="14" AllTemplateIndex="14"></TemplateStaff>
+<TemplateStaff Name="Violin I" Abbreviation="Vl I" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="15" AllTemplateIndex="15"></TemplateStaff>
+<TemplateStaff Name="Violin II" Abbreviation="Vl II" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="16" AllTemplateIndex="16"></TemplateStaff>
+<TemplateStaff Name="Viola I" Abbreviation="Vla I" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="17" AllTemplateIndex="17"></TemplateStaff>
+<TemplateStaff Name="Viola II" Abbreviation="vla II" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="18" AllTemplateIndex="18"></TemplateStaff>
+<TemplateStaff Name="Cello" Abbreviation="Vlc" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="19" AllTemplateIndex="19"></TemplateStaff>
+<TemplateStaff Name="Double Bass" Abbreviation="Db" Height="0" SquareBracket="0" CurlyBracket="0" Hidden="False" Muted="False" Index="20" AllTemplateIndex="20"></TemplateStaff>
+</AllTemplate>
+</Templates>
+<ToDoCollection></ToDoCollection>
+<LayoutCollection LayoutCount="0"></LayoutCollection>
+</ObjectComposerProject>

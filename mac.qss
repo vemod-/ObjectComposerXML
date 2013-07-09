@@ -1,0 +1,300 @@
+QToolTip
+{
+	background-color:#444;
+	opacity:215;
+	color:#eee;
+	border:2px outset #666;
+	padding:0px;
+	margin:0px;
+	border-radius:5px;
+	font-size:13pt;
+}
+
+QProgressBar
+{
+	background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #eee, stop: 0.4999 #bbb, stop: 0.5 #afafaf, stop: 1 #989898 );
+	border:1px outset #666;
+	padding:2px;
+	color:white;
+	text-align:center;
+	border-radius:8px;
+} 
+
+QProgressBar::chunk 
+{  
+	background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #78d, stop: 0.4999 #46a, stop: 0.5 #45a, stop: 1 #238 );
+	border: 1px outset #666;
+	border-radius:5px;
+}
+
+QSlider::groove:horizontal 
+{
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 50, 50, 255), stop:1 rgba(200, 200, 200, 255));
+	height: 3px;
+	border: 1px inset #555;
+	border-radius: 2px;
+}
+
+QSlider::handle:horizontal 
+{
+	background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fff, stop:1 #999);
+	border: 1px solid #888;
+	width: 9px;margin-top: -4px;
+	margin-bottom: -4px;
+	border-radius: 5px;
+}
+
+* [transparent="true"]
+{
+	background:none;
+	border:none;
+}
+
+/*
+--------------------------------------------------------------------------------------------
+*/
+
+#OCPlayControl #seekSlider QSlider::groove:horizontal 
+{
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255));
+	height: 7px;
+	border: 1px inset #555;
+	border-radius: 4px;
+}
+
+#OCPlayControl #seekSlider QSlider::sub-page:horizontal 
+{
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(240, 240, 250, 255), stop:1 rgba(60, 60, 250, 255));
+	border: 1px inset #555;
+	border-radius: 4px;
+}
+
+#OCPlayControl #seekSlider QSlider::add-page:horizontal 
+{
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(100, 100, 100, 255), stop:1 rgba(150, 150, 150, 255));
+	border: 1px inset #555;
+	border-radius: 4px;
+}
+
+#OCPlayControl #seekSlider QSlider::handle:horizontal {
+	background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fff, stop:1 #999);
+	border: 1px solid #888;
+	width: 11px;
+	margin-top: -3px;
+	margin-bottom: -3px;
+	border-radius: 6px;
+}
+
+#OCPlayControl #volumeSlider QSlider::groove:horizontal {
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255));
+	height: 5px;
+	border: 1px inset #555;
+	border-radius: 3px;
+}
+
+#OCPlayControl #volumeSlider QSlider::sub-page:horizontal {
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(150, 150, 150, 255), stop:1 rgba(50, 50, 50, 255));
+	border: 1px inset #555;
+	border-radius: 3px;
+}
+
+#OCPlayControl #volumeSlider QSlider::add-page:horizontal {
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(100, 100, 100, 255), stop:1 rgba(150, 150, 150, 255));
+	border: 1px inset #555;
+	border-radius: 3px;
+}
+
+#OCPlayControl #volumeSlider QSlider::handle:horizontal {
+background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fff, stop:1 #999);
+	border: 1px solid #888;
+	width: 9px;
+	margin-top: -3px;
+	margin-bottom: -3px;
+	border-radius: 5px;
+}
+
+#OCPlayControl QFrame#frameOuter
+{
+	border:1px outset #555;
+	border-radius:9;
+}
+
+#OCPlayControl QFrame#frameInner
+{
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #aaa, stop: 0.39999 #666, stop: 0.4 #555, stop: 1 #383838);
+	border:1px solid #bbb;
+	border-radius:8px;border:none;
+}
+
+#OCPlayControl QLabel
+{
+	color:#ddd;
+}
+
+/*
+--------------------------------------------------------------------------------------------
+*/
+
+QTreeWidget, CBarWindow QTableWidget, #SidebarFrame QTableWidget, CPatternList QTableWidget
+{
+	show-decoration-selected: 1;
+	selection-background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #D0D0EF, stop: 0.3999 #9999df, stop: 0.4 #8989cf, stop: 1 #4444DF );
+	border: none;
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #F5F9FF, stop: 0.8 #D0D4DA);
+	font-size: 11px;
+}
+
+CMusicTree QTreeWidget
+{
+	selection-background-color:rgba(0,0,0,100);
+}
+
+CBarWindow QTableWidget
+{
+	selection-background-color:rgb(130,130,130);
+}
+
+QFrame#TreeFrame
+{
+	background:white;
+}
+
+CPropertyWindow QSpinBox, CPropertyWindow QLineEdit, CPropertyWindow QComboBox
+{
+	font-size:11px;
+}
+
+QComboBox QAbstractItemView
+{
+     font-size:13px;
+}
+
+/*
+--------------------------------------------------------------------------------------------
+*/
+
+QHoverButton
+{
+	background:none;
+	border:none;
+}
+
+CLayoutWizard QToolButton,CScoreWizard QToolButton,CStaffsDialog QToolButton,#Toolbox QToolButton,#SidebarFrame QToolButton, QHeaderView:section
+{
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 white, stop: 0.39999 #eee, stop: 0.4 #dfdfdf, stop: 1 #c8c8c8 );
+	border:1px outset #777;
+}
+
+CLayoutWizard QToolButton:checked,#SidebarFrame QToolButton:checked,CScoreWizard QToolButton:checked,CStaffsDialog QToolButton:checked,#Toolbox QToolButton:checked
+{
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #aaa, stop: 0.8 #ddd );
+	border:1px inset #777;
+}
+
+CLayoutWizard QToolButton:disabled,#SidebarFrame QToolButton:disabled,CScoreWizard QToolButton:disabled,CStaffsDialog QToolButton:disabled,#Toolbox QToolButton:disabled
+{
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #eee, stop: 0.39999 #ddd, stop: 0.4 #cfcfcf, stop: 1 #b8b8b8 );
+	border:1px outset #888;
+}
+
+#Toolbox QToolButton
+{
+	border-radius:5px;
+}
+
+QHeaderView::section
+{
+	padding-left:2px;
+	border-color:#999;
+}
+
+QHeaderView::section:horizontal
+{
+	border-top:none;
+}
+
+QHeaderView::section:horizontal:last, QHeaderView::section:horizontal:only-one
+{
+	border-right:none;
+}
+
+QHeaderView::section:vertical
+{
+	border-left:none;
+	border-top:none;
+}
+
+
+/*
+--------------------------------------------------------------------------------------------
+*/
+    
+QMenu
+{
+	background-color:black;
+	border:2px outset #666;
+	border-radius:6px;
+	margin:0px;
+	padding:4px;
+}
+
+QMenu::item
+{
+	color:white;
+}
+
+QMenu::item:disabled
+{
+	color:grey;
+}
+
+QMenu::item:selected:enabled
+{
+	background-color:QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #a0a0EF, stop: 0.3999 #6666df, stop: 0.4 #5959cf, stop: 1 #1111DF );
+}
+
+QMenu::separator
+{
+	margin:6px;
+	height:2px;
+	background:#444;
+}
+
+QFrame#NavFrame
+{
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #aaa, stop: 0.39999 #666, stop: 0.4 #555, stop: 1 #383838);
+}
+
+LayoutViewXML, OCNoteToolbox, CLayoutWizard QGraphicsView, #PnoScroll
+{
+	border: none;
+	border-bottom-width: 1px;
+	border-bottom-color: #444444;
+	border-bottom-style: solid;
+	background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #333, stop: 0.2 #444 );
+}
+
+OCPiano
+{
+        border: none;
+}
+
+OCNoteToolbox, #PnoScroll
+{
+	background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ddd, stop: 0.3999 #bbb, stop: 0.4 #afafaf, stop: 1 #989898 );
+}
+
+#StatusBar, QToolBar
+{
+        background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ddd, stop: 0.3999 #bbb, stop: 0.4 #afafaf, stop: 1 #989898 );
+        border:none;
+        border-top-width: 1px;
+        border-top-color: #666666;
+        border-top-style: solid;
+}
+
+//QToolBar
+//{
+//        background-color:transparent;
+//        border:none;
+//}

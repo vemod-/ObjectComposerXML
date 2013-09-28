@@ -929,8 +929,8 @@ void MainWindow::DocumentActivated(int Index)
                 playControl->Stop();
                 midi2Wav->HideMixer();
                 AppendMixerXML(document);
-                playControl->MixerXML.clear();
             }
+            playControl->MixerXML.clear();
         }
     }
     ZoomSlider->disconnect();
@@ -942,7 +942,6 @@ void MainWindow::DocumentActivated(int Index)
     playControl->MixerXML.clear();
     if (mx != NULL) playControl->MixerXML=mx->firstChild()->toString();
     playControl->PreLoad();
-
     connect(document->pno,SIGNAL(NoteOn(int)),this,SLOT(NoteOn(int)));
     connect(document->pno,SIGNAL(NoteOff(int)),this,SLOT(NoteOff(int)));
 

@@ -11,12 +11,11 @@
 #include <QGestureEvent>
 #include <QTreeWidget>
 #include <QProcess>
-//#include <QPropertyAnimation>
-//#include <QMenu>
 #include "ocplaycontrol.h"
 #include "cscoredoc.h"
 #include "qtransmenu.h"
 #include "csidebartree.h"
+#include <qsignalmenu.h>
 
 // This is a "hidden" exported Qt function on the Mac for Qt-4.x.
 #if QT_VERSION <= QT_VERSION_CHECK(4,4,0)

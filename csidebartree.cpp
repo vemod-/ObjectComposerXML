@@ -318,13 +318,14 @@ void CSidebarTree::MouseRelease(QMouseEvent *event)
     if (event->button() & Qt::LeftButton)
     {
         //qDebug() << event;
-        QTreeWidgetItem* i=this->itemAt(this->mapFromGlobal(this->cursor().pos()));
-        int Col=this->columnAt(this->mapFromGlobal(this->cursor().pos()).x());
+        QTreeWidgetItem* i=this->itemAt(this->mapFromGlobal(QCursor::pos()));
+        int Col=this->columnAt(this->mapFromGlobal(QCursor::pos()).x());
         if (i)
         {
             if (this->indexOfTopLevelItem(i) == -1)
             {
                 //i->setSelected(true);
+                if (i->isFirstColumnSpanned()) Col=0;
                 this->SelectItem(i,Col);
             }
         }

@@ -13,6 +13,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += macextras printsupport widgets
 QT -= network opengl sql svg xml xmlpatterns qt3support
 
 include(../midi2wav/midi2wav.pri)
+include(../QiPhotoRubberband/QiPhotoRubberband.pri)
 
 INCLUDEPATH += ../midi2wav
 
@@ -45,7 +46,6 @@ SOURCES += main.cpp\
     caccidentalspiano.cpp \
     ceditdialog.cpp \
     cpresetsdialog.cpp \
-    ##qdomlite.cpp \
     cpatternlist.cpp \
     ceditsystem.cpp \
     qmacbuttons.cpp \
@@ -63,11 +63,9 @@ SOURCES += main.cpp\
     qcustomframe.cpp \
     cmeasurecontrol.cpp \
     qbinarymemoryfile.cpp \
-    qiphotorubberband.cpp \
     qfontwidget.cpp \
     csidebartree.cpp \
-    qmactreewidget.cpp \
-    ../SoftSynths/WaveRecorder/qcanvas.cpp
+    qmactreewidget.cpp
 
 OBJECTIVE_SOURCES += cocoaprogressbar.mm
 
@@ -96,7 +94,6 @@ HEADERS  += mainwindow.h \
     caccidentalspiano.h \
     ceditdialog.h \
     cpresetsdialog.h \
-    ##qdomlite.h \
     cpatternlist.h \
     ceditsystem.h \
     qmacbuttons.h \
@@ -115,11 +112,9 @@ HEADERS  += mainwindow.h \
     qcustomframe.h \
     cmeasurecontrol.h \
     qbinarymemoryfile.h \
-    qiphotorubberband.h \
     qfontwidget.h \
     csidebartree.h \
-    qmactreewidget.h \
-    ../SoftSynths/WaveRecorder/qcanvas.h
+    qmactreewidget.h
 
 FORMS    += mainwindow.ui \
     cscoredoc.ui \
@@ -203,22 +198,3 @@ macx {
 }
 QMAKE_INFO_PLIST = Info.plist
 ICON = ocicon.icns
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

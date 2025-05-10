@@ -1,126 +1,10 @@
 #include "clayout.h"
-#include "layoutviewxml.h"
 
-CLayoutFonts::CLayoutFonts()
-{
-    Title.FontName = "Times New Roman";
-    Title.Size = 18;
-    SubTitle.FontName = "Times New Roman";
-    SubTitle.Size = 12;
-    Composer.FontName = "Times New Roman";
-    Composer.Size = 8;
-    Names.FontName = "Times New Roman";
-    Names.Size = 8;
-}
-
-QDomLiteElement* CLayoutFonts::Save(const QString& Tag)
-{
-    QDomLiteElement* data=new QDomLiteElement(Tag);
-    QDomLiteElement* XMLTitle=data->appendChild("Title");
-    QDomLiteElement* XMLSubTitle=data->appendChild("Subtitle");
-    QDomLiteElement* XMLComposer=data->appendChild("Composer");
-    QDomLiteElement* XMLNames=data->appendChild("Names");
-    Title.Save(XMLTitle);
-    SubTitle.Save(XMLSubTitle);
-    Composer.Save(XMLComposer);
-    Names.Save(XMLNames);
-    return data;
-}
-
-void CLayoutFonts::Load(QDomLiteElement* data)
-{
-    Title.Load(data->elementByTag("Title"));
-    SubTitle.Load(data->elementByTag("Subtitle"));
-    Composer.Load(data->elementByTag("Composer"));
-    Names.Load(data->elementByTag("Names"));
-}
-
-CLayoutOptions::CLayoutOptions()
-{
-    ShowNamesSwitch=0;
-    ShowAllOnSys1=false;
-    TransposeInstruments=false;
-    ScoreType=1;
-    ScaleSize=1;
-    DontShowBN=false;
-    BarNrOffset=0;
-    NoteSpace=0;
-    MasterStave=0;
-    TopMargin=20;
-    LeftMargin=15;
-    RightMargin=15;
-    BottomMargin=25;
-    Orientation=0;
-    PaperSize=0;
-}
-
-QDomLiteElement* CLayoutOptions::Save(const QString &Tag)
-{
-    QDomLiteElement* data=new QDomLiteElement(Tag);
-    data->setAttribute("ShowNamesSwitch", ShowNamesSwitch);
-    data->setAttribute("ShowAllOnSys1", ShowAllOnSys1);
-    data->setAttribute("TransposeInstruments", TransposeInstruments);
-    data->setAttribute("ScoreType", ScoreType);
-    data->setAttribute("ScaleSize", ScaleSize);
-    data->setAttribute("DontShowBN", DontShowBN);
-    data->setAttribute("BarNrOffset", BarNrOffset);
-    data->setAttribute("NoteSpace", NoteSpace);
-    data->setAttribute("MasterStave", MasterStave);
-    data->setAttribute("TopMargin", TopMargin);
-    data->setAttribute("LeftMargin", LeftMargin);
-    data->setAttribute("RightMargin", RightMargin);
-    data->setAttribute("BottomMargin", BottomMargin);
-    data->setAttribute("Orientation", Orientation);
-    data->setAttribute("PaperSize", PaperSize);
-    return data;
-}
-
-void CLayoutOptions::Load(QDomLiteElement* data)
-{
-    ShowNamesSwitch = data->attributeValue("ShowNamesSwitch");
-    ShowAllOnSys1 = data->attributeValue("ShowAllOnSys1");
-    TransposeInstruments = data->attributeValue("TransposeInstruments");
-    ScoreType = data->attributeValue("ScoreType");
-    ScaleSize = data->attributeValue("ScaleSize");
-    DontShowBN = data->attributeValue("DontShowBN");
-    BarNrOffset = data->attributeValue("BarNrOffset");
-    NoteSpace = data->attributeValue("NoteSpace");
-    MasterStave = data->attributeValue("MasterStave");
-    TopMargin = data->attributeValue("TopMargin");
-    LeftMargin = data->attributeValue("LeftMargin");
-    RightMargin = data->attributeValue("RightMargin");
-    BottomMargin = data->attributeValue("BottomMargin");
-    Orientation = data->attributeValue("Orientation");
-    PaperSize = data->attributeValue("PaperSize");
-
-    if (TopMargin==0) TopMargin=20;
-    if (LeftMargin==0) LeftMargin=15;
-    if (RightMargin==0) RightMargin=15;
-    if (BottomMargin==0) BottomMargin=25;
-}
-
-CLayoutSystem::CLayoutSystem()
-{
-    Template.clear("Template");
-    StartBar=0;
-    EndBar=0;
-    PageNr=0;
-    ShowNames=0;
-    UpDown=0;
-    Top=0;
-    Distance=0;
-    Height=0;
-    Syslen=0;
-    SystemList.clear();
-}
-
-CLayoutSystem::~CLayoutSystem()
-{
-}
+CLayoutSystem::~CLayoutSystem() {}
 
 void CLayoutSystem::Erase(QGraphicsScene* Scene)
 {
-    foreach(QGraphicsItem* item,SystemList)
+    for (QGraphicsItem* item : std::as_const(SystemList))
     {
         if (Scene->items().contains(item))
         {
@@ -131,354 +15,237 @@ void CLayoutSystem::Erase(QGraphicsScene* Scene)
     SystemList.clear();
 }
 
-void CLayoutSystem::plot(OCScore& Score, XMLScoreWrapper& XMLScore, CLayoutFonts& Fonts, const int Viewsize, const int Left, const int LayTop, CLayoutOptions& Options, OCDraw& ScreenObj, const float PrinterResFactor)
+void CLayoutSystem::plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj)
 {
-    int HoldSysLen = Score.SystemLength();
-    int NameLen = 0;
+    setSysLen(Score->systemLength());
+    double NameLen = 0;
     SystemList.clear();
     ScreenObj.StartList();
-    float HoldSize=Fonts.Names.Size;
-    Fonts.Names.Size=Fonts.Names.Size/(PrinterResFactor*1.0);
-    if (ShowNames > 0)
+    if (showNames() > 0)
     {
-        for (int c = 0; c<Template.childCount();c++)
+        for (int StaffPos = 0; StaffPos<Template.staffCount();StaffPos++)
         {
+            const int StaffId=Template.staffId(StaffPos);
             QString Text;
-            switch (ShowNames)
+            switch (showNames())
             {
             case 1:
-                Text = XMLScore.StaffAbbreviation(&Template,c).trimmed();
+                Text = XMLScore.StaffAbbreviation(StaffId).trimmed();
                 break;
             case 2:
-                Text = XMLScore.StaffName(&Template,c).trimmed();
+                Text = XMLScore.StaffName(StaffId).trimmed();
                 break;
             }
-            float TopAdjust=(ScoreStaffLinesHeight-(ScreenObj.TextHeight(&Fonts.Names,Viewsize)*Viewsize*Options.ScaleSize))/2;
-            ScreenObj.PrintTextElement(Left/Options.ScaleSize,(XMLScore.StaffPos(&Template,c) + Top + TopAdjust + LayTop)/Options.ScaleSize,Text,&Fonts.Names,Viewsize);
-            if ((ScreenObj.TextWidth(Text,&Fonts.Names,Viewsize)*Viewsize) > NameLen) NameLen = (ScreenObj.TextWidth(Text,&Fonts.Names,Viewsize)*Viewsize);
+            const double TopAdjust=(ScoreStaffLinesHeight-Fonts.names.textHeight(Text))/2;
+            ScreenObj.PrintFontElement(PageRect.left(),(Template.staffTopFromId(StaffId) + top() + TopAdjust)/Options.scaleSize() + PageRect.top(),Text,Fonts.names, Options.scaleSize());
+            NameLen = fmax(Fonts.names.textWidth(Text),NameLen);
         }
-        if (NameLen > 0) NameLen = (NameLen  + 50)*Options.ScaleSize;
-        HoldSysLen -= NameLen;
-        Score.ReformatPage(HoldSysLen);
+        if (NameLen > 0)
+        {
+            NameLen += 240;
+            setSysLen(sysLen() - NameLen);
+            Score->reformatPage(int(sysLen()));
+        }
     }
-    Fonts.Names.Size=HoldSize;
-    for (int c = 0; c<Template.childCount();c++)
+    for (int StaffPos = 0; StaffPos<Template.staffCount();StaffPos++)
     {
-        ScreenObj.SetXY(Left + NameLen,XMLScore.StaffPos(&Template,c) + Top + LayTop);
-        QDomLiteElement* TemplateStaff = XMLScore.TemplateStaff(&Template, c);
-        Score.PlSystemNoList(XMLScore.AllTemplateIndex(TemplateStaff), XMLScore, &Template, Qt::black, 0, 0, c, ScreenObj);
+        const int StaffId=Template.staffId(StaffPos);
+        ScreenObj.init(Options.scale(PageRect.left()) + NameLen,Template.staffTopFromId(StaffId) + top() + Options.scale(PageRect.top()));
+        Score->plotStaffNoList(StaffId, XMLScore, Template, Options, Qt::black, ScreenObj);
     }
-    Syslen = HoldSysLen;
     SystemList.append(ScreenObj.EndList());
-    foreach(QGraphicsItem* item,SystemList) item->setZValue(2);
+    for (QGraphicsItem* item : std::as_const(SystemList)) item->setZValue(2);
 }
 
-void CLayoutSystem::Format(OCScore& Score, XMLScoreWrapper& XMLScore, QDomLiteElement* LayoutTemplate, const int m_StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const int SystemLength)
+void CLayoutSystem::Format(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& LayoutTemplate, const XMLLayoutOptionsWrapper& Options, const int m_StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const double SystemLength)
 {
     if (Auto)
     {
-        EndBar = 0;
-        StartBar = m_StartBar;
+        setEndBar(0);
+        setStartBar(m_StartBar);
     }
-    Score.FormatPage(XMLScore, LayoutTemplate, SystemLength, StartBar, EndBar);
+    Score->formatPage(XMLScore, LayoutTemplate, Options, SystemLength, startBar(), endBar());
     if (Auto)
     {
-        Template.clearChildren();
-        if (ShowNamesOption == 1) ShowNames = 1;
-        for (int c = 0; c<LayoutTemplate->childCount(); c++)
+        Template.clear();
+        if (ShowNamesOption == 1) setShowNames(1);
+        for (int c = 0; c<LayoutTemplate.staffCount(); c++)
         {
-            bool StaffEmpty=Score.StaffEmpty(c,XMLScore,LayoutTemplate);
-            if (StaffEmpty && (ShowNamesOption == 2)) ShowNames = 1;
-            if (!StaffEmpty || ShowAllStaves)
-            {
-                Template.appendClone(XMLScore.TemplateStaff(LayoutTemplate,c));
-            }
+            const bool StaffEmpty=Score->StaffEmpty(c,LayoutTemplate);
+            if (StaffEmpty && (ShowNamesOption == 2)) setShowNames(1);
+            if (!StaffEmpty || ShowAllStaves) Template.addChild(LayoutTemplate.staff(c));
         }
-        if (Template.childCount()==0)
-        {
-            Template.appendClone(XMLScore.TemplateStaff(LayoutTemplate,0));
-        }
-        XMLScore.ValidateBrackets(&Template);
-        EndBar = StartBar + Score.ActuallyPrinted();
-
-        SetHeight();// 'Height = Template.staveyins(Template.NumOfStaves)
+        if (Template.staffCount()==0) Template.addChild(LayoutTemplate.staff(0));
+        Template.validateBrackets();
+        setEndBar(startBar() + Score->barsActuallyPrinted());
+        setHeight(Template.height());
     }
     else
     {
-        for (int c=0;c<Template.childCount();c++)
+        for (int StaffPos=0;StaffPos<Template.staffCount();StaffPos++)
         {
-            int index=XMLScore.AllTemplateIndex(&Template,c);
-            QDomLiteElement* TemplateStaff=XMLScore.TemplateOrderStaff(LayoutTemplate,index);
-            Template.childElement(c)->setAttribute("SquareBracket",TemplateStaff->attribute("SquareBracket"));
-            Template.childElement(c)->setAttribute("CurlyBracket",TemplateStaff->attribute("CurlyBracket"));
-            XMLScore.ValidateBrackets(&Template);
+            Template.staff(StaffPos).copyBrackets(LayoutTemplate.staffFromId(Template.staffId(StaffPos)));
         }
+        Template.validateBrackets();
     }
 }
 
-void CLayoutSystem::Load(QDomLiteElement* data)
-{
-    StartBar = data->attributeValue("StartBar");
-    EndBar = data->attributeValue("EndBar");
-    PageNr = data->attributeValue("PageNumber");
-    ShowNames = data->attributeValue("NamesVisible");
-    UpDown = data->attributeValue("UpDown");
-    Top = data->attributeValue("Top");
-    DefaultTop=data->attributeValue("DefaultTop");
-    Distance = data->attributeValue("Distance");
-    Height = data->attributeValue("Height");
-    Syslen = data->attributeValue("SystemLength");
-    Template.copy(data->elementByTag("Template"));
-}
-
-QDomLiteElement* CLayoutSystem::Save(const QString &Tag)
-{
-    QDomLiteElement* data=new QDomLiteElement(Tag);
-    data->setAttribute("StartBar", StartBar);
-    data->setAttribute("EndBar", EndBar);
-    data->setAttribute("PageNumber", PageNr);
-    data->setAttribute("NamesVisible", ShowNames);
-    data->setAttribute("UpDown", UpDown);
-    data->setAttribute("Top", Top);
-    data->setAttribute("DefaultTop", DefaultTop);
-    data->setAttribute("Distance", Distance);
-    data->setAttribute("Height", Height);
-    data->setAttribute("SystemLength", Syslen);
-    data->appendChild(Template.clone());
-    return data;
-}
-
-void CLayoutSystem::SetStaveDistance(const int stavedistance)
-{
-    for (int iTemp = 0; iTemp<Template.childCount();iTemp++)
-    {
-        XMLScoreWrapper::TemplateStaff(&Template,iTemp)->setAttribute("Height",stavedistance);
+void CLayoutSystem::SetStaveDistance(const double stavedistance) {
+    for (int i = 0; i<Template.staffCount();i++) {
+        XMLTemplateStaffWrapper s(Template.staff(i));
+        s.setHeight(int(stavedistance));
     }
+    setHeight(Template.height());
 }
 
-void CLayoutSystem::SetHeight()
-{
-    Height = XMLScoreWrapper::StaffPos(&Template,Template.childCount()) - 700;
-}
-
-CLayoutPage::CLayoutPage()
-{
-    TitleHeight=0;
+CLayoutPage::CLayoutPage(QDomLiteElement *e) : XMLLayoutPageWrapper(e) {
+    for (QDomLiteElement* s : (const QDomLiteElementList)e->elementsByTag("System")) {
+        Systems.append(new CLayoutSystem(s));
+    }
 }
 
 CLayoutPage::~CLayoutPage()
 {
     qDeleteAll(Systems);
-    Systems.clear();
-    TitleList.clear();
 }
 
-const int CLayoutPage::NumOfSystems() const
+void CLayoutPage::PlotSystem(const int System, OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj)
 {
-    return Systems.count();
+    Sys(System)->plot(Score,XMLScore,Fonts,PageRect,Options,ScreenObj);
 }
 
-void CLayoutPage::PlotSystem(const int System, OCScore& Score, XMLScoreWrapper& XMLScore, CLayoutFonts& Fonts, const int Viewsize, const int Left, const int Top, CLayoutOptions& Options, OCDraw& ScreenObj, const float PrinterResFactor)
+void CLayoutPage::Format(const int System, const double TitleHeight, OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& LayoutTemplate, const XMLLayoutOptionsWrapper& Options, int& StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const double SystemLength)
 {
-    Systems[System]->plot(Score,XMLScore,Fonts,Viewsize,Left,Top,Options,ScreenObj, PrinterResFactor);
-}
-
-void CLayoutPage::Format(const int System, OCScore& Score, XMLScoreWrapper& XMLScore, QDomLiteElement* LayoutTemplate, int& StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const int SystemLength)
-{
-    Systems[System]->Format(Score, XMLScore, LayoutTemplate, StartBar, Auto, ShowAllStaves, ShowNamesOption, SystemLength);
+    CLayoutSystem* s=Sys(System);
+    s->Format(Score, XMLScore, LayoutTemplate, Options, StartBar, Auto, ShowAllStaves, ShowNamesOption, SystemLength);
     if (Auto)
     {
-        StartBar = Systems[System]->EndBar;
-        Systems[System]->Top = YSpaceUsed(System-1);
-        Systems[System]->DefaultTop=Systems[System]->Top;
+        StartBar = s->endBar();
+        s->setTop(YSpaceUsed(System-1,TitleHeight));
+        s->setDefaultTop(s->top());
     }
 }
 
-void CLayoutPage::Load(QDomLiteElement* data)
-{
-    qDeleteAll(Systems);
-    Systems.clear();
-    int SystemCount = data->attributeValue("SystemCount");
-    for (int i=0;i<SystemCount;i++)
-    {
-        AddSystem();
-        Systems[i]->Load(data->elementsByTag("System")[i]);
-    }
+void CLayoutPage::AddSystem() {
+    Systems.append(new CLayoutSystem(XMLElement->appendChild("System")));
 }
 
-QDomLiteElement* CLayoutPage::Save(const QString &Tag)
-{
-    QDomLiteElement* data=new QDomLiteElement(Tag);
-    data->setAttribute("SystemCount", Systems.count());
-    for (int i=0;i<Systems.count();i++)
-    {
-        data->appendChild(Systems[i]->Save("System"));
-    }
-    return data;
-}
-
-void CLayoutPage::AddSystem()
-{
-    Systems.append(new CLayoutSystem);
-}
-
-CLayoutSystem* CLayoutPage::Sys(const int Index)
-{
+CLayoutSystem *CLayoutPage::Sys(const int Index) const {
     return Systems[Index];
 }
 
-CLayoutSystem* CLayoutPage::GetSystem(const bool Top)
-{
-    if (Top) return Systems.takeFirst();
+CLayoutSystem *CLayoutPage::takeFirstSystem() {
+    XMLElement->takeFirst();
+    return Systems.takeFirst();
+}
+
+CLayoutSystem *CLayoutPage::takeLastSystem() {
+    XMLElement->takeLast();
     return Systems.takeLast();
 }
 
-void CLayoutPage::InsertSystem(const bool Top, CLayoutSystem *System)
-{
-    if (Top)
-    {
-        Systems.prepend(System);
-    }
-    else
-    {
-        Systems.append(System);
-    }
+void CLayoutPage::PrependSystem(CLayoutSystem *System) {
+    Systems.prepend(System);
+    XMLElement->prependChild(System->xml());
 }
 
-void CLayoutPage::RemoveSystem(const bool Top)
-{
-    int i=0;
-    if (!Top) i=Systems.count()-1;
-    if (i<Systems.count())
-    {
-        delete Systems[i];
-        Systems.removeAt(i);
+void CLayoutPage::AppendSystem(CLayoutSystem *System) {
+    Systems.append(System);
+    XMLElement->appendChild(System->xml());
+}
+
+void CLayoutPage::RemoveSystem() {
+    if (!Systems.isEmpty()) {
+        delete Systems.takeLast();
+        XMLElement->removeLast();
     }
 }
 
-const int CLayoutPage::YSpaceUsed(const int CurrentSystem) const
-{
-    int RetVal = TitleHeight;
-    if (CurrentSystem > -1)
-    {
-        RetVal = Systems[CurrentSystem]->Top + Systems[CurrentSystem]->Height;
-    }
-    return RetVal;
+double CLayoutPage::YSpaceUsed(const int System, const double TitleHeight) const {
+    if (System > -1) return SysTop(System) + SysHeight(System);
+    return TitleHeight;
 }
 
-void CLayoutPage::ClearAllSystems()
-{
-    qDeleteAll(Systems);
-    Systems.clear();
+double CLayoutPage::SysTop(const int System) const {
+    //if (Systems.empty()) return 0;
+    if (System >= Systems.size()) return 0;
+    return Sys(System)->top();
 }
 
-const int CLayoutPage::CurrentHeight(const int CurrentSystem) const
-{
-    return Systems[CurrentSystem]->Height;
+double CLayoutPage::SysHeight(const int System) const {
+    //if (Systems.empty()) return 0;
+    if (System >= Systems.size()) return 0;
+    return Sys(System)->height();
 }
 
-void CLayoutPage::setActiveSystem(const int System)
-{
-    ActiveSystem = Systems[qMin(Systems.count()-1,System)];
+double CLayoutPage::SysLen(const int System) const {
+    //if (Systems.empty()) return 0;
+    if (System >= Systems.size()) return 0;
+    return Sys(System)->sysLen();
 }
 
-const int CLayoutPage::getActiveSystem() const
-{
-    if (Systems.isEmpty()) return 0;
-    return Systems.indexOf(ActiveSystem);
-}
-
-const int CLayoutPage::SysTop(const int System) const
-{
-    return Systems[System]->Top;
-}
-
-const int CLayoutPage::SysHeight(const int System) const
-{
-    return Systems[System]->Height;
-}
-
-const int CLayoutPage::StartBar(const int System) const
-{
-    return Systems[System]->StartBar;
+int CLayoutPage::StartBar(const int System) const {
+    //if (Systems.empty()) return 0;
+    if (System >= Systems.size()) return 0;
+    return Sys(System)->startBar();
 }
 
 void CLayoutPage::AddBar(const int System, const bool Top)
 {
-    if (Top)
-    {
-        Systems[System]->StartBar--;
-    }
-    else
-    {
-        Systems[System]->EndBar++;
-    }
+    CLayoutSystem* s=Sys(System);
+    (Top) ? s->setStartBar(s->startBar()-1) : s->setEndBar(s->endBar()+1);
 }
 
-const bool CLayoutPage::RemoveBar(const int System, const bool Top)
+bool CLayoutPage::RemoveBar(const int System, const bool Top)
 {
-    if (Systems[System]->StartBar + 1 == Systems[System]->EndBar) return false;
-    if (Top)
-    {
-        Systems[System]->StartBar++;
-    }
-    else
-    {
-        Systems[System]->EndBar--;
-    }
+    CLayoutSystem* s=Sys(System);
+    if (s->startBar() + 1 == s->endBar()) return false;
+    (Top) ? s->setStartBar(s->startBar()+1) : s->setEndBar(s->endBar()-1);
     return true;
 }
 
-void CLayoutPage::AdjustSystems(const int PageHeight)
+void CLayoutPage::AdjustSystems(const int PageHeight, const double TitleHeight)
 {
     int NumOfStaffs=0;
-    int YSpaceUsed = TitleHeight;
-    for (int iTemp = 0; iTemp<Systems.count(); iTemp++)
+    for (int i=0;i<systemCount();i++)
     {
-        Systems[iTemp]->SetStaveDistance(0);
-        Systems[iTemp]->Top = YSpaceUsed;
-        Systems[iTemp]->DefaultTop=YSpaceUsed;
-        Systems[iTemp]->SetHeight();
-        YSpaceUsed += Systems[iTemp]->Height;
-        NumOfStaffs += Systems[iTemp]->Template.childCount();
+        NumOfStaffs += Sys(i)->Template.staffCount();
     }
-    int YSpaceAvailable = PageHeight - TitleHeight;
-    int stavedistance=FloatDiv(YSpaceAvailable-((ScoreStaffHeight*NumOfStaffs)+(240*(Systems.count()-1))),NumOfStaffs)/12;
-    YSpaceUsed = TitleHeight;
-    for (int iTemp = 0; iTemp<Systems.count(); iTemp++)
+    double FirstTop = Sys(0)->top();
+    if (FirstTop < TitleHeight) FirstTop = TitleHeight;
+    double YSpaceAvailable = PageHeight - FirstTop;
+    double stavedistance=DoubleDiv(YSpaceAvailable-((ScoreStaffHeight*NumOfStaffs)+(240*(systemCount()-1))),NumOfStaffs)/12;
+    double YSpaceUsed = FirstTop;
+    for (int i=0;i<systemCount();i++)
     {
-        Systems[iTemp]->SetStaveDistance(stavedistance);
-        Systems[iTemp]->Top = YSpaceUsed;
-        Systems[iTemp]->DefaultTop=YSpaceUsed;
-        Systems[iTemp]->SetHeight();
-        YSpaceUsed += Systems[iTemp]->Height;
+        CLayoutSystem* s=Sys(i);
+        s->SetStaveDistance(stavedistance);
+        s->setTop(YSpaceUsed);
+        s->setDefaultTop(YSpaceUsed);
+        YSpaceUsed += s->height();
     }
 }
 
-void CLayoutPage::FormatTitle()
+void CLayoutPage::FormatTitle(const double TitleHeight)
 {
-    int YSpaceUsed = 0;
-    for (int iTemp = 0; iTemp<Systems.count(); iTemp++)
+    double YSpaceUsed = TitleHeight;
+    for (int i=0;i<systemCount();i++)
     {
-        Systems[iTemp]->Top = YSpaceUsed;
-        Systems[iTemp]->DefaultTop=YSpaceUsed;
-        YSpaceUsed += Systems[iTemp]->Height;
-    }
-    for (int iTemp = 0; iTemp<Systems.count(); iTemp++)
-    {
-        Systems[iTemp]->Top += TitleHeight;
-        Systems[iTemp]->DefaultTop=Systems[iTemp]->Top;
+        CLayoutSystem* s=Sys(i);
+        s->setTop(YSpaceUsed);
+        s->setDefaultTop(YSpaceUsed);
+        YSpaceUsed += s->height();
     }
 }
 
 void CLayoutPage::Erase(const int System, QGraphicsScene *Scene)
 {
-    if (System<Systems.count()) Systems[System]->Erase(Scene);
+    if (System < systemCount()) Sys(System)->Erase(Scene);
 }
 
 void CLayoutPage::EraseTitle(QGraphicsScene* Scene)
 {
-    foreach(QGraphicsItem* item,TitleList)
+    for (QGraphicsItem* item : std::as_const(TitleList))
     {
         if (Scene->items().contains(item))
         {
@@ -489,307 +256,186 @@ void CLayoutPage::EraseTitle(QGraphicsScene* Scene)
     TitleList.clear();
 }
 
-void CLayoutPage::PlotTitle(const int Page, CLayoutFonts& Fonts, const int Viewsize, const int PageWidth, const int LayTop, CLayoutOptions& Options, const int LayRight, OCDraw& ScreenObj, const float PrinterResFactor)
+void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& /*Options*/, OCDraw& ScreenObj)
 {
     TitleList.clear();
     ScreenObj.StartList();
     ScreenObj.col = Qt::black;
-    TitleHeight = 0;
+    double TitleHeight = 0;
     if (Page > 0) return;
-    if (Fonts.Title.Size > 0)
+    if (!Fonts.title.empty())
     {
-        float Tmp = Fonts.Title.Size;
-        Fonts.Title.Size = Fonts.Title.Size / (PrinterResFactor*1.0);
-        int Halfwidth = ScreenObj.TextWidth(&Fonts.Title, Viewsize) / 2;  //' Calculate one-half width.
-        int TextHeight = (0.9 * ((ScreenObj.TextHeight(&Fonts.Title, Viewsize) * Viewsize) * Options.ScaleSize));
-        if (Fonts.Title.Text.trimmed().length())
-        {
-            TitleHeight += TextHeight;
-            ScreenObj.PrintTextElement((PageWidth  / 2) - (Halfwidth*Viewsize), LayTop/Options.ScaleSize, &Fonts.Title, Viewsize);
-        }
-        Fonts.Title.Size = Tmp;
+        double Halfwidth = Fonts.title.textWidth() / 2.0;  //' Calculate one-half width.
+        double TextHeight = Fonts.title.textHeight();
+        TitleHeight += TextHeight;
+        ScreenObj.PrintTextElement(PageRect.center().x() - Halfwidth, PageRect.top(), Fonts.title, 1);
     }
-    if (Fonts.SubTitle.Size > 0)
+    if (!Fonts.subtitle.empty())
     {
-        float Tmp = Fonts.SubTitle.Size;
-        Fonts.SubTitle.Size = Fonts.SubTitle.Size / (PrinterResFactor*1.0);
-        int Halfwidth = ScreenObj.TextWidth(&Fonts.SubTitle, Viewsize) / 2; // ' Calculate one-half width.
-        int TextHeight = (0.9 * ((ScreenObj.TextHeight(&Fonts.SubTitle, Viewsize) * Viewsize) * Options.ScaleSize));
-        if (Fonts.SubTitle.Text.trimmed().length())
-        {
-            ScreenObj.PrintTextElement((PageWidth / 2) - (Halfwidth*Viewsize), (LayTop + TitleHeight)/Options.ScaleSize,&Fonts.SubTitle, Viewsize);
-            TitleHeight += TextHeight;
-        }
-        Fonts.SubTitle.Size = Tmp;
+        double Halfwidth = Fonts.subtitle.textWidth() / 2.0; // ' Calculate one-half width.
+        double TextHeight = Fonts.subtitle.textHeight();
+        ScreenObj.PrintTextElement(PageRect.center().x() - Halfwidth, PageRect.top() + TitleHeight,Fonts.subtitle, 1);
+        TitleHeight += TextHeight;
     }
-    if (Fonts.Composer.Size > 0)
+    if (!Fonts.composer.empty())
     {
-        float Tmp = Fonts.Composer.Size;
-        Fonts.Composer.Size = Fonts.Composer.Size / (PrinterResFactor*1.0);
-        int Halfwidth = ScreenObj.TextWidth(&Fonts.Composer, Viewsize)*Viewsize;
-        int TextHeight = (0.9 * ((ScreenObj.TextHeight(&Fonts.Composer, Viewsize) * Viewsize) * Options.ScaleSize));
-        if (Fonts.Composer.Text.trimmed().length())
-        {
-            ScreenObj.PrintTextElement(PageWidth - (LayRight/Options.ScaleSize) - Halfwidth , (LayTop + TitleHeight) / Options.ScaleSize,&Fonts.Composer, Viewsize);
-            TitleHeight += TextHeight;
-        }
-        Fonts.Composer.Size = Tmp;
+        double TextWidth = Fonts.composer.textWidth();
+        //double TextHeight = Fonts.composer.textHeight();
+        ScreenObj.PrintTextElement(PageRect.right()-TextWidth , PageRect.top() + TitleHeight,Fonts.composer, 1);
+        //TitleHeight += TextHeight;
     }
-    TitleList.append( ScreenObj.EndList());
-    for (int i=0;i<TitleList.count();i++)
-    {
-        TitleList[i]->setZValue(2);
-    }
+    TitleList.append(ScreenObj.EndList());
+    for (QGraphicsItem* g : std::as_const(TitleList)) g->setZValue(2);//int i=0;i<TitleList.size();i++) TitleList[i]->setZValue(2);
 }
 
-CLayout::CLayout()
+CLayout::CLayout(QDomLiteElement *e) : XMLLayoutWrapper(e)
 {
     Printer=new QPrinter(QPrinter::HighResolution);
-    Template.clear("Template");
-    PrinterExist=false;
-    Name.clear();
-    IsFormated=false;
-    Viewsize=0;
-    PrinterResFactor=1;
+    initPrinter();
+    m_ActiveLocation.System=0;
+    m_ActiveLocation.Page=0;
+    for (QDomLiteElement* p : (const QDomLiteElementList)e->elementsByTag("Page")) Pages.append(new CLayoutPage(p));
 }
 
 CLayout::~CLayout()
 {
     qDeleteAll(Pages);
-    Pages.clear();
     delete Printer;
 }
 
-const int CLayout::NumOfPages() const
-{
-    if (Pages.isEmpty()) return 0;
-    return Pages.count();
-}
+CLayoutPage *CLayout::activePage() { return Pages[m_ActiveLocation.Page]; }
+
+CLayoutSystem *CLayout::activeSystem() { return activePage()->Sys(m_ActiveLocation.System); }
 
 void CLayout::AddPage()
 {
-    Pages.append(new CLayoutPage);
+    Pages.append(new CLayoutPage(XMLElement->appendChild("Page")));
 }
 
-const float CLayout::MMToPixelX(const float MM) const
+double CLayout::MMToPixelX(const double MM) const
 {
-    float PixelPerMM=Printer->logicalDpiX()/25.4;
-    return (MM*PixelPerMM)/PrinterResFactor;
+    static const double PixelPerMM = 720.0 / 25.4;//Printer->logicalDpiX()/25.4;
+    return (MM*PixelPerMM);//PrinterResFactor;
 }
 
-const float CLayout::MMToPixelY(const float MM) const
+double CLayout::MMToPixelY(const double MM) const
 {
-    float PixelPerMM=Printer->logicalDpiY()/25.4;
-    return (MM*PixelPerMM)/PrinterResFactor;
-}
-
-const int CLayout::MarginTop() const
-{
-    return (PageRect().top()-PaperRect().top())*Options.ScaleSize;
-}
-
-const int CLayout::MarginLeft() const
-{
-    return (PageRect().left()-PaperRect().left())*Options.ScaleSize;
-}
-
-const int CLayout::MarginRight() const
-{
-    return (PaperRect().right()-PageRect().right())*Options.ScaleSize;
-}
-
-const int CLayout::MarginBottom() const
-{
-    return (PaperRect().bottom()-PageRect().bottom())*Options.ScaleSize;
+    static const double PixelPerMM = 720.0 / 25.4;//Printer->logicalDpiY()/25.4;
+    return (MM*PixelPerMM);//PrinterResFactor;
 }
 
 const QRectF CLayout::PageRect() const
 {
-    return PaperRect().adjusted(MMToPixelX(Options.LeftMargin),MMToPixelY(Options.TopMargin),-MMToPixelX(Options.RightMargin),-MMToPixelY(Options.BottomMargin));
+    return m_PaperRect.adjusted(MMToPixelX(Options.leftMargin()),MMToPixelY(Options.topMargin()),-MMToPixelX(Options.rightMargin()),-MMToPixelY(Options.bottomMargin()));
 }
 
-const int CLayout::PageWidth() const
+const QRectF CLayout::PageRect(const int page) const
 {
-    return PageRect().width();
-}
-
-const int CLayout::PageHeight() const
-{
-    return PageRect().height();
+    return PageRect().translated(m_PaperRect.width()*page,0);
 }
 
 const QRectF CLayout::PaperRect() const
 {
-    QRectF r(Printer->paperRect(QPrinter::DevicePixel));
-    return QRectF(r.topLeft()/PrinterResFactor,r.size()/PrinterResFactor);
+    return m_PaperRect;
 }
 
-const int CLayout::PaperWidth() const
+const QRectF CLayout::PaperRect(const int page) const
 {
-    return PaperRect().width();
+    return m_PaperRect.translated(m_PaperRect.width()*page,0);
 }
 
-const int CLayout::PaperHeight() const
-{
-    return PaperRect().height();
-}
 
-void CLayout::Plot(const int Page, const int System, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene, const int PageLeft)
+void CLayout::Plot(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene)
 {
-    OCDraw ScreenObj;
-    ScreenObj.ColorOn=false;
-    ScreenObj.Scene=Scene;
-    int HoldSize = XMLScore.getVal("Size");
-    bool HoldHideBarNumbers=XMLScore.getVal("DontShowBN");
-    int HoldBarNumberOffset=XMLScore.getVal("BarNrOffset");
-    int HoldSpace=XMLScore.getVal("NoteSpace");
-    int HoldMasterStaff=XMLScore.getVal("MasteStave");
-    XMLScore.setAttribute( "Size", Viewsize * Options.ScaleSize);
-    XMLScore.setAttribute("DontShowBN",Options.DontShowBN);
-    XMLScore.setAttribute("BarNrOffset",Options.BarNrOffset);
-    XMLScore.setAttribute("NoteSpace",Options.NoteSpace+16);
-    XMLScore.setAttribute("MasterStave",Options.MasterStave);
-    ScreenObj.ScreenSize=Viewsize*Options.ScaleSize;
-    //ScreenObj.sizx = Viewsize * Options.ScaleSize;
-    //ScreenObj.sizy = Viewsize * Options.ScaleSize;
+    OCDraw ScreenObj(Scene,Options.scaleSize());
     int StartBar=0;
-    Pages[Page]->Format(System, Score, XMLScore, &Template, StartBar, false, Options.ShowAllOnSys1, 0, PageWidth()*Options.ScaleSize);
-    Pages[Page]->PlotSystem(System, Score, XMLScore, Fonts, Viewsize, (PageLeft * Viewsize * Options.ScaleSize) + MarginLeft(), MarginTop(), Options, ScreenObj, PrinterResFactor);
-    XMLScore.setAttribute( "Size", HoldSize);
-    XMLScore.setAttribute("DontShowBN",HoldHideBarNumbers);
-    XMLScore.setAttribute("BarNrOffset",HoldBarNumberOffset);
-    XMLScore.setAttribute("NoteSpace",HoldSpace);
-    XMLScore.setAttribute("MasterStave",HoldMasterStaff);
+    Pages[l.Page]->Format(l.System, TitleHeight(l.Page), Score, XMLScore, Template, Options, StartBar, false, Options.showAllOnFirstSystem(), 0, Options.scale(PageRect().width()));
+    Pages[l.Page]->PlotSystem(l.System, Score, XMLScore, Fonts, PageRect(l.Page), Options, ScreenObj);
 }
 
-void CLayout::AutoAll(const int StartPage, const int StartSystem, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene, const bool Auto, LayoutViewXML* lv)
+void CLayout::AutoAll(const LayoutLocation& StartLocation, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene, const bool Auto)
 {
     bool Finished=false;
-    OCDraw ScreenObj;
-    ScreenObj.ColorOn=false;
-    ScreenObj.Scene=Scene;
-    int HoldSize = XMLScore.getVal("Size");
-    bool HoldHideBarNumbers=XMLScore.getVal("DontShowBN");
-    int HoldBarNumberOffset=XMLScore.getVal("BarNrOffset");
-    int HoldSpace=XMLScore.getVal("NoteSpace");
-    int HoldMasterStaff=XMLScore.getVal("MasteStave");
-    XMLScore.setAttribute( "Size", Viewsize * Options.ScaleSize);
-    XMLScore.setAttribute("DontShowBN",Options.DontShowBN);
-    XMLScore.setAttribute("BarNrOffset",Options.BarNrOffset);
-    XMLScore.setAttribute("NoteSpace",Options.NoteSpace+16);
-    XMLScore.setAttribute("MasterStave",Options.MasterStave);
-    ScreenObj.ScreenSize=Viewsize*Options.ScaleSize;
-    //ScreenObj.sizx = Viewsize * Options.ScaleSize;
-    //ScreenObj.sizy = Viewsize * Options.ScaleSize;
-    int Page = StartPage;
-    while (Page > Pages.count()-1) AddPage();
-    while (Page > lv->SceneNumOfPages-1) lv->AddPage();
-    int System = StartSystem;
-    Pages[Page]->PlotTitle(Page, Fonts, Viewsize, PaperWidth(), MarginTop(), Options, MarginRight(), ScreenObj, PrinterResFactor);
+    OCCursor c;
+    OCDraw ScreenObj(Scene,Options.scaleSize());
+    ScreenObj.Cursor = &c;
+    LayoutLocation l(StartLocation);
+    while (l.Page > Pages.size()-1) AddPage();
+    Pages[l.Page]->PlotTitle(l.Page, Fonts, PageRect(), Options, ScreenObj);
     int StartBar=0;
-    Score.CreateBarMap(XMLScore);
+    //qDebug() << Options.scaleSize() << Options.size() << Options.scoreType() << Options.layoutZoom();
     forever
     {
-        while (Page > Pages.count()-1) AddPage();
-        while (Page > lv->SceneNumOfPages-1) lv->AddPage();
+        while (l.Page > Pages.size()-1) AddPage();
         forever
         {
-            bool ShowAllStaves = false;
-            if ((System == 0) && (Page == 0) && Options.ShowAllOnSys1) ShowAllStaves = true;
-            while (System > Pages[Page]->NumOfSystems()-1) Pages[Page]->AddSystem();
-            if ((Page == StartPage) && (System == StartSystem)) StartBar = Pages[Page]->StartBar(System);
-            int ShowNames = Options.ShowNamesSwitch;
-            if ((Page == 0) && (System == 0) && (Options.ShowNamesSwitch > 1)) ShowNames = 1;
-            Pages[Page]->Format(System, Score, XMLScore, &Template, StartBar, Auto, ShowAllStaves, ShowNames, PageWidth()*Options.ScaleSize);
-            //if (!Score.MoreNotes)
-            if (Score.IsEnded(&Template))
+            const bool ShowAllStaves = (l.isFirstSystem() && Options.showAllOnFirstSystem());
+            while (l.System > Pages[l.Page]->systemCount()-1) Pages[l.Page]->AddSystem();
+            if (l.matches(StartLocation))
             {
-                if ((Page > 0) || (System > 0))
+                if (l.System > 0)
                 {
-                    Pages[Page]->RemoveSystem(false);
-                    if (System == 0)
-                    {
-                        RemovePage();
-                        lv->RemovePage();
-                    }
+                    StartBar = Pages[l.Page]->Sys(l.System-1)->endBar();
+                }
+                else if (!l.isFirstPage())
+                {
+                    StartBar = Pages[l.Page-1]->Sys(Pages[l.Page-1]->systemCount()-1)->endBar();
+                }
+            }
+            int ShowNames = Options.showNamesSwitch();
+            if (l.isFirstSystem() && (Options.showNamesSwitch() > 1)) ShowNames = 1;
+            Pages[l.Page]->Format(l.System, TitleHeight(l.Page), Score, XMLScore, Template, Options, StartBar, Auto, ShowAllStaves, ShowNames, Options.scale(PageRect().width()));
+            if (Score->isEnded(Template))
+            {
+                if (!l.isFirstSystem())
+                {
+                    Pages[l.Page]->RemoveSystem();
+                    if (l.System == 0) RemovePage();
                     break;
                 }
             }
-            Pages[Page]->PlotSystem(System, Score, XMLScore, Fonts, Viewsize, ((Page * IntDiv(PaperWidth(), Viewsize)) * Viewsize * Options.ScaleSize) + MarginLeft(), MarginTop(), Options, ScreenObj, PrinterResFactor);
+            Pages[l.Page]->PlotSystem(l.System, Score, XMLScore, Fonts, PageRect(l.Page), Options, ScreenObj);
             if (Auto)
             {
-                if (FloatDiv((Pages[Page]->YSpaceUsed(System) + Pages[Page]->CurrentHeight(System)), Options.ScaleSize) > PageHeight()) break;
+                if (Pages[l.Page]->YSpaceUsed(l.System,l.Page) + Pages[l.Page]->SysHeight(l.System) > Options.scale(PageRect().height())) break;
             }
             else
             {
-                if ((Pages.count()-1 == Page) && (Pages[Page]->NumOfSystems()-1 == System))
+                if (isLastSystem(l))
                 {
-                    System ++;
+                    l.System ++;
                     Finished=true;
                     break;
                 }
-                if (Pages[Page]->NumOfSystems()-1 == System) break;
+                if (isBottomSystem(l)) break;
             }
-            System ++;
+            l.System ++;
         }
-        //if ((!Score.MoreNotes) || Finished) break;
-        if (Score.IsEnded(&Template) || Finished) break;
-        System = 0;
-        Page ++;
+        if (Score->isEnded(Template) || Finished) break;
+        l.System = 0;
+        l.Page ++;
     }
-    XMLScore.setAttribute( "Size", HoldSize);
-    XMLScore.setAttribute("DontShowBN",HoldHideBarNumbers);
-    XMLScore.setAttribute("BarNrOffset",HoldBarNumberOffset);
-    XMLScore.setAttribute("NoteSpace",HoldSpace);
-    XMLScore.setAttribute("MasterStave",HoldMasterStaff);
-    AutoClear(Page, System);
-}
-
-void CLayout::AutoClear(const int StartPage, const int StartSystem)
-{
-    int SSys = StartSystem;
-    int SPage = StartPage;
-    if ((StartPage == 0) && (StartSystem == 0)) SSys ++;
-    if (SPage < Pages.count())
-    {
-        if (SSys == 0)
-        {
-            SPage --;
-        }
-        else
-        {
-            for (int iTemp = SSys; iTemp< Pages[SPage]->NumOfSystems(); iTemp++)
-            {
-                Pages[SPage]->RemoveSystem(false);
-            }
-        }
-    }
-    if (SPage < Pages.count()-1)
-    {
-        for (int iTemp = Pages.count()-1; iTemp > SPage ;iTemp--)
-        {
-            delete Pages[iTemp];
-            Pages.removeAt(iTemp);
-        }
-    }
+    AutoClear(l);
 }
 
 void CLayout::RemovePage()
 {
-    if (Pages.count() <= 1) return;
-    delete Pages.last();
-    Pages.removeLast();
+    if (Pages.size() > 1)
+    {
+        delete Pages.takeLast();
+        XMLElement->removeChild(XMLElement->elementsByTag("Page").last());
+    }
 }
 
 void CLayout::RemoveSystem(const int Page)
 {
-    Pages[Page]->RemoveSystem(false);
+    Pages[Page]->RemoveSystem();
 }
 
-const int CLayout::NumOfSystems(const int Page) const
+int CLayout::NumOfSystems(const int Page) const
 {
-    if (Page>=Pages.count()) return 0;
-    return Pages[Page]->NumOfSystems();
+    if (Page>=Pages.size()) return 0;
+    return Pages[Page]->systemCount();
 }
 
 void CLayout::AddSystem(const int Page)
@@ -797,276 +443,263 @@ void CLayout::AddSystem(const int Page)
     Pages[Page]->AddSystem();
 }
 
-QDomLiteElement* CLayout::Save(const QString &Tag)
-{
-    QDomLiteElement* data=new QDomLiteElement(Tag);
-    data->setAttribute("Name", Name);
-    data->setAttribute("PageSize", Viewsize);
-    data->setAttribute("PageCount", NumOfPages());
-    data->setAttribute("IsFormated", IsFormated);
-    for (int iTemp = 0; iTemp < Pages.count() ; iTemp++)
-    {
-        data->appendChild(Pages[iTemp]->Save("Page"));
-    }
-    data->appendClone(&Template);
-    data->appendChild(Fonts.Save("Titles"));
-    data->appendChild(Options.Save("Options"));
-    return data;
-}
-
-void CLayout::Load(QDomLiteElement* data)
+void CLayout::assignXML(QDomLiteElement *data)
 {
     qDeleteAll(Pages);
     Pages.clear();
-    Name = data->attribute("Name");
-    Viewsize = data->attributeValue("PageSize");
-    int iTemp1 = data->attributeValue("PageCount");
-    IsFormated = data->attributeValue("IsFormated");
-    for (int iTemp = 0; iTemp < iTemp1; iTemp++)
+    shadowXML(data);
+    for (QDomLiteElement* p : (const QDomLiteElementList)data->elementsByTag("Page"))
     {
-        AddPage();
-        Pages[iTemp]->Load(data->elementsByTag("Page")[iTemp]);
+        Pages.append(new CLayoutPage(p));
     }
-    Template.copy(data->elementByTag("Template"));
-    Fonts.Load(data->elementByTag("Titles"));
-    Options.Load(data->elementByTag("Options"));
 }
 
-void CLayout::setActiveObjects(const int Page, const int System)
+void CLayout::setActiveLocation(const LayoutLocation &l)
 {
-    int P=qMin(Page,Pages.count()-1);
-    P=qMax(0,P);
-    if (Pages[P]->NumOfSystems()==0) P--;
-    if (P<0) P=0;
-    ActivePage = Pages[P];
-    ActivePage->setActiveSystem(qMax(0,System));
+    int P = 0;
+    if (Pages.size() > 0) P=qBound<int>(0,l.Page,Pages.size()-1);
+    if (!Pages.empty()) {
+        if (Pages[P]->systemCount()==0) P = loBound<int>(0,P-1);
+    }
+    m_ActiveLocation.Page = P;
+    m_ActiveLocation.System=loBound<int>(0,l.System);
 }
 
-const int CLayout::getActiveSystem() const
+int CLayout::activeSystemIndex() const
 {
     if (Pages.isEmpty()) return 0;
-    return ActivePage->getActiveSystem();
+    return m_ActiveLocation.System;
 }
 
-const int CLayout::getActivePage() const
+int CLayout::activePageIndex() const
 {
-    return Pages.indexOf(ActivePage);
+    if (Pages.isEmpty()) return 0;
+    return m_ActiveLocation.Page;
 }
 
-const int CLayout::SysTop(const int Page, const int System) const
+double CLayout::SysTop(const LayoutLocation &l) const
 {
-    return FloatDiv(Pages[Page]->SysTop(System) + MarginTop(), Options.ScaleSize);
+    if (l.Page >= Pages.size()) return 0;
+    return (Pages[l.Page]->SysTop(l.System) / Options.scaleSize()) + PageRect().top();
 }
 
-const int CLayout::SysHeight(const int Page, const int System) const
+double CLayout::SysHeight(const LayoutLocation &l) const
 {
-    return FloatDiv(Pages[Page]->SysHeight(System), Options.ScaleSize);
+    if (l.Page >= Pages.size()) return 0;
+    return Pages[l.Page]->SysHeight(l.System) / Options.scaleSize();
 }
 
-const int CLayout::MoveBar(int& Page, int& System, const int Direction)
+double CLayout::SysLen(const LayoutLocation &l) const
 {
-    int Pa = Page;
-    int Sy = System;
+    return Pages[l.Page]->SysLen(l.System) / Options.scaleSize();
+}
+
+QRectF CLayout::SysRect(const LayoutLocation &l) const
+{
+    if (l.Page >= Pages.size()) return QRectF();
+    QRectF r(PageRect(l.Page));
+    r.setTop(SysTop(l));
+    r.setHeight(SysHeight(l));
+    r.setLeft(r.right() - SysLen(l));
+    return r;
+}
+
+void CLayout::AutoClear(const LayoutLocation& StartLocation)
+{
+    LayoutLocation l(StartLocation);
+    if (l.isFirstSystem()) l.System ++;
+    if (l.Page < Pages.size())
+    {
+        if (l.System == 0)
+        {
+            l.Page --;
+        }
+        else
+        {
+            for (int i = l.System; i< Pages[l.Page]->systemCount(); i++)
+            {
+                Pages[l.Page]->RemoveSystem();
+            }
+        }
+    }
+    while (Pages.size()-1 > l.Page) delete Pages.takeLast();
+}
+
+int CLayout::MoveBar(LayoutLocation& l, const int Direction)
+{
+    const LayoutLocation l1(l);
     int RetVal=0;
     switch (Direction)
     {
     case 1:
-        if (Pages[Page]->RemoveBar(System, false))
+        if (Pages[l.Page]->RemoveBar(l.System, false))
         {
-            System ++;
-            if (System > Pages[Page]->NumOfSystems()-1)
+            if (!nextSystem(l))
             {
-                if (Page < Pages.count()-1)
+                l.System++;
+                Pages[l.Page]->AddSystem();
+                CLayoutSystem* s1=Pages[l.Page]->Sys(l1.System);
+                CLayoutSystem* s2=Pages[l.Page]->Sys(l.System);
+                s2->setTop(s1->top()+s1->height());
+                s2->setHeight(s1->height());
+                s2->setDefaultTop(s2->top());
+                s2->setSysLen(s1->sysLen());
+                s2->setStartBar(s1->endBar()+1);
+                s2->setEndBar(s2->startBar()-1);
+                s2->Template.copy(s1->Template);
+            }
+            /*
+            l.System ++;
+            if (l.System > Pages[l.Page]->systemCount()-1)
+            {
+                if (l.Page < Pages.size()-1)
                 {
-                    Page ++;
-                    System = 0;
+                    l.Page ++;
+                    l.System = 0;
                 }
                 else
                 {
-                    Pages[Page]->AddSystem();
-                    CLayoutSystem* s1=Pages[Page]->Sys(Sy);
-                    CLayoutSystem* s2=Pages[Page]->Sys(System);
-                    s2->Top=s1->Top+s1->Height;
-                    s2->Height=s1->Height;
-                    s2->DefaultTop=s2->Top;
-                    s2->Syslen=s1->Syslen;
-                    s2->StartBar=s1->EndBar+1;
-                    s2->EndBar=s2->StartBar-1;
-                    s2->Template.clear();
-                    foreach(QDomLiteElement* e,s1->Template.childElements)
-                    {
-                        s2->Template.appendClone(e);
-                    }
+                    Pages[l.Page]->AddSystem();
+                    CLayoutSystem* s1=Pages[l.Page]->Sys(l1.System);
+                    CLayoutSystem* s2=Pages[l.Page]->Sys(l.System);
+                    s2->setTop(s1->top()+s1->height());
+                    s2->setHeight(s1->height());
+                    s2->setDefaultTop(s2->top());
+                    s2->setSysLen(s1->sysLen());
+                    s2->setStartBar(s1->endBar()+1);
+                    s2->setEndBar(s2->startBar()-1);
+                    s2->Template.copy(s1->Template);
                 }
             }
-            Pages[Page]->AddBar(System, true);
+            */
+            Pages[l.Page]->AddBar(l.System, true);
             RetVal = -1;
         }
         break;
     case -1:
-        System ++;
-        if (System > Pages[Page]->NumOfSystems()-1)
+        /*
+        l.System ++;
+        if (l.System > Pages[l.Page]->systemCount()-1)
         {
-            Page ++;
-            if (Page > Pages.count()-1)
+            l.Page ++;
+            if (l.Page > Pages.size()-1)
             {
-                Page = Pa;
-                System = Sy;
+                l = l1;
                 return RetVal;
             }
-            System = 0;
+            l.System = 0;
         }
-        if (Pages[Page]->RemoveBar(System, true))
+        */
+        if (!nextSystem(l)) return RetVal;
+        if (Pages[l.Page]->RemoveBar(l.System, true))
         {
-            Pages[Pa]->AddBar(Sy, false);
-            if ((System==Pages[Page]->NumOfSystems()-1) & (Page==NumOfPages()-1))
+            Pages[l1.Page]->AddBar(l1.System, false);
+            if (isLastSystem(l))
             {
-                if (Pages[Page]->Sys(System)->StartBar>=Pages[Page]->Sys(System)->EndBar)
+                if (Pages[l.Page]->Sys(l.System)->startBar()>=Pages[l.Page]->Sys(l.System)->endBar())
                 {
-                    RetVal=1;
-                    return RetVal;
+                    return 1;
                 }
             }
             RetVal = -1;
         }
         else
         {
-            if (Page == Pages.count()-1)
+            if (isLastSystem(l))
             {
-                if (System == NumOfSystems(Page)-1)
-                {
-                    Pages[Pa]->AddBar(Sy, false);
-                    RetVal = 1;
-                }
+                Pages[l1.Page]->AddBar(l1.System, false);
+                RetVal = 1;
             }
         }
     }
-    if (RetVal == 0)
-    {
-        Page = Pa;
-        System = Sy;
-    }
+    if (RetVal == 0) l = l1;
     return RetVal;
 }
 
 void CLayout::MoveSystem(const int Page, const int Direction)
 {
-    switch (Sgn(Direction))
+    switch (Sgn<int>(Direction))
     {
     case 1:
-        if (Page == Pages.count()-1) AddPage();
-        Pages[Page + 1]->InsertSystem(true, Pages[Page]->GetSystem(false));
+        if (isLastPage(Page)) AddPage();
+        Pages[Page + 1]->PrependSystem(Pages[Page]->takeLastSystem());
         break;
     case -1:
-        if (Page < Pages.count()-1)
+        if (!isLastPage(Page))
         {
-            Pages[Page]->InsertSystem(false, Pages[Page + 1]->GetSystem(true));
+            Pages[Page]->AppendSystem(Pages[Page + 1]->takeFirstSystem());
         }
     }
 }
 
+double CLayout::TitleHeight(const int Page)
+{
+    if (Page==0) return Fonts.height();
+    return 0;
+}
+
 void CLayout::AdjustSystems(const int Page)
 {
-    Pages[Page]->AdjustSystems((PageHeight() - 400) * Options.ScaleSize);
+    Pages[Page]->AdjustSystems(int(Options.scale(PageRect().height() - 400)), TitleHeight(Page));
 }
 
 void CLayout::FormatTitle()
 {
-    Pages.first()->FormatTitle();
-}
-
-void CLayout::PlotTitle(QGraphicsScene *Scene)
-{
-    OCDraw ScreenObj;
-    ScreenObj.ColorOn=false;
-    ScreenObj.Scene=Scene;
-    //ScreenObj.sizx = Viewsize * Options.ScaleSize;
-    //ScreenObj.sizy = Viewsize * Options.ScaleSize;
-    ScreenObj.ScreenSize=Viewsize*Options.ScaleSize;
-    Pages.first()->PlotTitle(0, Fonts, Viewsize, PaperWidth(), MarginTop(), Options, MarginRight(), ScreenObj,PrinterResFactor);
-}
-
-void CLayout::Erase(const int Page, const int System, QGraphicsScene *Scene)
-{
-    if (Page<Pages.count()) Pages[Page]->Erase(System,Scene);
-}
-
-void CLayout::EraseTitle(QGraphicsScene *Scene)
-{
-    if (Pages.count()) Pages[0]->EraseTitle(Scene);
+    Pages.first()->FormatTitle(TitleHeight(0));
 }
 
 void CLayout::PrintIt(const int StartPage, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene)
 {
-    int HoldViewsize = Viewsize;
-    Viewsize = 1;
-    OCDraw ScreenObj;
-    ScreenObj.ColorOn=false;
-    ScreenObj.Scene=Scene;
-    int HoldSize = XMLScore.getVal("Size");
-    bool HoldHideBarNumbers=XMLScore.getVal("DontShowBN");
-    int HoldBarNumberOffset=XMLScore.getVal("BarNrOffset");
-    int HoldSpace=XMLScore.getVal("NoteSpace");
-    int HoldMasterStaff=XMLScore.getVal("MasteStave");
-    XMLScore.setAttribute( "Size", Options.ScaleSize);
-    XMLScore.setAttribute("DontShowBN",Options.DontShowBN);
-    XMLScore.setAttribute("BarNrOffset",Options.BarNrOffset);
-    XMLScore.setAttribute("NoteSpace",Options.NoteSpace+16);
-    XMLScore.setAttribute("MasterStave",Options.MasterStave);
-    //ScreenObj.sizx = Options.ScaleSize;
-    //ScreenObj.sizy = Options.ScaleSize;
-    ScreenObj.ScreenSize=Options.ScaleSize;
-    int Page = StartPage;
-    int System = 0;
-    int StartBar=0;
-    Pages[Page]->PlotTitle(Page, Fonts, Viewsize, PaperWidth(), MarginTop(), Options, MarginRight(), ScreenObj,PrinterResFactor);
+    OCDraw ScreenObj(Scene,Options.scaleSize());
+    LayoutLocation l(StartPage,0);
+    CLayoutPage* p = Pages[l.Page];
+    int StartBar = p->StartBar(0);
+    p->PlotTitle(l.Page, Fonts, PageRect(), Options, ScreenObj);
     forever
     {
-        bool ShowAllStaves = false;
-        if ((System == 0) && (Page == 0) && Options.ShowAllOnSys1) ShowAllStaves = true;
-        if (System > Pages[Page]->NumOfSystems()-1) Pages[Page]->AddSystem();
-        if ((Page == StartPage) && (System == 0)) StartBar = Pages[Page]->StartBar(System);
-        int ShowNames = Options.ShowNamesSwitch;
-        if ((Page == 0) && (System == 0) && (Options.ShowNamesSwitch > 1)) ShowNames = 1;
-        Pages[Page]->Format(System, Score, XMLScore, &Template, StartBar, false, ShowAllStaves, ShowNames, PageWidth()*Options.ScaleSize);
-        //if (!Score.MoreNotes) break;
-        if (Score.IsEnded(&Template)) break;
-        Pages[Page]->PlotSystem(System, Score, XMLScore, Fonts, 1, MarginLeft(), MarginTop(), Options, ScreenObj, PrinterResFactor);
-        if (Pages[Page]->NumOfSystems()-1 == System) break;
-        System ++;
+        const bool ShowAllStaves = (l.isFirstSystem() && Options.showAllOnFirstSystem());
+        if (l.System > p->systemCount()-1) p->AddSystem();
+        int ShowNames = Options.showNamesSwitch();
+        if (l.isFirstSystem() && (Options.showNamesSwitch() > 1)) ShowNames = 1;
+        p->Format(l.System, TitleHeight(l.Page), Score, XMLScore, Template, Options, StartBar, false, ShowAllStaves, ShowNames, Options.scale(PageRect().width()));
+        if (Score->isEnded(Template)) break;
+        p->PlotSystem(l.System, Score, XMLScore, Fonts, PageRect(), Options, ScreenObj);
+        if (isBottomSystem(l)) break;
+        l.System ++;
     }
-    Viewsize = HoldViewsize;
-    XMLScore.setAttribute( "Size", HoldSize);
-    XMLScore.setAttribute("DontShowBN",HoldHideBarNumbers);
-    XMLScore.setAttribute("BarNrOffset",HoldBarNumberOffset);
-    XMLScore.setAttribute("NoteSpace",HoldSpace);
-    XMLScore.setAttribute("MasterStave",HoldMasterStaff);
 }
 
-void CLayout::GetPrinter()
+void CLayout::Erase(const LayoutLocation &l, QGraphicsScene *Scene)
 {
-    Printer->setOrientation((QPrinter::Orientation)Options.Orientation);
-    Printer->setPaperSize((QPrinter::PaperSize)Options.PaperSize);
-    Printer->setFullPage(true);
-    PrinterResFactor=FloatDiv(Printer->resolution(),400);
-    Viewsize=PaperHeight()/920;
-    Options.ScaleSize = Options.ScoreType+2;
-    if (Options.ScaleSize==0) Options.ScaleSize=1;
+    if (l.Page<Pages.size()) Pages[l.Page]->Erase(l.System,Scene);
 }
 
-void CLayout::SetPrinter()
+void CLayout::EraseTitle(QGraphicsScene *Scene)
 {
-    Printer->setOrientation((QPrinter::Orientation)Options.Orientation);
-    Printer->setPaperSize((QPrinter::PaperSize)Options.PaperSize);
-    Printer->setFullPage(true);
-    PrinterResFactor=FloatDiv(Printer->resolution(),400);
-    Viewsize=PaperHeight()/920;
-    Options.ScaleSize = Options.ScoreType+2;
-    if (Options.ScaleSize==0) Options.ScaleSize=1;
-
+    if (Pages.size()) Pages[0]->EraseTitle(Scene);
 }
 
-const bool CLayout::ChangePageSetup(QWidget* Owner)
+void CLayout::initPrinter()
+{
+    Printer->setPageMargins(QMarginsF(0,0,0,0));
+    Printer->setPageOrientation(QPageLayout::Orientation(Options.orientation()));
+    //Printer->setPaperSize(QPrinter::PaperSize(Options.paperSize()));
+    Printer->setFullPage(true);
+    //PrinterResFactor=DoubleDiv(Printer->resolution(),400);
+    //PrinterResFactor = 1;
+    m_PaperRect=QRect(QPoint(0,0),Printer->pageLayout().pageSize().sizePixels(720)); //Printer->resolution()
+    //m_PaperRect.setSize(m_PaperRect.size()/PrinterResFactor);
+    //m_PaperRect.setTopLeft(m_PaperRect.topLeft()/PrinterResFactor);
+    //viewSize = m_PaperRect.height()/(920*6);
+    //PrinterResFactor = 1;
+    //double pf = 720.0 / Printer->resolution();
+    Options.setSize(12);
+    Options.setScaleSize(((Options.scoreType() * 0.75) + 0.75));
+    if (isZero(Options.scaleSize())) Options.setScaleSize(1);
+    //viewSize = 1;//6 / Options.scaleSize();
+}
+
+bool CLayout::ChangePageSetup(QWidget* Owner)
 {
     QPageSetupDialog d(Printer,Owner);
     d.setWindowFlags(Qt::Sheet);
@@ -1074,7 +707,7 @@ const bool CLayout::ChangePageSetup(QWidget* Owner)
     return (d.exec()==QDialog::Accepted);
 }
 
-const bool CLayout::ChangePrinter(QWidget* Owner, QPrinter* Prn)
+bool CLayout::ChangePrinter(QWidget* Owner, QPrinter* Prn)
 {
     QPrintDialog d(Prn, Owner);
     d.setWindowFlags(Qt::Sheet);
@@ -1082,10 +715,13 @@ const bool CLayout::ChangePrinter(QWidget* Owner, QPrinter* Prn)
     return (d.exec()==QDialog::Accepted);
 }
 
-CLayoutCollection::CLayoutCollection()
+void CLayout::PlotTitle(QGraphicsScene *Scene)
 {
-
+    OCDraw ScreenObj(Scene,Options.scaleSize());
+    Pages.first()->PlotTitle(0, Fonts, PageRect(), Options, ScreenObj);
 }
+
+CLayoutCollection::CLayoutCollection() : XMLLayoutCollectionWrapper(), m_ActiveLayout(0) {}
 
 CLayoutCollection::~CLayoutCollection()
 {
@@ -1093,120 +729,69 @@ CLayoutCollection::~CLayoutCollection()
     Layouts.clear();
 }
 
-void CLayoutCollection::AddLayout(const QString& Name)
+CLayout *CLayoutCollection::activeLayout() const { return Layouts[m_ActiveLayout]; }
+
+void CLayoutCollection::InitLayout(const int Index, XMLScoreWrapper &Score)
 {
-    Layouts.append(new CLayout);
-    Layouts.last()->Name=Name;
+    Layouts[Index]->assignXML(Score.Layout(Index).xml());
+    Layouts[Index]->setActiveLocation();
 }
 
-void CLayoutCollection::RemoveLayout(const int Index)
+void CLayoutCollection::setActiveLayout(const QString &Name)
 {
-    delete Layouts[Index];
-    Layouts.removeAt(Index);
-}
-
-const QString CLayoutCollection::Name(const int Index) const
-{
-    if (Index > Layouts.count()-1) return QString();
-    return Layouts[Index]->Name;
-}
-
-void CLayoutCollection::InitLayout(const int Index, XMLScoreWrapper& Score)
-{
-    if (Score.NumOfLayouts()>Index)
+    for (int i=0;i<Layouts.size();i++)
     {
-        Layouts[Index]->Load(Score.Layout(Index));
-        Layouts[Index]->Score.MakeStaves(Score);
-        if (Layouts[Index]->NumOfPages())
+        if (Layouts[i]->name()==Name)
         {
-            Layouts[Index]->setActiveObjects(0,0);
-        }
-    }
-    else
-    {
-        Layouts[Index]->Template.copy(Score.Template(0));
-    }
-}
-
-void CLayoutCollection::SetCurrentLayout(const int Index)
-{
-    CurrentLayout=Layouts[Index];
-}
-
-void CLayoutCollection::SetCurrentLayout(const QString& Name)
-{
-    for (int i=0; i<Layouts.count(); i++)
-    {
-        if (Layouts[i]->Name==Name)
-        {
-            CurrentLayout=Layouts[i];
+            m_ActiveLayout=i;
             break;
         }
     }
 }
 
-const int CLayoutCollection::getCurrentLayout() const
+void CLayoutCollection::setActiveLayout(const int index) { m_ActiveLayout=index; }
+
+int CLayoutCollection::activeLayoutIndex() const { return m_ActiveLayout; }
+
+CLayout *CLayoutCollection::layout(const int index) { return Layouts[index]; }
+
+int CLayoutCollection::activePageIndex() const
 {
-    return Layouts.indexOf(CurrentLayout);
+    return Layouts[m_ActiveLayout]->activePageIndex();
 }
 
-const int CLayoutCollection::getActivePage() const
+int CLayoutCollection::activeSystemIndex() const
 {
-    return CurrentLayout->getActivePage();
+    return Layouts[m_ActiveLayout]->activeSystemIndex();
 }
 
-const int CLayoutCollection::getActiveSystem() const
-{
-    return CurrentLayout->getActiveSystem();
+LayoutLocation CLayoutCollection::activeLayoutLocation() const {
+    return LayoutLocation(activePageIndex(),activeSystemIndex());
 }
 
-QDomLiteElement* CLayoutCollection::Save()
-{
-    QDomLiteElement* Doc=new QDomLiteElement("LayoutCollection");
-    Doc->setAttribute("LayoutCount", Layouts.count());
-    for (int iTemp=0; iTemp<Layouts.count(); iTemp++)
-    {
-        Doc->appendChild(Layouts[iTemp]->Save("Layout"));
-    }
-    return Doc;
-}
-
-void CLayoutCollection::Load(QDomLiteElement* data, XMLScoreWrapper& Score)
+void CLayoutCollection::assignXML(const XMLScoreWrapper &score)
 {
     qDeleteAll(Layouts);
     Layouts.clear();
-    int iTemp1 = Score.NumOfLayouts();
-    for (int iTemp = 0; iTemp<iTemp1; iTemp++)
+    shadowXML(score.LayoutCollection.xml());
+    Score.assignXML(score);
+    Score.createBarMap();
+    for (int i = 0; i < layoutCount(); i++)
     {
-        AddLayout();
-        Layouts[iTemp]->Load(data->elementsByTag("Layout")[iTemp]);
-        Layouts[iTemp]->Score.MakeStaves(Score);
-        if (Layouts[iTemp]->NumOfPages())
-        {
-            Layouts[iTemp]->setActiveObjects(0,0);
-        }
+        CLayout* l=new CLayout(XMLLayout(i).xml());
+        l->Score = &Score;
+        Layouts.append(l);
+        l->setActiveLocation();
     }
 }
 
-
-
 bool CLayoutCollection::ChangePageSetup(QWidget *Owner)
 {
-    return CurrentLayout->ChangePageSetup(Owner);
+    return activeLayout()->ChangePageSetup(Owner);
 }
 
 bool CLayoutCollection::ChangePrinter(QWidget *Owner)
 {
-    return CurrentLayout->ChangePrinter(Owner,CurrentLayout->Printer);
+    return activeLayout()->ChangePrinter(Owner,activeLayout()->Printer);
 }
 
-const int CLayoutCollection::NumOfLayouts() const
-{
-    return Layouts.count();
-}
-
-void CLayoutCollection::Clear()
-{
-    qDeleteAll(Layouts);
-    Layouts.clear();
-}

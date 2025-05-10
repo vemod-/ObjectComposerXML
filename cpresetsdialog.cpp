@@ -7,8 +7,6 @@ CPresetsDialog::CPresetsDialog(QWidget *parent) :
 {
     ui->setupUi(this);
     setWindowModality(Qt::WindowModal);
-    //editor1 = new QtTreePropertyBrowser();
-    //this->layout()->addWidget(editor1);
 }
 
 CPresetsDialog::~CPresetsDialog()

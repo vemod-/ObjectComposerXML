@@ -1,14 +1,15 @@
 #include "clayoutwizard.h"
 #include "ui_clayoutwizard.h"
-#include <QMessageBox>
+//#include <QMessageBox>
+#include "idevice.h"
 #if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-#include <QPrinter>
+//#include <QPrinter>
 #include <QPageSetupDialog>
-#include <QPrinterInfo>
+//#include <QPrinterInfo>
 #else
-#include <QtPrintSupport/QPrinter>
+//#include <QtPrintSupport/QPrinter>
 #include <QtPrintSupport/QPageSetupDialog>
-#include <QtPrintSupport/QPrinterInfo>
+//#include <QtPrintSupport/QPrinterInfo>
 #endif
 
 CLayoutWizard::CLayoutWizard(QWidget *parent) :
@@ -18,16 +19,13 @@ CLayoutWizard::CLayoutWizard(QWidget *parent) :
     ui->setupUi(this);
     setWindowModality(Qt::WindowModal);
     setVisible(false);
-    TitleElement.SetFont(QFont("Times New Roman",24));
-    SubtitleElement.SetFont(QFont("Times New Roman",18));
-    ComposerElement.SetFont(QFont("Times New Roman",12));
-    NamesElement.SetFont(QFont("Times New Roman",8));
-    connect(ui->topMargin,SIGNAL(Changed()),this,SLOT(UpdateMargins()));
-    connect(ui->leftMargin,SIGNAL(Changed()),this,SLOT(UpdateMargins()));
-    connect(ui->rightMargin,SIGNAL(Changed()),this,SLOT(UpdateMargins()));
-    connect(ui->bottomMargin,SIGNAL(Changed()),this,SLOT(UpdateMargins()));
-    connect(ui->tabWidget,SIGNAL(currentChanged(int)),this,SLOT(UpdateMargins()));
-    connect(ui->NoteSpace,SIGNAL(valueChanged(int)),this,SLOT(SpacingTooltip(int)));
+    connect(ui->topMargin,&CMeasureControl::Changed,this,&CLayoutWizard::UpdateMargins);
+    connect(ui->leftMargin,&CMeasureControl::Changed,this,&CLayoutWizard::UpdateMargins);
+    connect(ui->rightMargin,&CMeasureControl::Changed,this,&CLayoutWizard::UpdateMargins);
+    connect(ui->bottomMargin,&CMeasureControl::Changed,this,&CLayoutWizard::UpdateMargins);
+    connect(ui->tabWidget,&QTabWidget::currentChanged,this,&CLayoutWizard::UpdateMargins);
+    connect(ui->NoteSpace,&QAbstractSlider::valueChanged,this,&CLayoutWizard::SpacingTooltip);
+    connect(ui->ImportButton,&QPushButton::clicked,this,&CLayoutWizard::ImportLayout);
     ui->graphicsView->setScene(&S);
     Printer=new QPrinter();
     pageSetupButton=new QToolButton(ui->graphicsView);
@@ -35,7 +33,7 @@ CLayoutWizard::CLayoutWizard(QWidget *parent) :
     pageSetupButton->setIcon(QIcon(":/preferences.png"));
     pageSetupButton->setIconSize(QSize(32,32));
     pageSetupButton->setFixedSize(QSize(36,36));
-    connect(pageSetupButton,SIGNAL(clicked()),this,SLOT(ShowPageSetup()));
+    connect(pageSetupButton,&QAbstractButton::clicked,this,&CLayoutWizard::ShowPageSetup);
     UpdateMargins();
 }
 
@@ -48,7 +46,7 @@ CLayoutWizard::~CLayoutWizard()
 int CLayoutWizard::ShowModal()
 {
     show();
-    while (this->isVisible())
+    while (isVisible())
     {
         QApplication::processEvents();
     }
@@ -57,124 +55,60 @@ int CLayoutWizard::ShowModal()
 
 void CLayoutWizard::Fill(XMLScoreWrapper& XMLScore, int Index)
 {
-    //m_XMLScore=XMLScore;
-    QDomLiteElement* XMLLayout;
+    m_Score.shadowXML(XMLScore);
     ui->StaffListLeft->clear();
     ui->StaffListRight->clear();
+
     for (int i=0;i<XMLScore.NumOfStaffs();i++)
     {
-        ui->MasterStaff->addItem(XMLScore.StaffName(i));
-    }
-
-    ui->Type->clear();
-    ui->Type->addItems(QStringList() << "Large Part" << "Part" << "Score" << "Pocket Score");
-    ui->ShowNames->clear();
-    ui->ShowNames->addItems(QStringList() << "Always" << "When Staff Config Changes" << "On First System Only");
-
-    for (int i=0;i<XMLScore.Template(0)->childCount();i++)
-    {
         QListWidgetItem* item=new QListWidgetItem(XMLScore.StaffName(i));
-        item->setData(LWAllTemplateIndex,i);
+        item->setData(LWStaffId,i);
         item->setData(LWName,XMLScore.StaffName(i));
         item->setData(LWAbbreviation,XMLScore.StaffAbbreviation(i));
         ui->StaffListLeft->addItem(item);
     }
-    QDialogButtonBox* bb=findChild<QDialogButtonBox*>();
+    auto bb=findChild<QDialogButtonBox*>();
     QPushButton* pb = bb->button(QDialogButtonBox::Ok);
-    if (Index>-1)
+
+    XMLLayoutOptionsWrapper Options;
+    XMLLayoutFontsWrapper Fonts;
+    if (Index > -1)
     {
         pb->setText("Apply Changes");
-        XMLLayout=XMLScore.Layout(Index);
-        QDomLiteElement* LayoutTemplate=XMLScore.LayoutTemplate(Index);
-        for (int i=0;i<LayoutTemplate->childCount();i++)
+        XMLLayoutWrapper XMLLayout=XMLScore.Layout(Index);
+        for (int i=0;i<XMLLayout.Template.staffCount();i++)
         {
-            QDomLiteElement* s=LayoutTemplate->childElement(i);
-            int ati=XMLScore.AllTemplateIndex(s);
+            XMLTemplateStaffWrapper s(XMLLayout.Template.staff(i));
+            const int ati=s.id();
             ui->StaffListLeft->item(ati)->setSelected(true);
             QListWidgetItem* item=new QListWidgetItem(ui->StaffListLeft->item(ati)->text());
-            item->setData(LWAllTemplateIndex,ati);
-            item->setData(LWSquareBracket,s->attributeValue("SquareBracket"));
-            item->setData(LWCurlyBracket,s->attributeValue("CurlyBracket"));
-            item->setData(LWName,XMLScore.StaffName(s));
-            item->setData(LWAbbreviation,XMLScore.StaffAbbreviation(s));
-            item->setData(LWSize,s->attributeValue("Size"));
+            item->setData(LWStaffId,ati);
+            item->setData(LWSquareBracket,s.squareBracket());
+            item->setData(LWCurlyBracket,s.curlyBracket());
+            item->setData(LWName,XMLScore.StaffName(ati));
+            item->setData(LWAbbreviation,XMLScore.StaffAbbreviation(ati));
+            item->setData(LWSize,s.size());
             ui->StaffListRight->addItem(item);
         }
         for (int i=ui->StaffListLeft->count()-1;i>=0;i--)
         {
             if (ui->StaffListLeft->item(i)->isSelected()) ui->StaffListLeft->takeItem(i);
         }
-        ui->Name->setText(XMLScore.LayoutName(XMLLayout));
-        QDomLiteElement* XMLOptions=XMLLayout->elementByTag("Options");
-
-        switch ((int)(XMLOptions->attributeValue("ScoreType")*10))
-        {
-        case 10:
-            ui->Type->setCurrentIndex(0);
-            break;
-        case 15:
-            ui->Type->setCurrentIndex(1);
-            break;
-        case 20:
-            ui->Type->setCurrentIndex(2);
-            break;
-        case 40:
-            ui->Type->setCurrentIndex(3);
-            break;
-        }
-
-        ui->Type->setCurrentIndex(XMLOptions->attributeValue("ScoreType")-1);
-        ui->HideBarNumbers->setChecked(XMLOptions->attributeValue("DontShowBN"));
-        ui->BarNumberOffset->setValue(XMLOptions->attributeValue("BarNrOffset"));
-        ui->NoteSpace->setValue(XMLOptions->attributeValue("NoteSpace"));
-        ui->MasterStaff->setCurrentIndex(XMLOptions->attributeValue("MasterStave"));
-        ui->ShowNames->setCurrentIndex(XMLOptions->attributeValue("ShowNamesSwitch")-1);
-        ui->ShowAllStaffs->setChecked(XMLOptions->attributeValue("ShowAllOnSys1"));
-        ui->ShowAsSound->setChecked(!XMLOptions->attributeValue("TransposeInstruments"));
-        int temp=XMLOptions->attributeValue("TopMargin");
-        if (temp==0) temp=20;
-        ui->topMargin->setMillimeters(temp);
-        temp=XMLOptions->attributeValue("LeftMargin");
-        if (temp==0) temp=15;
-        ui->leftMargin->setMillimeters(temp);
-        temp=XMLOptions->attributeValue("RightMargin");
-        if (temp==0) temp=15;
-        ui->rightMargin->setMillimeters(temp);
-        temp=XMLOptions->attributeValue("BottomMargin");
-        if (temp==0) temp=25;
-        ui->bottomMargin->setMillimeters(temp);
-        /*
-        ui->topMargin->setMillimeters(XMLOptions->attributeValue("TopMargin"));
-        ui->leftMargin->setMillimeters(XMLOptions->attributeValue("LeftMargin"));
-        ui->rightMargin->setMillimeters(XMLOptions->attributeValue("RightMargin"));
-        ui->bottomMargin->setMillimeters(XMLOptions->attributeValue("BottomMargin"));
-        */
-        Printer->setOrientation((QPrinter::Orientation)XMLOptions->attributeValue("Orientation"));
-        Printer->setPaperSize((QPrinter::PaperSize)XMLOptions->attributeValue("PaperSize"));
-
-        QDomLiteElement* XMLTitles=XMLLayout->elementByTag("Titles");
-        TitleElement.Load(XMLTitles->elementByTag("Title"));
-        SubtitleElement.Load(XMLTitles->elementByTag("Subtitle"));
-        ComposerElement.Load(XMLTitles->elementByTag("Composer"));
-        NamesElement.Load(XMLTitles->elementByTag("Names"));
-        //QLineEdit* Title=findChild<QLineEdit*>("Title");
-        //QLineEdit* Subtitle=findChild<QLineEdit*>("Subtitle");
-        //QLineEdit* Composer=findChild<QLineEdit*>("Composer");
-        //Title->setText(TitleElement.Text);
-        //Subtitle->setText(SubtitleElement.Text);
-        //Composer->setText(ComposerElement.Text);
+        ui->Name->setText(XMLLayout.name());
+        Fonts = XMLLayout.Fonts;
+        Options = XMLLayout.Options;
     }
     else
     {
         pb->setText("Create Layout");
         ui->Name->setText("New Layout");
-        if (XMLScore.NumOfLayouts())
+        if (XMLScore.layoutCount())
         {
             int MatchCount=1;
             forever
             {
                 bool Match=false;
-                for (int i=0; i<XMLScore.NumOfLayouts(); i++)
+                for (int i=0; i<XMLScore.layoutCount(); i++)
                 {
                     if (ui->Name->text()==XMLScore.LayoutName(i))
                     {
@@ -186,132 +120,143 @@ void CLayoutWizard::Fill(XMLScoreWrapper& XMLScore, int Index)
             }
         }
 
-        ui->Type->setCurrentIndex(0);
-        ui->ShowNames->setCurrentIndex(2);
-        ui->ShowAllStaffs->setChecked(true);
-        ui->HideBarNumbers->setChecked(XMLScore.getVal("DontShowBN"));
-        ui->BarNumberOffset->setValue(XMLScore.getVal("BarNrOffset"));
-        ui->NoteSpace->setValue(XMLScore.getVal("NoteSpace")-16);
-        ui->MasterStaff->setCurrentIndex(XMLScore.getVal("MasterStave"));
-        ui->topMargin->setMillimeters(20);
-        ui->leftMargin->setMillimeters(15);
-        ui->rightMargin->setMillimeters(15);
-        ui->bottomMargin->setMillimeters(25);
+        Options.setHideBarNumbers(XMLScore.ScoreOptions.hideBarNumbers());
+        Options.setBarNumberOffset(XMLScore.ScoreOptions.barNumberOffset());
+        //options.setNoteSpace(XMLScore.XMLOptions.noteSpace()-16);
+        Options.setNoteSpace(XMLScore.ScoreOptions.noteSpace());
+        Options.setMasterStaff(XMLScore.ScoreOptions.masterStaff());
+
+        Options.setOrientation(Printer->pageLayout().orientation());
+        //Options.setPaperSize(Printer->paperSize());
+
         MoveAllRight();
     }
-    ui->TitleBox->Fill(TitleElement.Font(),TitleElement.Text);
-    ui->SubtitleBox->Fill(SubtitleElement.Font(),SubtitleElement.Text);
-    ui->ComposerBox->Fill(ComposerElement.Font(),ComposerElement.Text,false,Qt::AlignRight | Qt::AlignVCenter);
-    ui->StaffNamesBox->Fill(NamesElement.Font(),"Sample Text",true,Qt::AlignLeft | Qt::AlignVCenter);
+
     ValidateStaffs();
+
+    FillOptions(Options,Fonts,XMLScore,ui->Name->text());
+ /*
+    for (int i=0;i<XMLScore.NumOfStaffs();i++)
+    {
+        ui->MasterStaff->addItem(XMLScore.StaffName(i));
+    }
+
+    ui->Type->clear();
+    ui->Type->addItems(QStringList{"Large Part", "Part", "Score", "Pocket Score"});
+    ui->ShowNames->clear();
+    ui->ShowNames->addItems(QStringList{"Always", "When Staff Config Changes", "On First System Only"});
+
+    ui->TitleBox->fill(Fonts.title.font(),Fonts.title.text());
+    ui->SubtitleBox->fill(Fonts.subtitle.font(),Fonts.subtitle.text());
+    ui->ComposerBox->fill(Fonts.composer.font(),Fonts.composer.text(),false,Qt::AlignRight | Qt::AlignVCenter);
+    ui->StaffNamesBox->fill(Fonts.names.font(),"Sample Text",true,Qt::AlignLeft | Qt::AlignVCenter);
+
+    ui->Type->setCurrentIndex(Options.scoreType()-1);
+    ui->HideBarNumbers->setChecked(Options.hideBarNumbers());
+    ui->BarNumberOffset->setValue(Options.barNumberOffset());
+    ui->NoteSpace->setValue(Options.noteSpace()-16);
+    ui->MasterStaff->setCurrentIndex(Options.masterStaff());
+    ui->ShowNames->setCurrentIndex(Options.showNamesSwitch()-1);
+    ui->ShowAllStaffs->setChecked(Options.showAllOnFirstSystem());
+    ui->ShowAsSound->setChecked(!Options.transposeInstruments());
+    ui->topMargin->setMillimeters(Options.topMargin());
+    ui->leftMargin->setMillimeters(Options.leftMargin());
+    ui->rightMargin->setMillimeters(Options.rightMargin());
+    ui->bottomMargin->setMillimeters(Options.bottomMargin());
+    ui->frontPage->setChecked(Options.frontPage());
+
+    Printer->setPageOrientation(QPageLayout::Orientation(Options.orientation()));
+    //Printer->setPaperSize(QPrinter::PaperSize(Options.paperSize()));
+
+    ui->ImportCombo->clear();
+    if (Index > -1) {
+        if (XMLScore.layoutCount() > 1) {
+            for (int i = 0; i < XMLScore.layoutCount(); i++) {
+                if (XMLScore.Layout(i).name() != XMLScore.Layout(Index).name()) ui->ImportCombo->addItem(XMLScore.Layout(i).name());
+            }
+        }
+    }
+    else {
+        if (XMLScore.layoutCount() > 0) {
+            for (int i = 0; i < XMLScore.layoutCount(); i++) {
+                ui->ImportCombo->addItem(XMLScore.Layout(i).name());
+            }
+        }
+    }
+
     UpdateMargins();
     SpacingTooltip(ui->NoteSpace->value());
+*/
 }
+
+
 
 void CLayoutWizard::ModifyXML(XMLScoreWrapper& XMLScore, int Index )
 {
-    QDomLiteElement* LayoutCollection;
-    if (!XMLScore.LayoutCollectionExists())
-    {
-        //LayoutCollection = XMLNewChild("LayoutCollection",XMLScore->documentElement);
-        LayoutCollection=XMLScore.getXML()->documentElement->appendChild("LayoutCollection");
-    }
-    else
-    {
-        LayoutCollection=XMLScore.LayoutCollection();
-    }
-    QDomLiteElement* XMLTemplate=new QDomLiteElement("Template");
+    XMLLayoutCollectionWrapper LayoutCollection=XMLScore.LayoutCollection;
+    XMLTemplateWrapper XMLTemplate;
     for (int i=0; i<ui->StaffListRight->count(); i++)
     {
-        QDomLiteElement* XMLTemplateStaff=XMLTemplate->appendChild("TemplateStaff");
-        XMLTemplateStaff->setAttribute("AllTemplateIndex",ui->StaffListRight->item(i)->data(LWAllTemplateIndex));
-        XMLTemplateStaff->setAttribute("CurlyBracket",ui->StaffListRight->item(i)->data(LWCurlyBracket));
-        XMLTemplateStaff->setAttribute("SquareBracket",ui->StaffListRight->item(i)->data(LWSquareBracket));
-        XMLTemplateStaff->setAttribute("Name",ui->StaffListRight->item(i)->data(LWName));
-        XMLTemplateStaff->setAttribute("Abbreviation",ui->StaffListRight->item(i)->data(LWAbbreviation));
-        XMLTemplateStaff->setAttribute("Size",ui->StaffListRight->item(i)->data(LWSize));
-        XMLTemplateStaff->setAttribute("Index",i);
+        XMLTemplateStaffWrapper XMLTemplateStaff;
+        XMLTemplateStaff.setId(ui->StaffListRight->item(i)->data(LWStaffId).toInt());
+        XMLTemplateStaff.setCurlyBracket(CurlyBracketConstants(ui->StaffListRight->item(i)->data(LWCurlyBracket).toInt()));
+        XMLTemplateStaff.setSquareBracket(SquareBracketConstants(ui->StaffListRight->item(i)->data(LWSquareBracket).toInt()));
+        //XMLTemplateStaff.setName(ui->StaffListRight->item(i)->data(LWName).toString());
+        //XMLTemplateStaff.setAbbreviation(ui->StaffListRight->item(i)->data(LWAbbreviation).toString());
+        XMLTemplateStaff.setSize(ui->StaffListRight->item(i)->data(LWSize).toInt());
+        XMLTemplate.addChild(XMLTemplateStaff);
     }
-    QDomLiteElement* XMLOptions=new QDomLiteElement("Options");
-    XMLOptions->setAttribute("ShowNamesSwitch",ui->ShowNames->currentIndex()+1);
-    XMLOptions->setAttribute("ShowAllOnSys1",ui->ShowAllStaffs->isChecked());
-    XMLOptions->setAttribute("TransposeInstruments",!ui->ShowAsSound->isChecked());
-    XMLOptions->setAttribute("DontShowBN",ui->HideBarNumbers->isChecked());
-    XMLOptions->setAttribute("BarNrOffset",ui->BarNumberOffset->value());
-    XMLOptions->setAttribute("NoteSpace",ui->NoteSpace->value());
-    XMLOptions->setAttribute("MasterStave",ui->MasterStaff->currentIndex());
-    XMLOptions->setAttribute("TopMargin",ui->topMargin->Millimeters());
-    XMLOptions->setAttribute("LeftMargin",ui->leftMargin->Millimeters());
-    XMLOptions->setAttribute("RightMargin",ui->rightMargin->Millimeters());
-    XMLOptions->setAttribute("BottomMargin",ui->bottomMargin->Millimeters());
-    XMLOptions->setAttribute("Orientation",(int)Printer->orientation());
-    XMLOptions->setAttribute("PaperSize",(int)Printer->paperSize());
+    XMLTemplate.validateBrackets();
+    XMLLayoutOptionsWrapper options;
+    options.setShowNamesSwitch(ui->ShowNames->currentIndex()+1);
+    options.setShowAllOnFirstSystem(ui->ShowAllStaffs->isChecked());
+    options.setTransposeInstruments(!ui->ShowAsSound->isChecked());
+    options.setTopMargin(ui->topMargin->Millimeters());
+    options.setLeftMargin(ui->leftMargin->Millimeters());
+    options.setRightMargin(ui->rightMargin->Millimeters());
+    options.setBottomMargin(ui->bottomMargin->Millimeters());
+    options.setOrientation(Printer->pageLayout().orientation());
+    //options.setPaperSize(Printer->paperSize());
+    options.setScoreType(ui->Type->currentIndex()+1);
+    options.setHideBarNumbers(ui->HideBarNumbers->isChecked());
+    options.setBarNumberOffset(ui->BarNumberOffset->value());
+    options.setNoteSpace(ui->NoteSpace->value()+16);
+    options.setMasterStaff(ui->MasterStaff->currentIndex());
+    options.setFrontPage(ui->frontPage->isChecked());
 
-    switch (ui->Type->currentIndex())
-    {
-    case 0:
-        XMLOptions->setAttribute("ScoreType",1);
-        break;
-    case 1:
-        XMLOptions->setAttribute("ScoreType",1.5);
-        break;
-    case 2:
-        XMLOptions->setAttribute("ScoreType",2);
-        break;
-    case 3:
-        XMLOptions->setAttribute("ScoreType",4);
-        break;
-    }
-
-    XMLOptions->setAttribute("ScoreType",ui->Type->currentIndex()+1);
-
-    QDomLiteElement* XMLTitles=new QDomLiteElement("Titles");
-
-    TitleElement.Text=ui->TitleBox->Text();
-    TitleElement.SetFont(ui->TitleBox->Font());
-    SubtitleElement.Text=ui->SubtitleBox->Text();
-    SubtitleElement.SetFont(ui->SubtitleBox->Font());
-    ComposerElement.Text=ui->ComposerBox->Text();
-    ComposerElement.SetFont(ui->ComposerBox->Font());
-    NamesElement.SetFont(ui->StaffNamesBox->Font());
-
-    TitleElement.Save(XMLTitles->appendChild("Title"));
-    SubtitleElement.Save(XMLTitles->appendChild("Subtitle"));
-    ComposerElement.Save(XMLTitles->appendChild("Composer"));
-    NamesElement.Save(XMLTitles->appendChild("Names"));
-
-    QDomLiteElement* XMLLayout;
-    if (Index>-1)
+    XMLLayoutWrapper XMLLayout;
+    if (Index > -1)
     {
         QString Msg;
-        XMLLayout=LayoutCollection->childElement(Index);
-        QDomLiteElement* oldTemplate=XMLLayout->elementByTag("Template");
-        if (XMLLayout->elementByTag("Options")->attribute("Orientation") != XMLOptions->attribute("Orientation"))
+        XMLLayout=LayoutCollection.XMLLayout(Index);
+        XMLTemplateWrapper oldTemplate(XMLLayout.Template.xml()->clone());
+        XMLLayoutOptionsWrapper oldOptions(XMLLayout.Options.xml()->clone());
+        if (oldOptions.orientation() != options.orientation())
         {
             Msg+="The Printer Orientation has Changed\n";
         }
-        if (XMLLayout->elementByTag("Options")->attribute("PaperSize") != XMLOptions->attribute("PaperSize"))
-        {
-            Msg+="The Paper Size has Changed\n";
-        }
-        if (XMLLayout->elementByTag("Options")->attribute("NoteSpace") != XMLOptions->attribute("NoteSpace"))
+        //if (oldOptions.paperSize() != options.paperSize())
+        //{
+        //    Msg+="The Paper Size has Changed\n";
+        //}
+        if (oldOptions.noteSpace() != options.noteSpace())
         {
             Msg+="The Note Spacing has Changed\n";
         }
-        if (XMLLayout->elementByTag("Options")->attribute("ScoreType") != XMLOptions->attribute("ScoreType"))
+        if (oldOptions.scoreType() != options.scoreType())
         {
             Msg+="The ScoreType has Changed\n";
         }
-        if (oldTemplate->childCount() != XMLTemplate->childCount())
+        if (oldTemplate.staffCount() != XMLTemplate.staffCount())
         {
             Msg+="The Number off Staffs has Changed\n";
         }
         else
         {
             bool Match=true;
-            for (int i=0;i<XMLTemplate->childCount();i++)
+            for (int i=0;i<XMLTemplate.staffCount();i++)
             {
-                if (XMLScore.AllTemplateIndex(XMLTemplate,i) != XMLScore.AllTemplateIndex(oldTemplate,i))
+                if (XMLTemplate.staffId(i) != oldTemplate.staffId(i))
                 {
                     Match=false;
                     break;
@@ -321,31 +266,37 @@ void CLayoutWizard::ModifyXML(XMLScoreWrapper& XMLScore, int Index )
         }
         if (Msg.length())
         {
-            int ret=QMessageBox::warning(this, "Object Composer XML",Msg+"The Layout will be Reformatted, Continue ?",QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+            /*
+            int ret=QMessageBox::warning(this, "Object Composer XML",Msg+"The Layout will be Reformated, Continue ?",QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
             if (ret==QMessageBox::Cancel)
             {
                 return;
             }
-            XMLLayout=LayoutCollection->replaceChild(Index, "Layout");
+*/
+            int r = nativeAlert(this,"Object Composer",Msg+"The Layout will be Reformated, Continue ?",{"Cancel","Ok"});
+            if (r == 1000) return;
+
+            //LayoutCollection.clearChild(Index);
+            //XMLLayout=LayoutCollection.XMLLayout(Index);
+            XMLLayout.setIsFormated(false);
         }
     }
     else
     {
-        XMLLayout=LayoutCollection->appendChild("Layout");
+        LayoutCollection.addChild();
+        XMLLayout=LayoutCollection.XMLLayout(LayoutCollection.layoutCount()-1);
     }
-    if (XMLLayout->childCount("Template")==0)
-    {
-        XMLLayout->appendChild(XMLTemplate);
-        XMLLayout->appendChild(XMLOptions);
-        XMLLayout->appendChild(XMLTitles);
-    }
-    else
-    {
-        XMLLayout->replaceChild(XMLLayout->elementByTag("Template"), XMLTemplate);
-        XMLLayout->replaceChild(XMLLayout->elementByTag("Options"), XMLOptions);
-        XMLLayout->replaceChild(XMLLayout->elementByTag("Titles"), XMLTitles);
-    }
-    XMLLayout->setAttribute("Name",ui->Name->text());
+    XMLLayout.Template.copy(XMLTemplate);
+    XMLLayout.Options.copy(options);
+
+    XMLLayout.Fonts.title.fill(ui->TitleBox->font(),ui->TitleBox->text());
+    XMLLayout.Fonts.subtitle.fill(ui->SubtitleBox->font(),ui->SubtitleBox->text());
+    XMLLayout.Fonts.composer.fill(ui->ComposerBox->font(),ui->ComposerBox->text());
+    XMLLayout.Fonts.names.setFont(ui->StaffNamesBox->font());
+
+    qDebug() << XMLLayout.Fonts.title.xml()->toString();
+
+    XMLLayout.setName(ui->Name->text());
 }
 
 void CLayoutWizard::MoveRight()
@@ -422,8 +373,8 @@ void CLayoutWizard::FillBrackets()
     for (int i=0; i<ui->StaffListRight->count(); i++)
     {
         //ui->BracketsTable->setRowHeight(i,24);
-        QTableWidgetItem* item=new QTableWidgetItem(ui->StaffListRight->item(i)->text());
-        QTableWidgetItem* item1=new QTableWidgetItem;
+        auto item=new QTableWidgetItem(ui->StaffListRight->item(i)->text());
+        auto item1=new QTableWidgetItem;
         if (ui->StaffListRight->item(i)->data(LWSquareBracket)==SBBegin)
         {
             QString IconPath=":/square1.png";
@@ -440,7 +391,7 @@ void CLayoutWizard::FillBrackets()
         {
             item1->setIcon(QIcon(":/square3.png"));
         }
-        QTableWidgetItem* item2=new QTableWidgetItem;
+        auto item2=new QTableWidgetItem;
         if (ui->StaffListRight->item(i)->data(LWCurlyBracket)==CBBegin)
         {
             item2->setIcon(QIcon(":/curly1.png"));
@@ -452,12 +403,12 @@ void CLayoutWizard::FillBrackets()
                 item2->setIcon(QIcon(":/curly2.png"));
             }
         }
-        QSlider* sp=new QSlider(Qt::Horizontal,this);
+        auto sp=new QSlider(Qt::Horizontal,this);
         sp->setMinimum(-3);
         sp->setMaximum(0);
         sp->setValue(ui->StaffListRight->item(i)->data(LWSize).toInt()/4);
         sp->setToolTip(SliderTooltip(sp->value()));
-        connect(sp,SIGNAL(valueChanged(int)),this,SLOT(SizeChanged(int)));
+        connect(sp,&QAbstractSlider::valueChanged,this,&CLayoutWizard::SizeChanged);
         ui->BracketsTable->setCellWidget(i,3,sp);
 
         ui->BracketsTable->setItem(i,1,item1);
@@ -472,7 +423,7 @@ void CLayoutWizard::SizeChanged(int Size)
     Q_UNUSED(Size);
     for (int i=0;i<ui->BracketsTable->rowCount();i++)
     {
-        QSlider* sl=(QSlider*)ui->BracketsTable->cellWidget(i,3);
+        auto sl=dynamic_cast<QSlider*>(ui->BracketsTable->cellWidget(i,3));
         ui->StaffListRight->item(i)->setData(LWSize,sl->value()*4);
         sl->setToolTip(SliderTooltip(sl->value()));
     }
@@ -496,7 +447,7 @@ QString CLayoutWizard::SliderTooltip(int Value)
 
 void CLayoutWizard::SpacingTooltip(int Value)
 {
-    int v=qRound(((float)(Value+8)/25.0)*9);
+    int v=qRound((double(Value+8)/25.0)*9);
     QString retval;
     switch (v)
     {
@@ -531,8 +482,7 @@ void CLayoutWizard::SpacingTooltip(int Value)
         retval=QString("Extremely Narrow");
         break;
     }
-    retval+=" ("+QString::number((float)Value/25.0)+")";
-    //ui->NoteSpace->setToolTip(retval);
+    retval+=" ("+QString::number(double(Value)/25.0)+")";
     ui->SpacingLabel->setText(retval);
 }
 
@@ -585,28 +535,75 @@ void CLayoutWizard::RemoveBracket()
 
 void CLayoutWizard::ValidateStaffs()
 {
-    QDialogButtonBox* bb=findChild<QDialogButtonBox*>();
+    auto bb=findChild<QDialogButtonBox*>();
     QPushButton* pb = bb->button(QDialogButtonBox::Ok);
     pb->setEnabled(ui->StaffListRight->count()>0);
     ui->tabWidget->setTabEnabled(1,ui->StaffListRight->count()>1);
 }
 
+void CLayoutWizard::FillOptions(XMLLayoutOptionsWrapper &Options, XMLLayoutFontsWrapper &Fonts, XMLScoreWrapper &Score, const QString &LayoutName) {
+    ui->MasterStaff->clear();
+    for (int i=0;i<Score.NumOfStaffs();i++)
+    {
+        ui->MasterStaff->addItem(Score.StaffName(i));
+    }
+
+    ui->Type->clear();
+    ui->Type->addItems(QStringList{"Large Part", "Part", "Score", "Pocket Score"});
+    ui->ShowNames->clear();
+    ui->ShowNames->addItems(QStringList{"Always", "When Staff Config Changes", "On First System Only"});
+
+    ui->TitleBox->fill(Fonts.title.font(),Fonts.title.text());
+    ui->SubtitleBox->fill(Fonts.subtitle.font(),Fonts.subtitle.text());
+    ui->ComposerBox->fill(Fonts.composer.font(),Fonts.composer.text(),false,Qt::AlignRight | Qt::AlignVCenter);
+    ui->StaffNamesBox->fill(Fonts.names.font(),"Sample Text",true,Qt::AlignLeft | Qt::AlignVCenter);
+
+    ui->Type->setCurrentIndex(Options.scoreType()-1);
+    ui->HideBarNumbers->setChecked(Options.hideBarNumbers());
+    ui->BarNumberOffset->setValue(Options.barNumberOffset());
+    ui->NoteSpace->setValue(Options.noteSpace()-16);
+    ui->MasterStaff->setCurrentIndex(Options.masterStaff());
+    ui->ShowNames->setCurrentIndex(Options.showNamesSwitch()-1);
+    ui->ShowAllStaffs->setChecked(Options.showAllOnFirstSystem());
+    ui->ShowAsSound->setChecked(!Options.transposeInstruments());
+    ui->topMargin->setMillimeters(Options.topMargin());
+    ui->leftMargin->setMillimeters(Options.leftMargin());
+    ui->rightMargin->setMillimeters(Options.rightMargin());
+    ui->bottomMargin->setMillimeters(Options.bottomMargin());
+    ui->frontPage->setChecked(Options.frontPage());
+
+    Printer->setPageOrientation(QPageLayout::Orientation(Options.orientation()));
+    //Printer->setPaperSize(QPrinter::PaperSize(Options.paperSize()));
+
+    ui->ImportCombo->blockSignals(true);
+    ui->ImportCombo->clear();
+    for (int i = 0; i < Score.layoutCount(); i++) {
+        if (Score.Layout(i).name() != LayoutName) ui->ImportCombo->addItem(Score.Layout(i).name());
+    }
+    ui->ImportCombo->blockSignals(false);
+    UpdateMargins();
+    SpacingTooltip(ui->NoteSpace->value());
+
+    qDebug() << "Fill" << Fonts.title.xml()->toString();
+}
+
 void CLayoutWizard::ValidateBrackets()
 {
-    QDomLiteElement T("Template");
+    XMLTemplateWrapper XMLTemplate;
     for(int i=0;i<ui->StaffListRight->count();i++)
     {
-        QDomLiteElement* TS=T.appendChild("Staff");
-        TS->setAttribute("SquareBracket",ui->StaffListRight->item(i)->data(LWSquareBracket));
-        TS->setAttribute("CurlyBracket",ui->StaffListRight->item(i)->data(LWCurlyBracket));
-        TS->setAttribute("AllTemplateIndex",i);
+        XMLTemplateStaffWrapper XMLTemplateStaff;//(T.appendChild("Staff"));
+        XMLTemplateStaff.setSquareBracket(SquareBracketConstants(ui->StaffListRight->item(i)->data(LWSquareBracket).toInt()));
+        XMLTemplateStaff.setCurlyBracket(CurlyBracketConstants(ui->StaffListRight->item(i)->data(LWCurlyBracket).toInt()));
+        XMLTemplateStaff.setId(ui->StaffListRight->item(i)->data(LWStaffId).toInt());
+        XMLTemplate.addChild(XMLTemplateStaff);
+        //TS.setId(i);
     }
-    XMLScoreWrapper::ValidateBrackets(&T);
+    XMLTemplate.validateBrackets();
     for(int i=0;i<ui->StaffListRight->count();i++)
     {
-        QDomLiteElement* TS=T.childElement(i);
-        ui->StaffListRight->item(i)->setData(LWSquareBracket,TS->attributeValue("SquareBracket"));
-        ui->StaffListRight->item(i)->setData(LWCurlyBracket,TS->attributeValue("CurlyBracket"));
+        ui->StaffListRight->item(i)->setData(LWSquareBracket,XMLTemplate.staff(i).squareBracket());
+        ui->StaffListRight->item(i)->setData(LWCurlyBracket,XMLTemplate.staff(i).curlyBracket());
     }
 }
 
@@ -621,27 +618,30 @@ void CLayoutWizard::TabChanged(int Index)
 void CLayoutWizard::UpdateMargins()
 {
     Printer->setFullPage(false);
-    Printer->setPageMargins(ui->leftMargin->Millimeters(),ui->topMargin->Millimeters(),ui->rightMargin->Millimeters(),ui->bottomMargin->Millimeters(),QPrinter::Millimeter);
-    QMatrix m=ui->graphicsView->matrix();
+    Printer->setPageMargins(QMarginsF(ui->leftMargin->Millimeters(),ui->topMargin->Millimeters(),ui->rightMargin->Millimeters(),ui->bottomMargin->Millimeters()),QPageLayout::Millimeter);
+    QTransform m=ui->graphicsView->transform();
     m.reset();
     m.scale(0.3,0.3);
-    ui->graphicsView->setMatrix(m);
+    ui->graphicsView->setTransform(m);
     S.clear();
     S.setBackgroundBrush(QBrush());
-    QLinearGradient lg(0,0,Printer->pageRect().width(),Printer->pageRect().height());
+    QRect page = Printer->pageLayout().paintRectPixels(72); //Printer->resolution()
+    QRect paper = Printer->pageLayout().fullRectPixels(72); //Printer->resolution()
+
+    QLinearGradient lg(0,0,page.width(),page.height());
     lg.setColorAt(0,Qt::white);
     lg.setColorAt(1,Qt::gray);
-    S.addRect(Printer->paperRect().translated(20,20),QPen(Qt::NoPen),QBrush(QColor(0,0,0,150)));
-    S.addRect(Printer->paperRect(),QPen(Qt::black),QBrush(Qt::white));
-    S.addRect(Printer->pageRect(),QPen(Qt::NoPen),QBrush(lg));
-    S.addLine(Printer->pageRect().left(),Printer->paperRect().top(),Printer->pageRect().left(),Printer->paperRect().bottom(),QPen(Qt::black));
-    S.addLine(Printer->pageRect().right(),Printer->paperRect().top(),Printer->pageRect().right(),Printer->paperRect().bottom(),QPen(Qt::black));
-    S.addLine(Printer->paperRect().left(),Printer->pageRect().top(),Printer->paperRect().right(),Printer->pageRect().top(),QPen(Qt::black));
-    S.addLine(Printer->paperRect().left(),Printer->pageRect().bottom(),Printer->paperRect().right(),Printer->pageRect().bottom(),QPen(Qt::black));
-    S.setSceneRect(Printer->paperRect());
+    S.addRect(paper.translated(20,20),QPen(Qt::NoPen),QBrush(QColor(0,0,0,150)));
+    S.addRect(paper,QPen(Qt::black),QBrush(Qt::white));
+    S.addRect(page,QPen(Qt::NoPen),QBrush(lg));
+    S.addLine(page.left(),paper.top(),page.left(),paper.bottom(),QPen(Qt::black));
+    S.addLine(page.right(),paper.top(),page.right(),paper.bottom(),QPen(Qt::black));
+    S.addLine(paper.left(),page.top(),paper.right(),page.top(),QPen(Qt::black));
+    S.addLine(paper.left(),page.bottom(),paper.right(),page.bottom(),QPen(Qt::black));
+    S.setSceneRect(paper);
     ui->graphicsView->viewport()->update();
     Printer->setFullPage(true);
-    Printer->setPageMargins(0,0,0,0,QPrinter::DevicePixel);
+    Printer->setPageMargins(QMarginsF(0,0,0,0));
     pageSetupButton->setGeometry(ui->graphicsView->width()-pageSetupButton->width(),ui->graphicsView->height()-pageSetupButton->height(),pageSetupButton->width(),pageSetupButton->height());
 }
 
@@ -652,5 +652,16 @@ void CLayoutWizard::ShowPageSetup()
     d.setWindowModality(Qt::WindowModal);
     d.exec();
     UpdateMargins();
+}
+
+void CLayoutWizard::ImportLayout() {
+    const QString name = ui->ImportCombo->currentText();
+    for (int i = 0; i < m_Score.layoutCount(); i++) {
+        if (m_Score.LayoutName(i) == name) {
+            XMLLayoutWrapper l = m_Score.Layout(i);
+            FillOptions(l.Options,l.Fonts,m_Score,ui->Name->text());
+            break;
+        }
+    }
 }
 

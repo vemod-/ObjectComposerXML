@@ -15,7 +15,7 @@ public:
         FadingIn=1,
         FadingOut=2
     };
-    explicit QFadingFrame(QWidget *parent = 0);
+    explicit QFadingFrame(QWidget *parent = nullptr);
 
 signals:
 

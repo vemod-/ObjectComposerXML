@@ -4,9 +4,9 @@
 #include <QWidget>
 #include <QGridLayout>
 #include <QToolButton>
-#include <QFrame>
-#include <QGraphicsView>
-#include <QSignalMapper>
+//#include <QFrame>
+//#include <QGraphicsView>
+#include <QVariant>
 
 namespace Ui {
     class QMacButtons;
@@ -18,8 +18,9 @@ class QCustomToolButton : public QToolButton
 {
     Q_OBJECT
 public:
-    QCustomToolButton(QWidget* parent=0);
+    QCustomToolButton(QWidget* parent=nullptr);
     bool monochrome;
+    QVariant data;
 public slots:
 protected:
     void paintEvent(QPaintEvent * event);
@@ -33,11 +34,11 @@ class QMacButtons : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QMacButtons(QWidget *parent = 0);
+    explicit QMacButtons(QWidget *parent = nullptr);
     ~QMacButtons();
-    const bool isSelected(const QString& name);
-    const bool isSelected(int index);
-    const bool isSelected();
+    bool isSelected(const QString& name);
+    bool isSelected(int index);
+    bool isSelected();
     void setSelected(const QString& name, const bool selected);
     void setSelected(const int index, const bool selected);
     void setSelected(const bool selected);
@@ -54,20 +55,27 @@ public:
         SelectAll
     };
     void setSelectMode(const SelectMode sm);
-    const SelectMode selectMode();
+    SelectMode selectMode();
     void setEnabled(const QString& name, const bool enabled);
     void setEnabled(const int index, const bool enabled);
     void setEnabled(const bool enabled);
-    const bool isEnabled(const QString& name);
-    const bool isEnabled(const int index);
-    const bool isEnabled();
+    bool isEnabled(const QString& name);
+    bool isEnabled(const int index);
+    bool isEnabled();
     void setMonochrome(const QString& name, const bool monochrome);
     void setMonochrome(const int index, const bool monochrome);
     void setMonochrome(const bool monochrome);
-    const bool isMonochrome(const QString& name);
-    const bool isMonochrome(const int index);
-    const bool isMonochrome();
-    const int value();
+    bool isMonochrome(const QString& name);
+    bool isMonochrome(const int index);
+    bool isMonochrome();
+    void setIcon(const QString& name, const QIcon& icon);
+    void setIcon(const int index, const QIcon& icon);
+    void setData(const QString& name, const QVariant& value);
+    void setData(const int index, const QVariant& value);
+    QVariant data(const QString& name);
+    QVariant data(const int index);
+    int value();
+    int size();
 signals:
     void buttonClicked(int index);
     void buttonClicked(QString name);
@@ -84,14 +92,12 @@ private slots:
     void wasClicked(int index);
 private:
     Ui::QMacButtons *ui;
-    SelectMode m_selectMode;
+    SelectMode m_selectMode=SelectNone;
     void addButton(QToolButton* b, const QString& Name);
     QList<QToolButton*> Buttons;
     QStringList Names;
     QGridLayout* layout;
     QWidget* frame;
-    //void ShowButtons();
-    QSignalMapper* mapper;
 };
 
 #endif // QMACBUTTONS_H

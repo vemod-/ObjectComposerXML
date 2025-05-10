@@ -2,8 +2,8 @@
 #define CEDITWIDGET_H
 
 #include <QWidget>
-#include <caccidentalspiano.h>
 #include <QDomLite>
+#include "ocxmlwrappers.h"
 
 namespace Ui {
     class CEditWidget;
@@ -13,52 +13,48 @@ class CEditWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit CEditWidget(QWidget *parent = 0);
+    explicit CEditWidget(QWidget *parent = nullptr);
     ~CEditWidget();
-    void PutCombo(QString Caption, int Value, QStringList List);
-    void PutSpin(QString Caption,int Value,int Min,int Max);
-    void PutNoteval(int Noteval, bool Dotted, bool Triplet);
-    void PutChannel(int Channel);
+    void PutCombo(const QString& Caption, int Value, const QStringList& List);
+    void PutSpin(const QString& Caption,int Value,int Min,int Max);
+    void PutNoteval(int Noteval, int Dotted, bool Triplet);
     void PutTime(int Type, int Upper, int Lower);
     void PutKey(int Key);
-    void PutAccidentals(int* Acc);
+    void PutAccidentals(const int* Acc);
     void PutTempo(int Tempo, int Noteval, bool Dotted);
-    void PutSlanting(int Slanting);
-    void PutRepeats(int Repeats);
-    void PutStemDirection(int StemDirection);
-    void PutSysEx(QString Sysex);
+    void PutSysEx(const QString& Sysex);
     void PutSysEx(QDomLiteElement* data);
-    void PutText(QString Text, QFont Font);
-    void PutText(QDomLiteElement* data);
-    void PutFont(QFont Font);
-    void PutTranspose(int Transpose);
+    void PutText(const QString& Text, const QFont& Font);
+    void PutText(const XMLTextElementWrapper& data);
+    void PutFont(const QFont& Font);
     void PutController(int Controller, int Value);
     void PutController(QDomLiteElement* data);
+    void PutPortamento(int Controller, int Value);
+    void PutPortamento(QDomLiteElement* data);
     int GetCombo();
     int GetSpin();
-    void GetNoteval(int& Noteval, bool& Dotted, bool& Triplet);
-    void GetChannel(int& Channel);
+    void GetNoteval(int& Noteval, int& Dotted, bool& Triplet);
     void GetTime(int& Type, int& Upper, int& Lower);
     void GetKey(int& Key);
     void GetAccidentals(int* Acc);
     void GetTempo(int& Tempo, int& Noteval, bool& Dotted);
-    void GetSlanting(int& Slanting);
-    void GetRepeats(int& Repeats);
-    void GetStemDirection(int& StemDirection);
     void GetSysEx(QString& Sysex);
     void GetSysEx(QDomLiteElement* data);
     void GetText(QString& Text, QFont& Font);
-    void GetText(QDomLiteElement* data);
+    void GetText(XMLTextElementWrapper& data);
     void GetFont(QFont& Font);
-    void GetTranspose(int& Transpose);
     void GetController(int& Controller, int& Value);
     void GetController(QDomLiteElement* data);
+    void GetPortamento(int& Controller, int& Value);
+    void GetPortamento(QDomLiteElement* data);
 private:
     Ui::CEditWidget *ui;
     void SetVisible(QWidget* w);
 private slots:
     void NoteButtonSelected(int Button);
     void SetTimeElements(int Value);
+signals:
+    void Changed();
 };
 
 #endif // CEDITWIDGET_H

@@ -1,10 +1,11 @@
 #include "cstaffsdialog.h"
 #include "ui_cstaffsdialog.h"
 #include "mouseevents.h"
-#include <QPainter>
-#include <QMessageBox>
-#include <QMimeData>
-
+//#include <QPainter>
+//#include <QMessageBox>
+#include "idevice.h"
+//#include <QMimeData>
+/*
 void SpeakerDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     bool value = index.data().toUInt();
@@ -49,10 +50,10 @@ QSize SpeakerDelegate::sizeHint(const QStyleOptionViewItem &option, const QModel
 {
     return QSize(-1,18);
 }
-
-CXMLVoiceModel::CXMLVoiceModel(QObject *parent)
+*/
+CXMLVoiceModel::CXMLVoiceModel(QObject */*parent*/)
 {
-    m_Score=0;
+    m_Score=nullptr;
     m_Staff=0;
 }
 
@@ -112,9 +113,9 @@ bool CXMLVoiceModel::insertRow(int row, const QModelIndex & /*parent*/)
     return true;
 }
 
-CXMLStaffModel::CXMLStaffModel(QObject *parent)
+CXMLStaffModel::CXMLStaffModel(QObject */*parent*/)
 {
-    m_Score=0;
+    m_Score=nullptr;
 }
 
 void CXMLStaffModel::setXML(XMLScoreWrapper *Score)
@@ -125,13 +126,13 @@ void CXMLStaffModel::setXML(XMLScoreWrapper *Score)
 
 int CXMLStaffModel::rowCount(const QModelIndex & /*parent*/) const
 {
-    if (m_Score==0) return 0;
+    if (m_Score==nullptr) return 0;
     return m_Score->NumOfStaffs();
 }
 
 int CXMLStaffModel::columnCount(const QModelIndex & /*parent*/) const
 {
-    return 3;
+    return 2;
 }
 
 QVariant CXMLStaffModel::data(const QModelIndex &index, int role) const
@@ -141,10 +142,8 @@ QVariant CXMLStaffModel::data(const QModelIndex &index, int role) const
         switch  (index.column())
         {
         case 0:
-            return !(bool)(m_Score->Staff(index.row())->attributeValue("Muted"));
-        case 1:
             return m_Score->StaffName(index.row());
-        case 2:
+        case 1:
             return m_Score->StaffAbbreviation(index.row());
         }
     }
@@ -161,10 +160,7 @@ Qt::ItemFlags CXMLStaffModel::flags(const QModelIndex & index) const
         }
         return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
     }
-    else
-    {
-        return Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled  | Qt::ItemIsEnabled;
-    }
+    return Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled  | Qt::ItemIsEnabled;
 }
 
 Qt::DropActions CXMLStaffModel::supportedDropActions() const
@@ -179,12 +175,9 @@ bool CXMLStaffModel::setData(const QModelIndex &index, const QVariant &value, in
         switch  (index.column())
         {
         case 0:
-            m_Score->Staff(index.row())->setAttribute("Muted",!(value.toUInt()));
-            break;
-        case 1:
             m_Score->setStaffName(index.row(),value.toString());
             break;
-        case 2:
+        case 1:
             m_Score->setStaffAbbreviation(index.row(),value.toString());
             break;
         }
@@ -193,7 +186,7 @@ bool CXMLStaffModel::setData(const QModelIndex &index, const QVariant &value, in
     return true;
 }
 
-bool CXMLStaffModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int row, int column, const QModelIndex &parent)
+bool CXMLStaffModel::dropMimeData(const QMimeData *data, Qt::DropAction /*action*/, int row, int /*column*/, const QModelIndex &/*parent*/)
 {
     QByteArray encodedData = data->data("text/plain");
     QDataStream stream(&encodedData, QIODevice::ReadOnly);
@@ -203,11 +196,11 @@ bool CXMLStaffModel::dropMimeData(const QMimeData *data, Qt::DropAction action, 
         stream >> text;
         newItems << text;
     }
-    for (int i=newItems.count()-1;i>=0;i--)
+    for (int i=newItems.size()-1;i>=0;i--)
     {
-        QString text=newItems[i];
+        const QString& text=newItems[i];
         lastDropped=index(row,0);
-        m_Score->MoveStaff(text.toUInt(),row);
+        m_Score->MoveStaff(text.toInt(),row);
     }
     emit dataChanged(index(0,0),index(rowCount()-1,columnCount()-1));
     return true;
@@ -215,12 +208,12 @@ bool CXMLStaffModel::dropMimeData(const QMimeData *data, Qt::DropAction action, 
 
 QMimeData* CXMLStaffModel::mimeData(const QModelIndexList &indexes) const
 {
-    QMimeData * mimeData = new QMimeData();
+    auto mimeData = new QMimeData();
     QByteArray encodedData;
 
     QDataStream stream(&encodedData, QIODevice::WriteOnly);
 
-    foreach (QModelIndex index, indexes) {
+    for (const QModelIndex& index : indexes) {
         stream << QString::number(index.row());
     }
 
@@ -266,30 +259,28 @@ CStaffsDialog::CStaffsDialog(QWidget *parent) : QDialog(parent,Qt::Sheet),
     staffMapper = new QDataWidgetMapper(this);
     staffMapper->setModel(m_XMLStaffModel);
     staffMapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
-    staffMapper->addMapping(ui->AudibleCheckBox, 0);
-    staffMapper->addMapping(ui->NameEdit, 1);
-    staffMapper->addMapping(ui->AbbreviationEdit, 2);
+    //staffMapper->addMapping(ui->AudibleCheckBox, 0);
+    staffMapper->addMapping(ui->NameEdit, 0);
+    staffMapper->addMapping(ui->AbbreviationEdit, 1);
     ui->MasterStaffComboBox->setModel(m_XMLStaffModel);
     ui->MasterStaffComboBox->setModelColumn(1);
-    connect(ui->AudibleCheckBox,SIGNAL(clicked()),staffMapper,SLOT(submit()));
-    connect(ui->AudibleCheckBox,SIGNAL(pressed()),staffMapper,SLOT(submit()));
-    connect(ui->NameEdit,SIGNAL(textEdited(QString)),staffMapper,SLOT(submit()));
-    connect(ui->AbbreviationEdit,SIGNAL(textEdited(QString)),staffMapper,SLOT(submit()));
+    connect(ui->NameEdit,&QLineEdit::textEdited,staffMapper,&QDataWidgetMapper::submit);
+    connect(ui->AbbreviationEdit,&QLineEdit::textEdited,staffMapper,&QDataWidgetMapper::submit);
     setWindowModality(Qt::WindowModal);
     setVisible(false);
-    connect(ui->StaffList->selectionModel(),SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),this,SLOT(UpdateStaff(QModelIndex)));
-    connect(ui->StaffList->selectionModel(),SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),staffMapper,SLOT(setCurrentModelIndex(QModelIndex)));
-    connect(ui->NoteSpaceSlider,SIGNAL(valueChanged(int)),this,SLOT(SpacingTooltip(int)));
-    InternalMoveEvent* Move=new InternalMoveEvent();
+    connect(ui->StaffList->selectionModel(),&QItemSelectionModel::currentRowChanged,this,&CStaffsDialog::UpdateStaff);
+    connect(ui->StaffList->selectionModel(),&QItemSelectionModel::currentRowChanged,staffMapper,&QDataWidgetMapper::setCurrentModelIndex);
+    connect(ui->NoteSpaceSlider,&QAbstractSlider::valueChanged,this,&CStaffsDialog::SpacingTooltip);
+    auto Move=new InternalMoveEvent();
     ui->StaffList->installEventFilter(Move);
-    connect(Move,SIGNAL(ItemMoved()),this,SLOT(StaffDropped()));
-    ui->StaffList->setItemDelegate(new SpeakerDelegate(this));
+    connect(Move,&InternalMoveEvent::ItemMoved,this,&CStaffsDialog::StaffDropped);
+    //ui->StaffList->setItemDelegate(new SpeakerDelegate(this));
 }
 
 int CStaffsDialog::ShowModal()
 {
     show();
-    while (this->isVisible())
+    while (isVisible())
     {
         QApplication::processEvents();
     }
@@ -299,12 +290,12 @@ int CStaffsDialog::ShowModal()
 void CStaffsDialog::Fill(XMLScoreWrapper &Doc)
 {
     XMLScore.setCopy(Doc);
-    ui->TempoBox->Fill(XMLScore.TempoFont(),"a tempo.",true,Qt::AlignCenter,0.1);
-    ui->DynamicBox->Fill(XMLScore.DynamicFont(),"cresc.",true,Qt::AlignCenter,0.1);
+    ui->TempoBox->fill(XMLScore.TempoFont.font(),"a tempo.",true,Qt::AlignCenter,0.1);
+    ui->DynamicBox->fill(XMLScore.DynamicFont.font(),"cresc.",true,Qt::AlignCenter,0.1);
     m_XMLStaffModel->setXML(&XMLScore);
     ui->MasterStaffComboBox->setCurrentIndex(0);
     m_XMLVoiceModel->setXML(&XMLScore);
-    m_XMLScoreModel->setXML(XMLScore.Score());
+    m_XMLScoreModel->setXML(XMLScore.Score.xml());
     scoreMapper->toFirst();
     Update();
 }
@@ -312,8 +303,8 @@ void CStaffsDialog::Fill(XMLScoreWrapper &Doc)
 QDomLiteDocument* CStaffsDialog::CreateXML()
 {
     scoreMapper->submit();
-    XMLScore.setDynamicFont(ui->DynamicBox->Font());
-    XMLScore.setTempoFont(ui->TempoBox->Font());
+    XMLScore.DynamicFont.setFont(ui->DynamicBox->font());
+    XMLScore.TempoFont.setFont(ui->TempoBox->font());
     return XMLScore.getClone();
 }
 
@@ -368,68 +359,56 @@ void CStaffsDialog::AddStaff()
 
 void CStaffsDialog::DeleteStaff()
 {
-    int Staff=ui->StaffList->currentIndex().row();
-    QDomLiteElement* XMLStaff=XMLScore.Staff(Staff);
+    int StaffId=ui->StaffList->currentIndex().row();
+    XMLStaffWrapper XMLStaff=XMLScore.Staff(StaffId);
     int SymbolCount=0;
     QString Msg;
-    for (int i=0;i<XMLStaff->childCount();i++)
+    for (int i=0;i<XMLStaff.voiceCount();i++)
     {
-        QDomLiteElement* XMLVoice=XMLScore.Voice(Staff,i);
-        SymbolCount+=XMLVoice->childCount()-1;
+        SymbolCount+=XMLScore.Voice(StaffId,i).symbolCount()-1;
     }
     if (SymbolCount)
     {
-        Msg+="This Staff already includes "+QString::number(XMLStaff->childCount())+" Voices with "+QString::number(SymbolCount)+" Symbols!\n";
+        Msg+="This Staff already includes "+QString::number(XMLStaff.voiceCount())+" Voices with "+QString::number(SymbolCount)+" Symbols!\n";
     }
     QStringList LayoutNames;
     QStringList SingleStaffLayoutNames;
-    for (int i=0;i<XMLScore.NumOfLayouts();i++)
+    for (int i=0;i<XMLScore.layoutCount();i++)
     {
-        QDomLiteElement* LayoutTemplate=XMLScore.LayoutTemplate(i);
-        foreach(QDomLiteElement* e,LayoutTemplate->childElements)
+        const XMLTemplateWrapper& t=XMLScore.Layout(i).Template;
+        if (t.containsStaffId(StaffId))
         {
-            if (XMLScore.AllTemplateIndex(e)==Staff)
+            if (t.staffCount()==1)
             {
-                if (LayoutTemplate->childCount()==1)
-                {
-                    SingleStaffLayoutNames.append(XMLScore.LayoutName(i));
-                }
-                else
-                {
-                    LayoutNames.append(XMLScore.LayoutName(i));
-                }
+                SingleStaffLayoutNames.append(XMLScore.LayoutName(i));
+            }
+            else
+            {
+                LayoutNames.append(XMLScore.LayoutName(i));
             }
         }
     }
-    if (SingleStaffLayoutNames.count())
+    if (!SingleStaffLayoutNames.empty())
     {
         Msg+="The following Layouts will be deleted:\n";
-        foreach(QString s,SingleStaffLayoutNames) Msg+=s+"\n";
+        for (const QString& s : SingleStaffLayoutNames) Msg+=s+"\n";
     }
-    if (LayoutNames.count())
+    if (!LayoutNames.empty())
     {
         Msg+="The Staff will be deleted from the following Layouts:\n";
-        foreach(QString s,LayoutNames) Msg+=s+"\n";
+        for (const QString& s : LayoutNames) Msg+=s+"\n";
     }
     if (Msg.length())
     {
-        if (QMessageBox::warning(this, "Object Composer XML",Msg,QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok)==QMessageBox::Cancel) return;
+        //if (QMessageBox::warning(this, "Object Composer XML",Msg,QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok)==QMessageBox::Cancel) return;
+        int r = nativeAlert(this,"Object Composer",Msg,{"Cancel","Ok"});
+        if (r == 1000) return;
     }
-    foreach(QString s,SingleStaffLayoutNames) XMLScore.LayoutCollection()->removeChild(XMLScore.Layout(s));
-    foreach(QString s,LayoutNames)
-    {
-        QDomLiteElement* Layout=XMLScore.Layout(s);
-        QDomLiteElementList Templates=Layout->elementsByTag("Template",true);
-        foreach(QDomLiteElement* t,Templates)
-        {
-            foreach(QDomLiteElement* e,t->childElements) if (XMLScore.AllTemplateIndex(e)==Staff) t->removeChild(e);
-            XMLScore.UpdateIndexes(t);
-        }
-    }
-    XMLScore.DeleteStaff(Staff);
-    if (Staff>=m_XMLStaffModel->rowCount()) Staff=m_XMLStaffModel->rowCount()-1;
+    for (const QString& s : SingleStaffLayoutNames) XMLScore.LayoutCollection.xml()->removeChild(XMLScore.Layout(s).xml());
+    XMLScore.DeleteStaff(StaffId);
+    if (StaffId>=m_XMLStaffModel->rowCount()) StaffId=m_XMLStaffModel->rowCount()-1;
     Update();
-    ui->StaffList->setCurrentIndex(m_XMLStaffModel->index(Staff,0));
+    ui->StaffList->setCurrentIndex(m_XMLStaffModel->index(StaffId,0));
 }
 
 void CStaffsDialog::AddVoice()
@@ -450,7 +429,7 @@ void CStaffsDialog::DeleteVoice()
 
 void CStaffsDialog::SpacingTooltip(int Value)
 {
-    int v=qRound(((float)(Value-8)/25.0)*9);
+    int v=qRound((double(Value-8)/25.0)*9);
     QString retval;
     switch (v)
     {
@@ -485,6 +464,6 @@ void CStaffsDialog::SpacingTooltip(int Value)
         retval=QString("Extremely Narrow");
         break;
     }
-    retval+=" ("+QString::number((float)(Value-16)/25.0)+")";
+    retval+=" ("+QString::number(double(Value-16)/25.0)+")";
     ui->SpacingLabel->setText(retval);
 }

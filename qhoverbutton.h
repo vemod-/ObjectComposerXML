@@ -22,7 +22,7 @@ public:
         Bottom,
         BottomLeft
     };
-    QHoverButton(QWidget* parent,QIcon icon,QSize size, AnimationDirection ShowAnimation=NoAnimation, AnimationDirection HideAnimation=NoAnimation);
+    QHoverButton(QWidget* parent, const QIcon& icon, const QSize& size, AnimationDirection ShowAnimation=NoAnimation, AnimationDirection HideAnimation=NoAnimation);
     void Activate(QPointF pos, QPointF mousePos, QRect area);
 public slots:
     void MouseLeave(QEvent* event);
@@ -34,14 +34,14 @@ private:
     AnimationDirection HideAnimation;
     void Show();
     void Hide();
-    bool Showing;
-    bool Hiding;
+    bool Showing=false;
+    bool Hiding=false;
     QRect maxRect;
     QRect minRect;
-    QPropertyAnimation* a1;
-    QPropertyAnimation* a2;
-    QPropertyAnimation* a3;
-    QParallelAnimationGroup* animation;
+    QPropertyAnimation* a1=nullptr;
+    QPropertyAnimation* a2=nullptr;
+    QPropertyAnimation* a3=nullptr;
+    QParallelAnimationGroup* animation=nullptr;
 private slots:
     void timeFinish();
 };

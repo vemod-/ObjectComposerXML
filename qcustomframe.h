@@ -7,7 +7,7 @@ class QCustomFrame : public QFrame
 {
     Q_OBJECT
 public:
-    QCustomFrame(QWidget* parent=0);
+    QCustomFrame(QWidget* parent=nullptr);
 protected:
     void paintEvent(QPaintEvent *e);
 };

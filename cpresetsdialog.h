@@ -2,7 +2,6 @@
 #define CPRESETSDIALOG_H
 
 #include <QDialog>
-#include "csymbol.h"
 
 namespace Ui {
     class CPresetsDialog;
@@ -13,7 +12,7 @@ class CPresetsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CPresetsDialog(QWidget *parent = 0);
+    explicit CPresetsDialog(QWidget *parent = nullptr);
     ~CPresetsDialog();
     //QtAbstractPropertyBrowser *editor1;
 private:

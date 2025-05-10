@@ -9,11 +9,12 @@ QFontWidget::QFontWidget(QWidget *parent) :
     ui->lineEdit->setText("Sample Text");
     ui->lineEdit->setReadOnly(true);
     ui->lineEdit->setAlignment(Qt::AlignCenter);
-    UpdateLineEdit();
-    connect(ui->fontComboBox,SIGNAL(currentFontChanged(QFont)),this,SLOT(UpdateLineEdit()));
-    connect(ui->doubleSpinBox,SIGNAL(valueChanged(double)),this,SLOT(UpdateLineEdit()));
-    connect(ui->toolButton,SIGNAL(toggled(bool)),this,SLOT(UpdateLineEdit()));
-    connect(ui->toolButton_2,SIGNAL(toggled(bool)),this,SLOT(UpdateLineEdit()));
+    updateLineEdit();
+    connect(ui->fontComboBox,&QFontComboBox::currentFontChanged,this,&QFontWidget::updateLineEdit);
+    connect(ui->doubleSpinBox,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&QFontWidget::updateLineEdit);
+    connect(ui->toolButton,&QAbstractButton::toggled,this,&QFontWidget::updateLineEdit);
+    connect(ui->toolButton_2,&QAbstractButton::toggled,this,&QFontWidget::updateLineEdit);
+    connect(ui->lineEdit,&QLineEdit::textChanged,this,&QFontWidget::Changed);
 }
 
 QFontWidget::~QFontWidget()
@@ -21,7 +22,7 @@ QFontWidget::~QFontWidget()
     delete ui;
 }
 
-void QFontWidget::Fill(const QFont& Font, const QString& Text, const bool Locked, const Qt::Alignment Align, const float Scale)
+void QFontWidget::fill(const QFont& Font, const QString& Text, const bool Locked, const Qt::Alignment Align, const double Scale)
 {
     ui->lineEdit->setText(Text);
     ui->lineEdit->setReadOnly(Locked);
@@ -39,26 +40,27 @@ void QFontWidget::Fill(const QFont& Font, const QString& Text, const bool Locked
     ui->toolButton_2->blockSignals(true);
     ui->toolButton_2->setChecked(Font.italic());
     ui->toolButton_2->blockSignals(false);
-    UpdateLineEdit();
+    updateLineEdit();
 }
 
-void QFontWidget::UpdateLineEdit()
+void QFontWidget::updateLineEdit()
 {
     QFont f(ui->fontComboBox->currentFont());
     f.setPointSizeF(ui->doubleSpinBox->value());
     f.setBold(ui->toolButton->isChecked());
     f.setItalic(ui->toolButton_2->isChecked());
     ui->lineEdit->setFont(f);
+    emit Changed();
 }
 
-const QFont QFontWidget::Font()
+const QFont QFontWidget::font()
 {
     QFont f=ui->lineEdit->font();
     f.setPointSizeF(f.pointSizeF()/m_Scale);
     return f;
 }
 
-const QString QFontWidget::Text()
+const QString QFontWidget::text()
 {
     return ui->lineEdit->text();
 }

@@ -2,8 +2,10 @@
 #define CPATTERNLIST_H
 
 #include <QDialog>
-#include "CommonClasses.h"
-#include "scoreviewxml.h"
+//#include "CommonClasses.h"
+//#include "scoreviewxml.h"
+#include "ocxmlwrappers.h"
+#include <QTableWidget>
 
 namespace Ui {
     class CPatternList;
@@ -14,20 +16,22 @@ class CPatternList : public QDialog
     Q_OBJECT
 
 public:
-    explicit CPatternList(QWidget *parent = 0);
+    explicit CPatternList(QWidget *parent = nullptr);
     ~CPatternList();
-    void AppendPattern(const QList<QPair<int,int> >& Pattern);
-    bool SelectPattern(QList<QPair<int,int> >& Pattern);
+    static void AppendPattern(const OCPatternNoteList& Pattern);
+    bool SelectPattern(OCPatternNoteList& Pattern);
+    static void createRow(const QDomLiteElement* p, QTableWidget* lw, const int i, const int offset=0);
+    static void createRow(const OCPatternNoteList& List, QTableWidget* lw, const int i, const int offset=0);
+    static void PatternToList(QDomLiteElement* Pattern,OCPatternNoteList& List);
+    static QDomLiteElement* ListToPattern(const OCPatternNoteList& List);
 private:
     Ui::CPatternList *ui;
     void fill();
-    void PatternToList(QDomLiteElement* Pattern,QList<QPair<int,int> >& List);
-    QDomLiteElement* ListToPattern(const QList<QPair<int,int> >& List);
-    QDomLiteDocument* XML;
-    QDomLiteElement* theNode;
+    QDomLiteDocument XML;
+    QDomLiteElement* theNode=nullptr;
+    bool Success=false;
 private slots:
     void PatternSelected(int row,int col);
-    void MouseRelease(QMouseEvent* event);
 };
 
 #endif // CPATTERNLIST_H

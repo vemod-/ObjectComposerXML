@@ -1,8 +1,10 @@
 #include "qmacbuttons.h"
 #include "ui_qmacbuttons.h"
-#include <QGraphicsDropShadowEffect>
-#include <QBitmap>
-#include <QLinearGradient>
+//#include <QGraphicsDropShadowEffect>
+//#include <QBitmap>
+//#include <QLinearGradient>
+#include <QAction>
+#include <QPainter>
 
 QCustomToolButton::QCustomToolButton(QWidget *parent) : QToolButton(parent)
 {
@@ -58,7 +60,7 @@ QImage QCustomToolButton::setBrightness(QImage img, int value, bool desaturate)
 
 QImage QCustomToolButton::minBrightness(QImage img, int value)
 {
-    float factor=(255-value)/255.0;
+    double factor=(255-value)/255.0;
     for (int x=0;x<img.width();x++)
     {
         for (int y=0;y<img.height();y++)
@@ -69,7 +71,7 @@ QImage QCustomToolButton::minBrightness(QImage img, int value)
             int h, s, v, a;
             color.getHsv(&h, &s, &v, &a);
             s=0;
-            v=(v*factor)+value;
+            v=int(v*factor)+value;
             color.setHsv(h, s, v, a);
             img.setPixel(x,y, color.rgba());
         }
@@ -83,15 +85,15 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
     QRect roundRect=findRect();
     QImage px;
     //QPixmap mask;
-    QRect iconRect=rect();
+    QRectF iconRect=rect();
     QRect textRect=rect();
     textRect.translate(0,-1);
-    QRect r=textRect;
+    QRectF r=textRect;
     r.translate(0,1);
     QPainter p(this);
     p.setWorldMatrixEnabled(false);
     p.setViewTransformEnabled(false);
-    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::HighQualityAntialiasing);
+    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     //p.setRenderHints(QPainter::Antialiasing);
     QTextOption o(Qt::AlignCenter);
     p.setFont(font());
@@ -108,30 +110,30 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
         //iconRect.setHeight(iconRect.height()-2);
         iconRect.adjust(0,2,-3,-3);
         QSize s(24,24);
-        if (icon().availableSizes().count()) s = icon().availableSizes()[0];
-        float aspect=(float)s.width()/(float)s.height();
-        float thisaspect=(float)iconRect.width()/(float)iconRect.height();
+        if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
+        double aspect=double(s.width())/double(s.height());
+        double thisaspect=double(iconRect.width())/double(iconRect.height());
         if (aspect<thisaspect)
         {
-            iconRect.setWidth((float)iconRect.height()*aspect);
+            iconRect.setWidth(double(iconRect.height())*aspect);
             //iconRect.setLeft((float)(rect().width()-iconRect.width())/2.0);
             iconRect.translate((rect().width()-iconRect.width())/2.0,0);
         }
         if (aspect>thisaspect)
         {
-            iconRect.setHeight((float)iconRect.width()*aspect);
+            iconRect.setHeight(double(iconRect.width())*aspect);
             iconRect.translate(0,(rect().height()-iconRect.height())/2.0);
         }
         //iconRect.translate(1,1);
         //iconRect.adjust(2,2,-2,-2);
         r=iconRect;
         r.translate(0,1);
-        px = icon().pixmap(s).toImage().convertToFormat(QImage::Format_ARGB32);
+        px = icon().pixmap(s).toImage().convertToFormat(QImage::Format_ARGB32,Qt::DiffuseDither);
         //mask = QPixmap(icon().pixmap(s).createHeuristicMask());
     }
     if (this->isEnabled())
     {
-        if (isChecked() | isDown())
+        if (isChecked() || isDown())
         {
             QLinearGradient lg(0,0,0,height());
             lg.setColorAt(0,"#333333");
@@ -268,19 +270,17 @@ QMacButtons::QMacButtons(QWidget *parent) :
     ui(new Ui::QMacButtons)
 {
     ui->setupUi(this);
-    QGridLayout* l=new QGridLayout(this);
-    l->setMargin(0);
+    auto l=new QGridLayout(this);
+    l->setContentsMargins(0,0,0,0);
     l->setVerticalSpacing(0);
     l->setHorizontalSpacing(0);
     frame=new QWidget(this);
     l->addWidget(frame,0,0);
     layout=new QGridLayout(frame);
-    layout->setMargin(0);
+    layout->setContentsMargins(0,0,0,0);
     layout->setVerticalSpacing(0);
     layout->setHorizontalSpacing(0);
     setSelectMode(QMacButtons::SelectNone);
-    mapper=new QSignalMapper(this);
-    connect(mapper,SIGNAL(mapped(int)),this,SLOT(wasClicked(int)));
 }
 
 QMacButtons::~QMacButtons()
@@ -317,7 +317,7 @@ void QMacButtons::addButton(QAction *action, QKeySequence keySequence)
     b->setToolTip(action->text()+" "+keySequence.toString());
     QWidget::addAction(action);
     action->setShortcut(keySequence);
-    connect(action,SIGNAL(triggered()),b,SLOT(animateClick()));
+    connect(action,&QAction::triggered,b,&QAbstractButton::animateClick);
     addButton(b,action->text());
 }
 
@@ -325,23 +325,20 @@ void QMacButtons::addButton(QToolButton *b, const QString& Name)
 {
     b->setCheckable(m_selectMode != QMacButtons::SelectNone);
     b->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
-    layout->addWidget(b,0,Buttons.count());
-    connect(b,SIGNAL(pressed()),this,SLOT(wasClicked()));
-    connect(b,SIGNAL(clicked()),mapper,SLOT(map()));
-    mapper->setMapping(b,Buttons.count());
+    layout->addWidget(b,0,Buttons.size());
+    connect(b,&QAbstractButton::pressed,this,qOverload<>(&QMacButtons::wasClicked));
+    const int i = Buttons.size();
+    connect(b, &QToolButton::clicked, [=] { wasClicked(i); });
     Buttons.append(b);
     Names.append(Name);
-    //ShowButtons();
 }
 
 void QMacButtons::wasClicked()
 {
-    for (int i=0;i<Buttons.count();i++)
+    for (int i=0;i<Buttons.size();i++)
     {
         if (Buttons[i]->isDown())
         {
-            //emit buttonClicked(i);
-            //emit buttonClicked(Names[i]);
             if (m_selectMode != QMacButtons::SelectNone)
             {
                 if (!Buttons[i]->isChecked())
@@ -371,7 +368,7 @@ void QMacButtons::wasClicked(int index)
     emit buttonClicked(Names[index]);
 }
 
-const QMacButtons::SelectMode QMacButtons::selectMode()
+QMacButtons::SelectMode QMacButtons::selectMode()
 {
     return m_selectMode;
 }
@@ -379,7 +376,7 @@ const QMacButtons::SelectMode QMacButtons::selectMode()
 void QMacButtons::setSelectMode(const SelectMode sm)
 {
     m_selectMode=sm;
-    foreach (QToolButton* b,Buttons)
+    for (QToolButton* b : std::as_const(Buttons))
     {
         b->setCheckable(sm != QMacButtons::SelectNone);
     }
@@ -399,7 +396,7 @@ void QMacButtons::setSelected(const int index, const bool selected)
     }
     if (m_selectMode==QMacButtons::SelectNone)
     {
-        foreach (QToolButton* b,Buttons)
+        for (QToolButton* b : std::as_const(Buttons))
         {
             b->setChecked(false);
         }
@@ -407,7 +404,7 @@ void QMacButtons::setSelected(const int index, const bool selected)
     }
     if (selected)
     {
-        foreach (QToolButton* b,Buttons)
+        for (QToolButton* b : std::as_const(Buttons))
         {
             b->setChecked(false);
         }
@@ -426,19 +423,19 @@ void QMacButtons::setSelected(const QString& name, const bool selected)
     setSelected(Names.indexOf(name),selected);
 }
 
-const bool QMacButtons::isSelected(const int index)
+bool QMacButtons::isSelected(const int index)
 {
     return Buttons[index]->isChecked();
 }
 
-const bool QMacButtons::isSelected(const QString& name)
+bool QMacButtons::isSelected(const QString& name)
 {
     return isSelected(Names.indexOf(name));
 }
 
-const bool QMacButtons::isSelected()
+bool QMacButtons::isSelected()
 {
-    foreach (QToolButton* b, Buttons)
+    for (const QToolButton* b : std::as_const(Buttons))
     {
         if (b->isChecked()) return true;
     }
@@ -451,7 +448,7 @@ void QMacButtons::setSelected(const bool selected)
     {
         if (m_selectMode==QMacButtons::SelectAll)
         {
-            for (int i=0;i<Buttons.count();i++)
+            for (int i=0;i<Buttons.size();i++)
             {
                 emit this->selected(i);
                 emit this->selected(Names[i]);
@@ -463,7 +460,7 @@ void QMacButtons::setSelected(const bool selected)
     {
         if ((m_selectMode==QMacButtons::SelectNone) || (m_selectMode==QMacButtons::SelectOneOrNone))
         {
-            foreach (QToolButton* b,Buttons)
+            for (QToolButton* b : std::as_const(Buttons))
             {
                 b->setChecked(false);
             }
@@ -483,7 +480,7 @@ void QMacButtons::setDown(const QString& name, const bool down)
 
 void QMacButtons::setDown(const bool down)
 {
-    foreach (QToolButton* b,Buttons)
+    for (QToolButton* b : std::as_const(Buttons))
     {
         b->setDown(down);
     }
@@ -499,13 +496,18 @@ void QMacButtons::setTooltip(const QString& name, const QString& tooltip)
     setTooltip(Names.indexOf(name),tooltip);
 }
 
-const int QMacButtons::value()
+int QMacButtons::value()
 {
-    for (int i=0;i<Buttons.count();i++)
+    for (int i=0;i<Buttons.size();i++)
     {
         if (Buttons[i]->isChecked()) return i;
     }
     return -1;
+}
+
+int QMacButtons::size()
+{
+    return Buttons.size();
 }
 
 void QMacButtons::setEnabled(const int index, const bool enabled)
@@ -523,24 +525,24 @@ void QMacButtons::setEnabled(const bool enabled)
     QWidget::setEnabled(enabled);
 }
 
-const bool QMacButtons::isEnabled(const int index)
+bool QMacButtons::isEnabled(const int index)
 {
     return Buttons[index]->isEnabled();
 }
 
-const bool QMacButtons::isEnabled(const QString& name)
+bool QMacButtons::isEnabled(const QString& name)
 {
     return isEnabled(Names.indexOf(name));
 }
 
-const bool QMacButtons::isEnabled()
+bool QMacButtons::isEnabled()
 {
     return QWidget::isEnabled();
 }
 
 void QMacButtons::setMonochrome(const int index, const bool monochrome)
 {
-    ((QCustomToolButton*)Buttons[index])->monochrome=monochrome;
+    dynamic_cast<QCustomToolButton*>(Buttons[index])->monochrome=monochrome;
 }
 
 void QMacButtons::setMonochrome(const QString& name, const bool monochrome)
@@ -550,27 +552,57 @@ void QMacButtons::setMonochrome(const QString& name, const bool monochrome)
 
 void QMacButtons::setMonochrome(const bool monochrome)
 {
-    foreach (QToolButton* b,Buttons)
+    for (QToolButton* b : std::as_const(Buttons))
     {
-        ((QCustomToolButton*)b)->monochrome=monochrome;
+        dynamic_cast<QCustomToolButton*>(b)->monochrome=monochrome;
     }
 }
 
-const bool QMacButtons::isMonochrome(const int index)
+bool QMacButtons::isMonochrome(const int index)
 {
-    return ((QCustomToolButton*)Buttons[index])->monochrome;
+    return dynamic_cast<QCustomToolButton*>(Buttons[index])->monochrome;
 }
 
-const bool QMacButtons::isMonochrome(const QString& name)
+bool QMacButtons::isMonochrome(const QString& name)
 {
     return isMonochrome(Names.indexOf(name));
 }
 
-const bool QMacButtons::isMonochrome()
+void QMacButtons::setIcon(const int index, const QIcon& icon)
 {
-    foreach (QToolButton* b,Buttons)
+    dynamic_cast<QCustomToolButton*>(Buttons[index])->setIcon(icon);
+}
+
+void QMacButtons::setIcon(const QString& name, const QIcon& icon)
+{
+    setIcon(Names.indexOf(name),icon);
+}
+
+void QMacButtons::setData(const int index, const QVariant& data)
+{
+    dynamic_cast<QCustomToolButton*>(Buttons[index])->data=data;
+}
+
+void QMacButtons::setData(const QString& name, const QVariant& data)
+{
+    setData(Names.indexOf(name),data);
+}
+
+QVariant QMacButtons::data(const int index)
+{
+    return dynamic_cast<QCustomToolButton*>(Buttons[index])->data;
+}
+
+QVariant QMacButtons::data(const QString& name)
+{
+    return data(Names.indexOf(name));
+}
+
+bool QMacButtons::isMonochrome()
+{
+    for (QToolButton* b : std::as_const(Buttons))
     {
-        if (!((QCustomToolButton*)b)->monochrome) return false;
+        if (!dynamic_cast<QCustomToolButton*>(b)->monochrome) return false;
     }
     return true;
 }
@@ -578,9 +610,9 @@ const bool QMacButtons::isMonochrome()
 void QMacButtons::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
-    if (Buttons.count()==0) return;
-    float w=frame->width()/Buttons.count();
-    foreach (QToolButton* b,Buttons)
+    if (Buttons.empty()) return;
+    const auto w = int(double(frame->width())/double(Buttons.size()));
+    for (QToolButton* b : std::as_const(Buttons))
     {
         b->setIconSize(QSize(w-4,frame->height()-4));
     }

@@ -21,7 +21,8 @@ public:
 		Sunken,
 		Raised
 	};
-	EffectLabel(QWidget* parent = 0);
+    EffectLabel(QWidget* parent = 0);
+        void setTextColor(QColor c);
         void setShadowColor(QColor c);
         void setIcon(QIcon i);
         void setIconSize(QSize s);
@@ -35,6 +36,7 @@ private:
     void drawTextEffect(QPainter* painter, QPoint offset);
 	Effect effect_;
     QColor shadowColor_;
+    QColor textColor_;
     QIcon icon_;
     QSize iconSize_;
     QRect textRect_;

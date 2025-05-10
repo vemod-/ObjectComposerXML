@@ -58,8 +58,8 @@ QHoverRubberband::QHoverRubberband(QRubberBand::Shape shape, QWidget *parent) : 
 {
     animation=new QTimeLine(400,this);
     //animation->setEasingCurve(QEasingCurve::OutBack);
-    connect(animation,SIGNAL(frameChanged(int)),this,SLOT(TimeStep(int)));
-    connect(animation,SIGNAL(finished()),this,SLOT(TimeFinished()));
+    connect(animation,&QTimeLine::frameChanged,this,&QHoverRubberband::TimeStep);
+    connect(animation,&QTimeLine::finished,this,&QHoverRubberband::TimeFinished);
     m_Opacity=0;
 }
 
@@ -79,7 +79,7 @@ void QHoverRubberband::paintEvent(QPaintEvent *event)
 
 void QHoverRubberband::TimeStep(int Step)
 {
-    m_Opacity=(float)Step*0.01;
+    m_Opacity=Step*0.01;
     repaint();
 }
 

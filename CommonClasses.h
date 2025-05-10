@@ -2,15 +2,16 @@
 #define COMMONCLASSES_H
 
 #define expressiondefault 116
-#define begofbar 204
-#define endofbar 48
-#define ScoreLeftMargin 18*12
+#define BarLeftMargin 204
+#define BarRightMargin 48
+#define ScoreLeftMargin (18*12)
 #define ScoreStaffHeight 1200
 #define ScoreStaffLinesHeight 384
 #define ScoreTopSymbolY ScoreStaffHeight+(20*12)
-#define ScoreBottomSymbolY 42*12
+#define ScoreBottomSymbolY (42*12)
 #define ScoreTempoY (44 * 12) + ScoreStaffHeight
 #define maxticks 255
+#define vorschlagLength 30
 
 #define midifl "/Users/Shared/oc.mid"
 #define settingsfile "../OCstuff.xml"
@@ -21,375 +22,308 @@
 #define LineHalfThickNess 4
 #define AccidentalSpace 96
 
-#define tablerowheight 17
-
 #define inactivestaffcolor Qt::darkGray
 #define unselectablecolor QColor(0,0,0,180)
 #define selectedcolor Qt::red
 #define markedcolor Qt::blue
 #define activestaffcolor Qt::black
 
-#define renderinghints QPainter::SmoothPixmapTransform | QPainter::HighQualityAntialiasing | QPainter::Antialiasing | QPainter::TextAntialiasing
+#define renderinghints QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing
 
-#include <QString>
-#include <QList>
-#include <QVariant>
-#include <qmath.h>
-#include <QFont>
-#include <QGraphicsScene>
+//#include <QVariant>
+//#include <qmath.h>
+//#include <QGraphicsScene>
 #include <QGraphicsItem>
 #include "qmacrubberband.h"
-#include <QDomLite>
-#include <QIcon>
-#include <QDebug>
-#include <QAbstractTableModel>
+//#include <QIcon>
+//#include <QAbstractTableModel>
 #include <QModelIndex>
+#include "ocxmlwrappers.h"
+//#include "array"
+#include <QGraphicsView>
 
-class CStringCompare
-{
-protected:
-    QString Val;
-public:
-    CStringCompare(const QString& str);
-    const bool Compare(const QStringList& S) const;
-    const bool Compare(const QString& S1) const;
-    const bool Compare(const QString& S1,const QString& S2) const;
-    const bool Compare(const QString& S1,const QString& S2,const QString& S3) const;
-    const bool Compare(const QString& S1,const QString& S2,const QString& S3,const QString& S4) const;
-    const bool Compare(const QString& S1,const QString& S2,const QString& S3,const QString& S4,const QString& S5) const;
-};
+template <typename T>
 
-class CNoteCompare : public CStringCompare
-{
-protected:
-    QDomLiteElement* XMLElement;
-public:
-    CNoteCompare(QDomLiteElement* XML);
-    const bool IsNoteType(const bool Note, const bool TiedNote=false, const bool CompoundNote=false, const bool TiedCompoundNote=false) const;
-    const bool IsRestOrNoteType(const bool Note, const bool TiedNote=false, const bool CompoundNote=false, const bool TiedCompoundNote=false) const;
-    const bool IsRestOrValuedNote() const;
-    const bool IsTiedNote() const;
-    const bool IsValuedNote() const;
-    const bool IsCompoundNote() const;
-    const bool IsRestOrAnyNote() const;
-    const bool IsAnyNote() const;
-    const bool IsRest() const;
-    const bool IsEndOfVoice() const;
-};
-
-class XMLSimpleSymbolWrapper : public CNoteCompare
+class QAverage
 {
 public:
-    XMLSimpleSymbolWrapper(QDomLiteElement* XMLVoice, const int Pointer);
-    XMLSimpleSymbolWrapper(QDomLiteElement* XMLSymbol);
-    const QString name() const;
-    const int size() const;
-    const QPointF pos() const;
-    const QPointF move(const QPointF p);
-    const QPointF move(const float x, const float y);
-    const float moveX(const float x);
-    const float moveY(const float y);
-    const double getVal(const QString& Tag) const;
-    const QString attribute(const QString& Tag) const;
-    void setAttribute(const QString& Tag, const QVariant& Value);
-    const bool attributeExists(const QString& Tag) const;
-    QDomLiteElement* getXML();
-    const static float CalcTicks(const int NoteValue, const bool Dotted, const bool Triplet);
-    static void SetNoteVal(int& Notevalue, bool& Dotted, bool& Triplet, const float Ticks);
-};
-
-class XMLSymbolWrapper : public XMLSimpleSymbolWrapper
-{
-public:
-    XMLSymbolWrapper(QDomLiteElement* XMLVoice, const int Pointer, const int CurrentMeter);
-    XMLSymbolWrapper(QDomLiteElement* XMLSymbol, const int CurrentMeter);
-    const int ticks() const;
+    inline QAverage() { clear(); }
+    inline QAverage(const T value) {
+        clear();
+        append(value);
+    }
+    inline QAverage(const QVector<T>& value) {
+        clear();
+        for (const T v : value) append(v);
+    }
+    inline void append(const T value) {
+        m_Size++;
+        m_Value+=value;
+    }
+    inline int size() { return m_Size; }
+    inline bool isEmpty() { return (m_Size==0); }
+    void clear() {
+        m_Size=0;
+        m_Value=0;
+    }
+    inline T average() {
+        return (m_Size==0) ? 0 : T(m_Value/double(m_Size));
+    }
 private:
-    int m_Ticks;
-    void Init(const int CurrentMeter);
-    const int Calc();
+    int m_Size;
+    T m_Value;
 };
 
-class XMLFontWrapper
+typedef QVector<int> OCIntList;
+
+inline const QString MakeUnicode(QString txt)
+{
+    for (QChar& c : txt) if (c.unicode() <= 0xF000) c = QChar(c.unicode()+0xF000);
+    return txt;
+}
+#ifndef OCPIANO_H
+inline int IntDiv(const int a, const int b)
+{
+    return a/b;
+}
+#endif
+inline float FloatDiv(const float a, const float b)
+{
+    return a/b;
+}
+
+inline double DoubleDiv(const double a, const double b)
+{
+    return a/b;
+}
+
+inline double SizeFactor(const int SymbolSize)
+{
+    return (SymbolSize == 0) ? 1 : DoubleDiv(10-SymbolSize,10);
+}
+
+template <typename T>
+
+inline const T Sgn(const T Num)
+{
+    return (Num>0) ? 1 : (Num<0) ? -1 : 0;
+}
+
+template <typename T>
+
+inline const T loBound(const T lo, const T num)
+{
+    return qMax<T>(lo,num);
+}
+
+template <typename T>
+
+inline const T hiBound(const T num, const T hi)
+{
+    return qMin<T>(num,hi);
+}
+
+template <typename T>
+
+inline const T boundStep(const T Low, T num, const T High, T Step=1)
+{
+    const T Differ = qMax<T>(1,Step);
+    while (num > High) num -= Differ;
+    while (num < Low) num += Differ;
+    return num;
+}
+
+template <typename T>
+
+inline const T boundRoll(const T Low, const T num, const T High)
+{
+    return boundStep<T>(Low, num, High, (High - Low) + 1);
+}
+
+
+#pragma pack(push,1)
+
+class OCPageBar
 {
 public:
-    XMLFontWrapper(QDomLiteElement* XMLFont);
-    XMLFontWrapper(QDomLiteElement *XMLParent, const QString& Name);
-    XMLFontWrapper(const QFont& f, const QString& Name);
-    const QFont getFont() const;
-    void setFont(const QFont& f);
-    QDomLiteElement* getXML();
-    void showDialog(QWidget* parent=0);
-protected:
-    QDomLiteElement* XMLElement;
-};
-
-class XMLTextWrapper : public XMLFontWrapper
-{
-public:
-    XMLTextWrapper(QDomLiteElement* XMLText);
-    XMLTextWrapper(QDomLiteElement *XMLParent, const QString& Name);
-    const QString getText() const;
-    void setText(const QString& Text);
-};
-
-class XMLScoreWrapper
-{
-public:
-    XMLScoreWrapper();
-    XMLScoreWrapper(QDomLiteDocument* Doc);
-    ~XMLScoreWrapper();
-    void setXML(QDomLiteDocument* Doc);
-    void setXML(XMLScoreWrapper& Doc);
-    void setCopy(QDomLiteDocument* Doc);
-    void setCopy(XMLScoreWrapper& Doc);
-    void shadowXML(QDomLiteDocument* Doc);
-    void shadowXML(XMLScoreWrapper& Doc);
-    QDomLiteDocument* getXML();
-    QDomLiteElement** documentPointer();
-    QDomLiteElement* documentElement();
-    QDomLiteElement* documentClone();
-    QDomLiteDocument* getClone();
-    void newScore();
-    void newDoc();
-    void replaceDocumentElement(QDomLiteElement* XMLDoc);
-    void replaceScore(QDomLiteElement* XMLScore);
-    void replaceLayoutCollection(QDomLiteElement* XMLLayoutCollection);
-    const bool Load(const QString& Path);
-    const bool Save(const QString& Path);
-    const QString attribute(const QString& Tag) const;
-    const double getVal(const QString& Tag) const;
-    void setAttribute(const QString& Tag, const QVariant& Value);
-    QDomLiteElement* Score();
-    QDomLiteElement* Staff(const int Index);
-    QDomLiteElement* Voice(const int StaffIndex, const int Index);
-    static QDomLiteElement* Voice(QDomLiteElement* XMLStaff, const int Index);
-    static QDomLiteElement* Voice(QDomLiteElement* XMLScore, const int StaffIndex, const int Index);
-    QDomLiteElement* Symbol(const int StaffIndex, const int VoiceIndex, const int Index);
-    static QDomLiteElement* Symbol(QDomLiteElement* XMLVoice, const int Index);
-    QDomLiteElement* SymbolClone(const int StaffIndex, const int VoiceIndex, const int Index);
-    QDomLiteElement* SymbolClone(QDomLiteElement* XMLVoice, const int Index);
-    const static int FindSymbol(QDomLiteElement* XMLVoice, const QString& Name, const int Ptr=0, const QString& Attr=QString(), const double Val=0, const QString& Attr1=QString(), const double Val1=0);
-    QDomLiteElement* Templates();
-    QDomLiteElement* Template(const int Index);
-    QDomLiteElement* TemplateStaff(const int TemplateIndex, const int Index);
-    QDomLiteElement* TemplateOrderStaff(const int TemplateIndex, const int Order);
-    void ValidateBrackets(const int TemplateIndex);
-    static void ValidateBrackets(QDomLiteElement* Template);
-    const int AllTemplateIndex(const int TemplateIndex, const int StaffIndex);
-    const static int AllTemplateIndex(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    const static int AllTemplateIndex(QDomLiteElement* XMLTemplateStaff);
-    const int StaffOrder(const int TemplateIndex, const int StaffIndex);
-    const static int StaffOrder(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    const static bool StaffOnTemplate(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    static QDomLiteElement* TemplateStaff(QDomLiteElement* XMLTemplate, const int Index);
-    static QDomLiteElement* TemplateOrderStaff(QDomLiteElement* XMLTemplate, const int Order);
-    const QFont TempoFont(const QFont& defaultFont=QFont("Times New Roman",160,QFont::Bold));
-    const QFont DynamicFont(const QFont& defaultFont=QFont("Times New Roman",150,QFont::Normal,true));
-    void setTempoFont(const QFont& Font);
-    void setDynamicFont(const QFont& Font);
-
-    const int NumOfStaffs();
-    const int NumOfVoices(const int StaffIndex);
-    const static int NumOfVoices(QDomLiteElement* XMLStaff);
-    QDomLiteElement* Paste1Voice(QDomLiteElement* XMLVoice, const int Pointer, QDomLiteElement* data);
-    QDomLiteElement* Paste1Voice(const int StaffIndex, const int VoiceIndex, const int Pointer, QDomLiteElement* data);
-    static void Clear1Voice(QDomLiteElement* XMLVoice, const int StartPointer, const int EndPointer);
-    static void Clear1Voice(QDomLiteElement* XMLVoice, const QList<int> Pointers);
-    void Clear1Voice(const int StaffIndex, const int VoiceIndex, const int StartPointer, const int EndPointer);
-    void Clear1Voice(const int StaffIndex, const int VoiceIndex, const QList<int> Pointers);
-    const static int VoiceLength(QDomLiteElement* XMLVoice);
-    const int VoiceLength(const int StaffIndex, const int VoiceIndex);
-    QDomLiteElement* AddVoice(const int StaffIndex);
-    QDomLiteElement* AddVoice(const int StaffIndex, const int NewNumber);
-    QDomLiteElement* AddVoice(QDomLiteElement* XMLStaff);
-    QDomLiteElement* AddVoice(QDomLiteElement* XMLStaff, int NewNumber);
-    void UpdateIndexes(QDomLiteElement* XMLTemplate);
-    QDomLiteElement* AddTemplateStaff(const int TemplateIndex, const int NewNumber, const QString& Name);
-    QDomLiteElement* AddTemplateStaff(QDomLiteElement* XMLTemplate, const int NewNumber, const QString& Name);
-    QDomLiteElement* AddTemplateStaff(const int NewNumber, const QString& Name);
-    QDomLiteElement* AddStaff(const int NewNumber, const QString& Name);
-    static void InsertSymbol(QDomLiteElement* XMLVoice, QDomLiteElement* XMLSymbol, const int Pointer);
-    void InsertSymbol(const int StaffIndex, const int VoiceIndex, QDomLiteElement* XMLSymbol, const int Pointer);
-    static void DeleteVoice(QDomLiteElement* XMLStaff, const int VoiceIndex);
-    void DeleteVoice(const int StaffIndex, const int VoiceIndex);
-    void TemplateDeleteStaff(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    void TemplateDeleteStaff(const int TemplateIndex, const int StaffIndex);
-    void TemplateDeleteStaff(const int StaffIndex);
-    void DeleteStaff(const int StaffIndex);
-    void MoveStaff(const int From, const int To);
-    const static int StaffPos(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    const int StaffPos(const int TemplateIndex, const int StaffIndex);
-    const int StaffPos(const int StaffIndex);
-    const QString StaffName(const int StaffIndex);
-    const static QString StaffName(QDomLiteElement* XMLTemplateStaff);
-    const static QString StaffName(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    void setStaffName(const int StaffIndex, const QString& Name);
-    const QString StaffAbbreviation(const int StaffIndex);
-    const static QString StaffAbbreviation(QDomLiteElement* XMLTemplateStaff);
-    const static QString StaffAbbreviation(QDomLiteElement* XMLTemplate, const int StaffIndex);
-    void setStaffAbbreviation(const int StaffIndex, const QString& Abbreviation);
-
-    const bool LayoutCollectionExists() const;
-    const int NumOfLayouts();
-    QDomLiteElement* LayoutCollection();
-    QDomLiteElement* LayoutTemplate(const int Index);
-    QDomLiteElement* Layout(const int Index);
-    QDomLiteElement* Layout(const QString& Name);
-    const int LayoutNumber(const QString& Name);
-    const static QString LayoutName(QDomLiteElement* XMLLayout);
-    const QString LayoutName(const int LayoutIndex);
-    void setLayoutName(const int LayoutIndex, const QString Name);
-private:
-    QDomLiteDocument* m_XMLScore;
-    bool isShadow;
-};
-
-class OCBarWindowBar
-{
-public:
-    OCBarWindowBar();
-    int Meter;
-    QString MeterText;
-    int Pointer;
-    int Density;
-    int Notes;
-    bool IsFullRest;
-    bool IsFullRestOnly;
-    bool KeyChangeOnOne;
-    bool ClefChangeOnOne;
-    bool MasterStuff;
-};
-
-struct OCBarWindowVoice
-{
-    QList<OCBarWindowBar> Bars;
-    QString Name;
-    int Staff;
-    int Voice;
-    int NumOfVoices;
-    int EndPointer;
-    bool Incomplete;
-};
-
-class OCBarMap
-{
-public:
-    OCBarMap();
-    const int BarMapIndex(const int Staff, const int Voice) const;
-    const int GetPointer(const int Bar, const int Staff, const int Voice) const;
-    const int GetBar(const int Pointer, const int Staff, const int Voice) const;
-    const int GetMeter(const int Bar, const int Staff, const int Voice) const;
-    const int BarCountAll() const;
-    const int BarCount(const int Staff, const int Voice) const;
-    const int BarCountAll(QDomLiteElement* XMLTemplate) const;
-    const bool IsEnded(const int Bar, QDomLiteElement* XMLTemplate) const;
-    const int EndOfVoiceBar(const int Staff, const int Voice) const;
-    const int NoteCount(const int Bar, const int Staff, const int Voice) const;
-    const int NoteCountStaff(const int Staff, const int StartBar, const int EndBar) const;
-    const bool IsFullRest(const int Bar, QDomLiteElement* XMLTemplate) const;
-    const bool IsFullRestOnly(const int Bar, QDomLiteElement* XMLTemplate) const;
-    const bool ClefChange(const int Bar, const int Staff, const int Voice) const;
-    const bool KeyChange(const int Bar, const int Staff, const int Voice) const;
-    const bool MasterStuff(const int Bar, const int Staff) const;
-    QList<OCBarWindowVoice> Voices;
+    inline OCPageBar(const int start) {
+        startBar=start;
+    }
+    int startBar;
+    int currentBar = 0;
+    int actualBar = 0;
+    inline int barNumber() const { return startBar+actualBar; }
+    inline void increment() {
+        currentBar++;
+        actualBar++;
+    }
+    inline void incActual() { actualBar++; }
 };
 
 class OCSignType
 {
 public:
-    OCSignType();
-    OCSignType(XMLSymbolWrapper& Symbol);
-    void Reset();
-    int val;
-    QPointF Pos;
-    int Size;
+    inline OCSignType() {
+        XMLSymbol.shadowXML(nullptr);
+    }
+    inline OCSignType(const XMLSimpleSymbolWrapper& Symbol,const int v = 0) {
+        set(Symbol,v);
+    }
+    inline void set(const XMLSimpleSymbolWrapper& Symbol, const int v = 0) {
+        XMLSymbol.shadowXML(Symbol.xml());
+        val = v;
+    }
+    inline void unset() {
+        XMLSymbol.shadowXML(nullptr);
+        val = 0;
+    }
+    inline bool isSet() const {
+        return (XMLSymbol.xml() != nullptr);
+    }
+    int val = 0;
+    XMLSimpleSymbolWrapper XMLSymbol;
 };
 
 class OCDurSignType : public OCSignType
 {
 public:
-    OCDurSignType();
-    OCDurSignType(XMLSymbolWrapper& Symbol, const bool ActualTicks=false);
-    void Decrem(int Value);
-    void Reset();
-    int Ticks;
-    int RemainingTicks;
+    inline OCDurSignType() : OCSignType() {}
+    inline OCDurSignType(const XMLSimpleSymbolWrapper& Symbol) : OCSignType(Symbol) { set(Symbol); }
+    inline void set(const XMLSimpleSymbolWrapper& Symbol, const int v = 0) {
+        OCSignType::set(Symbol,v);
+        Counter=0;
+        Ticks=Symbol.xml()->attributeValueInt("Ticks")+1;
+        RemainingTicks=Ticks;
+    }
+    inline void Decrem(const double Value) {
+        Counter++;
+        RemainingTicks = loBound<double>(0,RemainingTicks - Value);
+    }
+    inline bool remains() const { return (RemainingTicks > 0); }
+    double RemainingTicks = 0;
+    int Counter = 0;
+private:
+    int Ticks = 0;
 };
 
-class OCPrintStaffVarsType
+enum StemDirection
+{
+    StemDown=-1,
+    StemAuto=0,
+    StemUp=1
+};
+
+class OCVoiceSign
 {
 public:
-    OCPrintStaffVarsType(QDomLiteElement* XMLTemplateStaff);
-    int Curly;
-    int Square;
-    int Height;
+    inline OCVoiceSign(){}
+    OCSignType CurrentSign;
+    OCDurSignType DuratedSign;
+    OCSignType x1Sign;
+    bool x1Set = false;
+    inline void setCurrent(const XMLSimpleSymbolWrapper& Symbol, const int Val=0) {
+        CurrentSign.set(Symbol,Val);
+    }
+    inline void setDurated(const XMLSimpleSymbolWrapper& Symbol, const int Val=0) {
+        DuratedSign.set(Symbol,Val);
+    }
+    inline void setX1(const XMLSimpleSymbolWrapper& Symbol, const int Val=0) {
+        x1Sign.set(Symbol,Val);
+        x1Set=true;
+    }
+    inline void decrem(const double Ticks) {
+        DuratedSign.Decrem(Ticks);
+        x1Sign.unset();
+        x1Set=false;
+    }
+    inline OCSignType& getSign() {
+        if (x1Set) {
+            x1Set=false;
+            return x1Sign;
+        }
+        return (DuratedSign.remains()) ? DuratedSign : CurrentSign;
+    }
+    inline int getValue(int val) {
+        const int v = getSign().val;
+        return (v) ? v : val;
+    }
+};
+
+typedef QVector<OCDurSignType> OCDurSignVector;
+
+class OCDurSignList : public OCDurSignVector
+{
+public:
+    bool contains(const QString& name) const { return (indexOf(name) > -1); }
+    void decrement(const double ticks) {
+        for (int i = size() - 1; i >= 0; i--) {
+            (*this)[i].Decrem(ticks);
+            if (!(*this)[i].remains()) removeAt(i);
+        }
+    }
+    const OCDurSignType& sign(const int index) const { return (*this)[index]; }
+    const OCDurSignVector signs(const QString& name) const {
+        OCDurSignVector l;
+        for (OCDurSignType s : (*this)) if (s.XMLSymbol.Compare(name)) l.append(s);
+        return l;
+    }
+    int indexOf(const QString& name) const {
+        for (int i = 0; i < size(); i++) if ((*this)[i].XMLSymbol.Compare(name)) return i;
+        return -1;
+    }
+    void append(const XMLSimpleSymbolWrapper& symbol) { OCDurSignVector::append(OCDurSignType(symbol)); }
 };
 
 class OCMIDIVars
 {
 public:
-    OCMIDIVars();
-    void Reset();
-    int Channel;
-    int Patch;
-    int Transpose;
-    int Octave;
+    OCMIDIVars() {}
+    int Channel = 0;
+    int Patch = 0;
+    int Transpose = 0;
+    int Octave = 0;
+    inline int pitch(const int p) const { return boundStep<int>(1, p + (Octave * 12) + Transpose, 127, 12); }
 };
 
-class OCPlayBackVarsType
+struct OCPlayBackVarsType
 {
-public:
-    OCPlayBackVarsType();
-    int Currenttime;
-    int Currentdynam;
-    float crescendo;
+    int Pointer = 0;
+    int CurrentDelta = 0;
+    int VoicedTime = 0;
+    int Currentdynam = 70;
+    float crescendo = 0;
     OCMIDIVars MIDI;
-    bool ExpressionOn;
-    int express;
-    int changeexp;
-    int exprbegin;
-    int currentcresc;
-    bool PortamentoOn;
-    int PlayMeter;
-    int Playtempo;
-    int HoldTempo;
-    int Accel;
-    int currentlen;
-    bool Fine;
-    bool RepeatFromStart;
-    int Volta;
-    int CustomFlag0;
-    int CustomFlag1;
-    int CustomFlag2;
-    int CustomFlag3;
-    int CustomFlag4;
-    int CustomFlag5;
-    int CustomFlag6;
-    int CustomFlag7;
-    int CustomFlag8;
-    int CustomFlag9;
+    bool ExpressionOn = true;
+    int express = 0;
+    int changeexp = 0;
+    int exprbegin = expressiondefault;
+    int currentcresc = 0;
+    bool PortamentoOn = true;
+    int PortamentoTime = 0x10;
+    int PlayMeter = 96;
+    int Playtempo = 120;
+    int HoldTempo = 120;
+    int Accel = 0;
+    int AccelCounter = 0;
+    int currentlen = 80;
+    bool Fine = false;
+    OCIntList Repeat = {-1};
+    int PlayRepeat = 0;
+    int Volta = 0;
+    OCIntList PedalNotes;
+    OCIntList VorschlagNotes;
 };
 
-enum SquareBracketConstants
-{
-    SBNone = 0,
-    SBBegin = 1,
-    SBEnd = 2
-};
-
-enum CurlyBracketConstants
-{
-    CBNone = 0,
-    CBBegin = 2
-};
+typedef QVector<OCPlayBackVarsType> OCPlayVarsArray;
 
 enum NoteTypeCode
 {
     tsnote = 0,
     tstiednote = 1,
     tspolynote = 2,
-    tstiedpolynote = 3
+    tstiedpolynote = 3,
+    tsgracenote = 4,
+    tstiedgracenote
 };
 
 enum OCRefreshMode
@@ -400,6 +334,8 @@ enum OCRefreshMode
     tsVoiceIndexChanged = 3
 };
 
+//#define __Lelandfont
+
 enum OCTTF
 {
     OCTTFSopranoClef = 0xf021,
@@ -407,6 +343,7 @@ enum OCTTF
     OCTTFAltoClef = 0xf023,
     OCTTFSharp = 0xf024,
     OCTTFPercussionClef = 0xf025,
+    OCTTFPedalUp = 0xf02B,
     OCTTFStopped = 0xf02C,
     OCTTFNoteWhole = 0xf02D,
     OCTTFNoteHalf = 0xf02E,
@@ -431,6 +368,7 @@ enum OCTTF
     OCTTFDobbelUp = 125+0xf000,
     OCTTFDobbelDown = 126+0xf000,
     OCTTFFinger0 = 132+0xf000,
+    OCTTFPedalDown = 0xf0A1,
     OCTTFRestTrirtytwo = 168+0xf000,
     OCTTFBowing0 = 177+0xf000,
     OCTTFDoubleFlat = 187+0xf000,
@@ -443,13 +381,67 @@ enum OCTTF
     OCTTFBartok = 254+0xf000
 };
 
+#ifdef __Lelandfont
+
+#define LelandDefaultSize 272
+
+enum Leland {
+    LelandSopranoClef = 0xe050,
+    LelandBassClef = 0xe062,
+    LelandAltoClef = 0xe05c,
+    LelandSharp = 0xe262,
+    LelandPercussionClef = 0xe069,
+    LelandPedalUp = 0xe655,
+    LelandStopped = 0xe5e5,
+    LelandNoteWhole = 0xe0a2,
+    LelandNoteHalf = 0xe0a3,
+    LelandNoteQuarter = 0xe0a4,
+    LelandAccent = 0xe4a0,
+    LelandSegno = 0xe047,
+    LelandCoda = 0xe048,
+    LelandAllaBreve = 0xe088,
+    Lelandmf = 0xe52d,
+    Lelandmp = 0xe52c,
+    LelandFermata = 0xe4c0,
+    //LelandTrillb = 89+0xf000,
+    LelandTrill = 0xe566,
+    //LelandTrillSharp = 97+0xf000,
+    LelandFlat = 0xe260,
+    LelandFourFour = 0xe08a,
+    Lelandf = 0xe522,
+    LelandOpl = 0xe261,
+    Lelandp = 0xe520,
+    LelandPraltrill = 0xe56d,
+    LelandMordent = 0xe56c,
+    LelandDobbelUp = 0xe567,
+    LelandDobbelDown = 0xe568,
+    LelandFinger0 = 0xed10,
+    LelandPedalDown = 0xe650,
+    LelandRestTrirtytwo = 0xe4e8,
+    LelandBowing0 = 177+0xf000,
+    LelandDoubleFlat = 187+0xf000,
+    LelandRestSixteen = 0xe4e7,
+    LelandTremolo0 = 201+0xf000,
+    LelandRestQuarter = 0xe4e5,
+    LelandDoubleSharp = 220+0xf000,
+    LelandRestEight = 0xe4e6,
+    LelandRestSixtyfour = 0xe4e9,
+    LelandBartok = 0xe630
+};
+#endif
+
 //--------------------------------------------------------------------------
 
 class OCToolButtonProps
 {
 public:
-    OCToolButtonProps(const QString& ClassName,const int Button);
+    OCToolButtonProps(const QString& ClassName,const int Button)
+    {
+        classname=ClassName;
+        buttonindex=Button;
+    }
     QString classname;
+    QString category;
     QString tooltip;
     QString iconpath;
     QString fontname;
@@ -461,109 +453,641 @@ public:
     int buttonindex;
     OCRefreshMode refreshmode;
     bool customdialog;
-    bool ismodifier;
-    bool ishidden;
+    bool ismodifier = false;
+    bool ishidden = false;
 };
 
 //--------------------------------------------------------------------------
+
+class OCCursorRow
+{
+public:
+    inline OCCursorRow() {}
+    inline OCCursorRow(const OCSymbolLocation& l) : VoiceLocation(l) { AddSel(l.Pointer); }
+    OCVoiceLocation VoiceLocation;
+    inline int SelEnd() const { return m_Selected.last(); }
+    inline int SelStart() const { return m_Selected.first(); }
+    inline OCSymbolRange Range() const { return OCSymbolRange(SelStart(),SelEnd()); }
+    inline void AddSel(const int SymbolsIndex) {
+        if (m_Selected.contains(SymbolsIndex)) return;
+        if (m_Selected.empty()) {
+            m_Selected.append(SymbolsIndex);
+            return;
+        }
+        if (SymbolsIndex > m_Selected.last()) {
+            m_Selected.append(SymbolsIndex);
+            return;
+        }
+        for (int i = 0; i < m_Selected.size(); i++) {
+            if (SymbolsIndex < m_Selected[i]) {
+                m_Selected.insert(i,SymbolsIndex);
+                return;
+            }
+        }
+    }
+    inline void ExtendSel(const int SymbolsIndex) {
+        if (m_Selected.isEmpty()) {
+            AddSel(SymbolsIndex);
+            return;
+        }
+        while (SymbolsIndex > m_Selected.last()) m_Selected.append(m_Selected.last()+1);
+        while (SymbolsIndex < m_Selected.first()) m_Selected.prepend(m_Selected.first()-1);
+    }
+    inline void ExtendSel(const OCSymbolRange& r) {
+        ExtendSel(r.Start);
+        ExtendSel(r.End);
+    }
+    inline void AddSel(const OCSymbolRange& r) {
+        for (int i = r.Start; i <= r.End; i++) AddSel(i);
+    }
+    inline int SelCount() const { return m_Selected.size(); }
+    inline bool IsSelected(const int SymbolsIndex) const { return m_Selected.contains(SymbolsIndex); }
+    inline void SetPos(const int NewPos) {
+        m_Selected.clear();
+        AddSel(NewPos);
+    }
+    inline void SetRange(const int s, const int e) {
+        SetPos(s);
+        ExtendSel(e);
+    }
+    inline void SetRange(const OCSymbolRange& r) {
+        SetRange(r.Start,r.End);
+    }
+    inline void MaxSel(const int MaxPointer)
+    {
+        while ((!m_Selected.empty()) && (m_Selected.last() >= MaxPointer)) m_Selected.removeLast();
+    }
+    inline OCPointerList SelectedPointers() const { return m_Selected; }
+    void serialize(QDomLiteElement* xml) const {
+        QStringList l;
+        for (const int& i : m_Selected) l.append(QString::number(i));
+        VoiceLocation.serialize(xml->elementByTagCreate("Location"));
+        xml->setAttribute("Pointers",l.join(','));
+    }
+    void unserialize(const QDomLiteElement* xml) {
+        if (QDomLiteElement* l = xml->elementByTag("Location")) VoiceLocation.unserialize(l);
+        m_Selected.clear();
+        const QStringList l = xml->attribute("Pointers").split(',');
+        for (const QString& p : l) m_Selected.append(p.toInt());
+    }
+private:
+    OCPointerList m_Selected;
+};
+
+class OCCursorGrid
+{
+public:
+    inline int indexOf(const OCVoiceLocation& l) const {
+        for (int i=0;i<m_Selected.size();i++) if (m_Selected[i].VoiceLocation.matches(l)) return i;
+        return -1;
+    }
+    inline int SelEnd(const OCVoiceLocation& l) const {
+        const int i = indexOf(l);
+        return (i > -1) ? m_Selected[i].SelEnd() : -1;
+    }
+    inline int SelStart(const OCVoiceLocation& l) const {
+        const int i = indexOf(l);
+        return (i > -1) ? m_Selected[i].SelStart() : -1;
+    }
+    inline OCSymbolRange Range(const OCVoiceLocation& l) const {
+        const int i = indexOf(l);
+        return (i == -1) ? OCSymbolRange() : OCSymbolRange(m_Selected[i].SelStart(),m_Selected[i].SelEnd());
+    }
+    inline void AddSel(const OCSymbolLocation& l) {
+        const int i = indexOf(l);
+        if (i == -1){
+            AddRow(l);
+            return;
+        }
+        m_Selected[i].AddSel(l.Pointer);
+    }
+    inline void ExtendSel(const OCSymbolLocation& l) {
+        const int i = indexOf(l);
+        if (i == -1) {
+            AddRow(l);
+            return;
+        }
+        m_Selected[i].ExtendSel(l.Pointer);
+    }
+    inline void ExtendSel(const OCSymbolRange& r, const OCVoiceLocation& l) {
+        const int i = indexOf(l);
+        if (i == -1) {
+            AddRow(OCSymbolLocation(l,r.Start));
+            m_Selected[0].ExtendSel(r);
+            return;
+        }
+        m_Selected[i].ExtendSel(r);
+    }
+    inline void AddSel(const OCSymbolRange& r, const OCVoiceLocation& l) {
+        const int i = indexOf(l);
+        if (i == -1) {
+            AddRow(OCSymbolLocation(l,r.Start));
+            m_Selected[0].AddSel(r);
+            return;
+        }
+        m_Selected[i].AddSel(r);
+    }
+    inline int SelCount(const OCVoiceLocation& l) const {
+        const int i = indexOf(l);
+        return (i == -1) ? 0 : m_Selected[i].SelCount();
+    }
+    inline int RowCount() const { return m_Selected.size(); }
+    inline bool IsSelected(const OCSymbolLocation& l) const {
+        const int i = indexOf(l);
+        return (i == -1) ? false : m_Selected[i].IsSelected(l.Pointer);
+    }
+    inline void SetPos(const OCSymbolLocation& l) {
+        m_Selected.clear();
+        AddSel(l);
+    }
+    inline void SetRange(const OCSymbolRange& r, const OCVoiceLocation& l) {
+        SetPos(OCSymbolLocation(l,r.Start));
+        ExtendSel(r,l);
+    }
+    inline void ClearSel() { m_Selected.clear(); }
+    inline void MaxSel(const OCSymbolLocation& l) {
+        const int i = indexOf(l);
+        if (i == -1) return;
+        m_Selected[i].MaxSel(l.Pointer);
+        if (m_Selected[i].SelCount() == 0) m_Selected.remove(i);
+    }
+    inline const OCPointerList SelectedPointers(const OCVoiceLocation& l) const {
+        const int i = indexOf(l);
+        return (i == -1) ? OCPointerList() : m_Selected[i].SelectedPointers();
+    }
+    void serialize(QDomLiteElement* xml) const {
+        for (const OCCursorRow& r : m_Selected) r.serialize(xml->elementByTagCreate("Row"));
+    }
+    void unserialize(const QDomLiteElement* xml) {
+        const QDomLiteElementList rows = xml->elementsByTag("Row");
+        if (!rows.empty()) {
+            m_Selected.clear();
+            for (const QDomLiteElement* r : rows) {
+                OCCursorRow c;
+                c.unserialize(r);
+                m_Selected.append(c);
+            }
+        }
+    }
+private:
+    QVector<OCCursorRow> m_Selected;
+    inline void AddRow(const OCSymbolLocation& l) {
+        m_Selected.append(OCCursorRow(l));
+    }
+};
 
 class OCCursor
 {
 public:
-    OCCursor();
-    const int SelEnd() const;
-    const int SelStart() const;
-    void AddSel(const int SymbolsIndex);
-    void ExtendSel(const int SymbolsIndex);
-    const int SelCount() const;
-    const int Sel(const int Index) const;
-    const bool IsSelected(const int SymbolsIndex) const;
-    const bool IsMarked(const int SymbolsIndex) const;
-    void SetPos(const int NewPos);
-    void SetZero();
-    const int GetPos() const;
-    void MaxSel(const int MaxPointer);
-    QList<int> Selected;
-    const QList<int> Pointers() const;
+    inline OCCursor() : m_Location(0,0,0) {}
+    inline int SelEnd() const
+    {
+        return (m_Selected.SelCount(m_Location)) ? m_Selected.SelEnd(m_Location) : m_Location.Pointer;
+    }
+    inline int SelStart() const
+    {
+        return (m_Selected.SelCount(m_Location)) ? m_Selected.SelStart(m_Location) : m_Location.Pointer;
+    }
+    inline OCSymbolRange Range() const { return m_Selected.Range(m_Location); }
+    inline void AddSel(const int SymbolsIndex)
+    {
+        m_Location.Pointer = SymbolsIndex;
+        m_Selected.AddSel(OCSymbolLocation(m_Location,SymbolsIndex));
+    }
+    inline void ExtendSel(const int SymbolsIndex, const int max = -1)
+    {
+        m_Selected.ExtendSel(OCSymbolLocation(m_Location,SymbolsIndex));
+        if (max > -1) MaxSel(max);
+    }
+    inline void ExtendSel(const OCSymbolRange& r, const int max = -1)
+    {
+        m_Selected.ExtendSel(r,m_Location);
+        if (max > -1) MaxSel(max);
+    }
+    inline void ExtendSel(const OCPointerList& l, const int max = -1) {
+        ExtendSel(OCSymbolRange(l));
+        if (max > -1) MaxSel(max);
+    }
+    //inline void ExtendSel(const OCLocationList& l) {
+    //    ExtendSel(l.pointers());
+    //}
+    inline void AddSel(const OCSymbolRange& r, const int max = -1)
+    {
+        m_Selected.AddSel(r,m_Location);
+        if (max > -1) MaxSel(max);
+    }
+    inline void AddSel(const OCPointerList& l, const int max = -1) {
+        if (l.empty()) return;
+        for (int i : l) AddSel(i);
+        if (max > -1) MaxSel(max);
+    }
+    inline void SetSel(const OCSymbolRange& r, const int max = -1) {
+        SetPos(r.Start);
+        ExtendSel(r.End,max);
+    }
+    inline void SetSel(const OCPointerList& l, const int max = -1) {
+        if (!l.empty()) SetPos(l.first());
+        AddSel(l,max);
+    }
+    inline int SelCount() const { return m_Selected.SelCount(m_Location); }
+    inline bool IsSelected(const int SymbolsIndex) const { return m_Selected.IsSelected(OCSymbolLocation(m_Location,SymbolsIndex)); }
+    inline bool IsMarked(const int SymbolsIndex) const {
+        return (m_Location.Pointer==SymbolsIndex) ? true : m_Selected.IsSelected(OCSymbolLocation(m_Location,SymbolsIndex));
+    }
+    inline void SetPos(const int NewPos, const int max = -1) {
+        m_Location.Pointer = NewPos;
+        m_Selected.SetPos(OCSymbolLocation(m_Location,NewPos));
+        if (max > -1) MaxSel(max);
+    }
+    inline void setLocation(const OCSymbolLocation& l) {
+        m_Location = l;
+        SetPos(l.Pointer);
+    }
+    inline void SetZero(const OCSymbolLocation& l) {
+        m_Location = l;
+        m_Selected.ClearSel();
+    }
+    inline void SetRange(const int s, const int e, const int max = -1) {
+        SetRange(OCSymbolRange(s,e),max);
+    }
+    inline void SetRange(const OCSymbolRange& r, const int max = -1) {
+        m_Location.Pointer=r.Start;
+        m_Selected.ClearSel();
+        m_Selected.SetRange(r,m_Location);
+        if (max > -1) MaxSel(max);
+    }
+    inline void SetZero(const int EOV) {
+        m_Selected.ClearSel();
+        m_Location.Pointer = EOV;
+    }
+    inline int currentPointer() const { return m_Location.Pointer; }
+    inline const OCSymbolLocation location() const { return m_Location; }
+    inline void MaxSel(const int MaxPointer) {
+        const OCSymbolLocation l(m_Location, MaxPointer);
+        m_Selected.MaxSel(l);
+        if (m_Selected.SelCount(m_Location)) {
+            if (m_Location.Pointer >= MaxPointer) m_Location.Pointer = m_Selected.SelEnd(m_Location);
+        }
+        else {
+            if (m_Location.Pointer > MaxPointer) {
+                m_Location.Pointer = MaxPointer;
+            }
+        }
+    }
+    inline const OCPointerList SelectedPointers() const { return m_Selected.SelectedPointers(m_Location); }
+    void serialize(QDomLiteElement* xml) const {
+        QDomLiteElement* c = xml->elementByTagCreate("Cursor");
+        m_Selected.serialize(c->elementByTagCreate("Grid"));
+        m_Location.serialize(c->elementByTagCreate("Location"));
+    }
+    void unserialize(const QDomLiteElement* xml) {
+        if (const QDomLiteElement* c = xml->elementByTag("Cursor")) {
+            if (const QDomLiteElement* g = c->elementByTag("Grid")) {
+                m_Selected.unserialize(g);
+            }
+            if (const QDomLiteElement* l = c->elementByTag("Location")) m_Location.unserialize(l);
+        }
+    }
+    void backup() {
+        serialize(&m_Backup);
+    }
+    void restore() {
+        unserialize(&m_Backup);
+    }
 private:
-    int m_Pos;
+    OCSymbolLocation m_Location;
+    OCCursorGrid m_Selected;
+    QDomLiteElement m_Backup;
 };
 
 //--------------------------------------------------------------------------
 
-class CTextElement
-{
-public:
-    QString Text;
-    QString FontName;
-    bool Italic;
-    bool Bold;
-    double Size;
-    void Save(QDomLiteElement* data);
-    void Load(QDomLiteElement* data);
-    void Load(XMLTextWrapper& XMLText);
-    XMLTextWrapper Save(const QString& Tag);
-    void SetFonts(QWidget* parent);
-    CTextElement();
-    const QFont Font() const;
-    void SetFont(const QFont& Font);
-};
+typedef QList<QGraphicsItem*> OCGraphicsList;
 
-//--------------------------------------------------------------------------
 class OCDraw
 {
 public:
-    float ScreenSize;
-    float XFactor;
+    inline OCDraw() : ScreenSize(12), col(activestaffcolor), ColorOn(true), UseList(false) {}
+    inline OCDraw(QGraphicsScene* scene, const double size) : ScreenSize(size), col(activestaffcolor), ColorOn(false), Scene(scene), UseList(false) {}
+    double ScreenSize;
+    double XFactor;
     QColor col;
     bool ColorOn;
     OCCursor* Cursor;
     QGraphicsScene* Scene;
-    void DI();
-    const QList<QGraphicsItem*> DJ(const float xs, const float ys,const bool LineThickness=false);
-    void DM(const QPointF Pos);
-    void DM(const float xs, const float ys);
-    void DM(const float xs, const float ys, const XMLSymbolWrapper& Symbol);
-    void DR(const float xs, const float ys, const int Size=0);
-    const QList<QGraphicsItem*> DL(const float a, const float b);
-    const QList<QGraphicsItem*> plDot(const float offsetX=0,const float offsetY=0, const int Size=0);
-    const QPainterPath TextPath(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const int FontSize);
-    const QList<QGraphicsItem*> plLet(const QString& Letter, const int SignSize, const QFont& Font, const Qt::Alignment Align=Qt::AlignLeft);
-    const QList<QGraphicsItem*> plLet(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const int FontSize, const Qt::Alignment Align=Qt::AlignLeft);
-    const QList<QGraphicsItem*> plTextPath(const QPainterPath& path, const bool UsePen=false, const float PenWidth=-1);
-    void translatePath(QPainterPath &p);
-    const QList<QGraphicsItem*> PlRect(const float width, const float height, const int Size=0, const bool fill=true, const bool LineThickness=false);
-    void PlSquare1(const int height, const int archeight, const int thickness);
-    void PlSquare2(const int height, const int archeight, const int thickness);
-    void PlCurly(const int height, const int width, const int thickness);
-    void SetXY(const float X, const float Y);
-    void setcol(const int Pointer);
-    void setcol(const QColor color);
-    void resetcol();
-    const bool canColor() const;
-    const bool IsSelected(int Pointer) const;
-    const bool IsMarked(int Pointer) const;
-    const int TextHeight(const CTextElement* TextElem, const int viewsize);
-    const int TextWidth(const CTextElement* TextElem, const int viewsize);
-    const int TextWidth(const QString& Text, const CTextElement* TextElem, const int viewsize);
-    const QFont GetFont(const CTextElement* TextElem, const int viewsize);
-    void PrintTextElement(const int X, const int Y, const QString& Text, const CTextElement* TextElem, const int viewsize);
-    void PrintTextElement(int X, int Y, const CTextElement* TextElem, int viewsize);
-    QGraphicsItemGroup* MakeGroup(const QList<QGraphicsItem*> &l);
-    OCDraw();
-    void StartList();
-    const QList<QGraphicsItem*>& EndList();
+    inline void setSpaceX(const int staffSize) { XFactor = SizeFactor(staffSize); }
+    inline double spaceX(const double x) const { return x * XFactor; }
+    inline void initCurrent() { ZeroPoint = MovingPoint*XFactor; }
+    inline void moveTo(const QPointF& Pos) { moveTo(Pos.x(),Pos.y()); }
+    inline void moveTo(const double xs, const double ys) { MovingPoint=ZeroPoint+QPointF(xs,-ys); }
+    inline void moveTo(const double xs, const double ys, const XMLSymbolWrapper& Symbol)
+    {
+        moveTo(xs+Symbol.left(), ys+Symbol.top());
+    }
+    inline void move(const double xs, const double ys, const int Size = 0)
+    {
+        MovingPoint += (Size != 0) ? QPointF(xs,-ys)/SizeFactor(Size) : QPointF(xs,-ys);
+    }
+    inline const OCGraphicsList line(const QPointF& Pos, const double a, const double b, const double bold = 1) {
+        moveTo(Pos);
+        return DJ(a,b,bold);
+    }
+    inline const OCGraphicsList line(const QPointF& Pos1, const QPointF& Pos2, const double bold = 1) {
+        moveTo(Pos1);
+        return DJ(Pos2.x()-Pos1.x(),Pos2.y()-Pos1.y(),bold);
+    }
+    inline const OCGraphicsList line(const double a, const double b, const double bold = 1) { return DJ(a,b,bold); }
+    inline const OCGraphicsList line(const double x, const double y, const double a, const double b, const double bold = 1)
+    {
+        moveTo(x,y);
+        return DJ(a,b,bold);
+    }
+    inline const OCGraphicsList plDot(const int SignSize, const double offsetX = 0,const double offsetY = 0, const int Size = 0)
+    {
+        OCGraphicsList l;
+        //move(offsetX-36,offsetY,Size);
+        //l.append(plLet(".",Size,"Courier new",false,false,100,Qt::AlignCenter | Qt::AlignHCenter));
+        move(offsetX,offsetY,Size);
+        l.append(plLet(QChar(0xF098),SignSize,"Wingdings 2",false,false,24,Qt::AlignCenter | Qt::AlignHCenter));
+        move(-offsetX,-offsetY,Size);
+        //move(-(offsetX-36),-(offsetY),Size);
+        return l;
+    }
+    inline const QPainterPath TextPath(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const double FontSize)
+    {
+        if (Letter.isEmpty()) return QPainterPath();
+        QFont F(Name);
+        F.setBold(Bold);
+        F.setItalic(Italic);
+        F.setPointSizeF(DoubleDiv(FontSize,SizeFactor(SignSize))/ScreenSize);
+//#ifdef __MACOSX_CORE__
+        const QPointF Pos=(MovingPoint+QPointF(0,DoubleDiv(FontSize,8)))/ScreenSize;
+        F.setPointSizeF(F.pointSizeF()*1.30);
+//#else
+//        int x1=FloatDiv(MovingPoint.x() - 0.1, sizx);
+//        int y1=FloatDiv(MovingPoint.y() - (Size + FloatDiv(Size ,6)), sizy);
+//#endif
+        QPainterPath path;
+        path.addText(Pos,F,Letter);
+        path.setFillRule(Qt::WindingFill);
+        return path;
+    }
+    inline const OCGraphicsList plLet(const OCTTF letter, const int SignSize, const double FontSize=1200, const Qt::Alignment Align=Qt::AlignLeft)
+    {
+        return plLet(QChar(uint(letter)),SignSize,OCTTFname,false,false,FontSize,Align);
+    }
+#ifdef __Lelandfont
+    inline const OCGraphicsList plLet(const Leland letter, const int SignSize, const double FontSize=LelandDefaultSize, const Qt::Alignment Align=Qt::AlignLeft)
+    {
+        return plLet(QChar(letter),SignSize,"Leland",false,false,FontSize,Align);
+    }
+#endif
+    inline const OCGraphicsList plLet(const QString& Letter, const int SignSize, const QFont& Font, const Qt::Alignment Align=Qt::AlignLeft)
+    {
+        return plLet(Letter, SignSize, Font.family(), Font.bold(), Font.italic(), Font.pointSizeF(), Align);
+    }
+    inline const OCGraphicsList plLet(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const double FontSize, const Qt::Alignment Align=Qt::AlignLeft)
+    {
+        if (Letter.isEmpty()) return OCGraphicsList();
+        QPainterPath p=TextPath(Letter,SignSize,Name,Bold,Italic,FontSize);
+        if (Align & Qt::AlignBottom) p.translate(0,-DoubleDiv(FontSize,8)/ScreenSize);
+        if (Align & Qt::AlignRight) p.translate(-p.boundingRect().width(),0);
+        if (Align & Qt::AlignHCenter) p.translate(-p.boundingRect().width()/2,0);
+        if (Align & Qt::AlignVCenter) p.translate(0,(DoubleDiv(MovingPoint.y(),ScreenSize)-p.boundingRect().top())-p.boundingRect().height()/2);
+        return plTextPath(p);
+    }
+    inline const OCGraphicsList plTextPath(const QPainterPath& path, const bool UsePen=false, const double PenWidth = -1, const bool Fill = false)
+    {
+        OCGraphicsList l;
+        QBrush b=QBrush(col);
+        QPen p(Qt::NoPen);
+        if (UsePen)
+        {
+            if (PenWidth > -1)
+            {
+                b = (Fill == true) ? QBrush(col) : QBrush(Qt::NoBrush);
+                p = QPen(QBrush(col),PenWidth);
+                p.setCapStyle(Qt::RoundCap);
+            }
+            else
+            {
+                p = QPen(QBrush(col),1);
+            }
+        }
+        else
+        {
+            if (canColor())
+            {
+                if ((col == selectedcolor) || (col == markedcolor)) p = QPen(col);
+            }
+        }
+        QGraphicsItem* i = Scene->addPath(path,p,b);
+        l.append(i);
+        AppendToList(i);
+        return l;
+    }
+    inline void translatePath(QPainterPath &p) { p.translate(MovingPoint / ScreenSize); }
+    inline const OCGraphicsList PlRect(const double width, const double height, const int Size=0, const bool fill=true, const bool LineThickness=false)
+    {
+        OCGraphicsList l;
+        const double factor=SizeFactor(Size);
+        QBrush b(col);
+        if (!fill) b=QBrush(Qt::NoBrush);
+        QPointF ep(MovingPoint+(QPointF(width,-height)/factor));
+        QRectF r=QRectF(MovingPoint/ScreenSize,ep/ScreenSize).normalized();
+
+        QPen p(col);
+        if (LineThickness) p.setWidth(int(DoubleDiv(LineHalfThickNess*4,ScreenSize)/factor));
+        QGraphicsItem* i=Scene->addRect(r,p,b);
+        AppendToList(i);
+        l.append(i);
+        return l;
+    }
+    inline const OCGraphicsList PlIcon(const QIcon& icon, const double width, const double height, const int Size=0)
+    {
+        OCGraphicsList l;
+        const double factor=SizeFactor(Size);
+        const QPointF ep(MovingPoint+(QPointF(width,-height)/factor));
+        const QRectF r=QRectF(MovingPoint/ScreenSize,ep/ScreenSize).normalized();
+        QGraphicsItem* i = Scene->addPixmap(icon.pixmap(r.size().toSize()));
+        i->moveBy(r.left(),r.top());
+        AppendToList(i);
+        l.append(i);
+        return l;
+    }
+    void PlSquare1(const double h, const double ah, const double t)
+    {
+        const double height=DoubleDiv(h,ScreenSize);
+        const double archeight=DoubleDiv(ah,ScreenSize);
+        const double thickness=DoubleDiv(t,ScreenSize);
+        const double arcfragment=archeight/10.0;
+        if (isZero(ah))
+        {
+            QPainterPath s(QPointF(0,0));
+            s.lineTo(0,height);
+            s.lineTo(thickness,height);
+            s.lineTo(thickness,0);
+            s.lineTo(0,0);
+            AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+        }
+        else
+        {
+            QPainterPath s(QPointF(archeight,-arcfragment*6.0));
+            s.cubicTo(QPointF(8.0*arcfragment,-4.0*arcfragment),QPointF(6.0*arcfragment,-2.0*arcfragment),QPointF(0,0));
+            s.lineTo(0,height);
+            s.lineTo(thickness,height);
+            s.lineTo(thickness,0);
+            s.cubicTo(QPointF(thickness+(3.0*arcfragment),-2.0*arcfragment),QPointF(archeight,-4.0*arcfragment),QPointF(archeight,-arcfragment*6.0));
+            AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+        }
+    }
+    void PlSquare2(const double h, const double ah, const double t)
+    {
+        const double height=DoubleDiv(h,ScreenSize);
+        const double archeight=DoubleDiv(ah,ScreenSize);
+        const double thickness=DoubleDiv(t,ScreenSize);
+        const double arcfragment=archeight/10.0;
+        QPainterPath s(QPointF(0,0));
+        s.lineTo(0,height);
+        s.cubicTo(QPointF(6.0*arcfragment,height+(2.0*arcfragment)),QPointF(8.0*arcfragment,height+(4.0*arcfragment)),QPointF(archeight,height+(6.0*arcfragment)));
+        s.cubicTo(QPointF(archeight,height+(4.0*arcfragment)),QPointF(thickness+(3.0*arcfragment),height+(2.0*arcfragment)),QPointF(thickness,height));
+        s.lineTo(thickness,0);
+        s.lineTo(0,0);
+        AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+    }
+    void PlCurly(const double h, const double w, const double t)
+    {
+        const double height=DoubleDiv(h,ScreenSize);
+        const double width=DoubleDiv(w,ScreenSize);
+        const double thickness=DoubleDiv(t,ScreenSize);
+        const double ydist=height/10.0;
+        const double xdist=width/2.0;
+        QPainterPath b(QPointF(0,0));
+        b.cubicTo(QPointF(-xdist*4.0,ydist),QPointF(xdist,height/2.0),QPointF(-xdist*2,height/2.0));
+        b.cubicTo(QPointF(xdist,height/2.0),QPointF(-xdist*4.0,height-ydist),QPointF(0,height));
+        b.cubicTo(QPointF(-(xdist*4.0)+thickness,height-(ydist/2.0)),QPointF(xdist+thickness,(height/2.0)+(ydist/2.0)),QPointF(-xdist*2.0,height/2.0));
+        b.cubicTo(QPointF(xdist+thickness,(height/2.0)-(ydist/2.0)),QPointF(-(xdist*4.0)+thickness,ydist/2.0),QPointF(0,0));
+        AppendToList(Scene->addPath(b.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+    }
+    inline void init(const double X, const double Y) { ZeroPoint=QPointF(X,Y); }
+    inline void setcol(const int Pointer)
+    {
+        if (canColor())
+        {
+            lastCol=col;
+            if (Cursor->IsSelected(Pointer))
+            {
+                col=selectedcolor;
+            }
+            else if (Cursor->currentPointer()==Pointer)
+            {
+                col=markedcolor;
+            }
+        }
+    }
+    inline void setcol(const QColor& color)
+    {
+        if (canColor())
+        {
+            lastCol=col;
+            col=color;
+        }
+    }
+    inline void resetcol() { if (canColor()) col=lastCol; }
+    inline bool canColor() const
+    {
+        return (ColorOn & (col != inactivestaffcolor));
+    }
+    inline bool IsSelected(const int Pointer) const
+    {
+        return (canColor()) ? Cursor->IsSelected(Pointer) : false;
+    }
+    inline bool IsMarked(const int Pointer) const
+    {
+        return (canColor()) ? Cursor->IsMarked(Pointer) : false;
+    }
+    void PrintFontElement(const double X, const double Y, const QString& Text, const XMLFontWrapper& FontElem, const double scalesize)
+    {
+        QGraphicsSimpleTextItem* item =Scene->addSimpleText(Text);
+        QFont F(FontElem.printerFont());
+        F.setPointSizeF(F.pointSizeF()/scalesize);
+        item->setFont(F);
+        item->setPos(X,Y);
+        item->setPen(Qt::NoPen);
+        item->setBrush(Qt::black);
+        AppendToList(item);
+    }
+    void PrintTextElement(const double X, const double Y, const XMLTextElementWrapper& TextElem, const double scalesize)
+    {
+        PrintFontElement(X,Y,TextElem.text(), TextElem, scalesize);
+    }
+    inline QGraphicsItemGroup* MakeGroup(const OCGraphicsList &l)
+    {
+        if (l.isEmpty()) return nullptr;
+        if (!ColorOn) return nullptr;
+        return Scene->createItemGroup(l);
+    }
+    inline const QRectF boundingRect(const OCGraphicsList &l)
+    {
+        /*
+        QGraphicsItemGroup* g=Scene->createItemGroup(l);
+        return (g) ? g->boundingRect() : QRectF();
+        */
+        QRectF r;
+        for (QGraphicsItem* i : l) r = r.united(i->boundingRect());
+        return r;
+    }
+    inline void StartList()
+    {
+        UseList=true;
+        items.clear();
+    }
+    inline const OCGraphicsList& EndList()
+    {
+        UseList=false;
+        return items;
+    }
     QRectF lastSlur;
 private:
     bool UseList;
     QColor lastCol;
     QPointF ZeroPoint;
     QPointF MovingPoint;
-    const QList<QGraphicsItem*> MyLine(const QPointF p1, const QPointF p2, const QColor color, const bool BF, const bool LineThickness);
-    const QList<QGraphicsItem*> MyLine(const float x1, const float y1, const float x2, const float y2, const QColor color, const bool BF=false, const bool LineThickness=false);
-    QList<QGraphicsItem*> items;
-    void AppendToList(QGraphicsItem* item);
-    void AppendToList(const QList<QGraphicsItem*>& list);
+    inline const OCGraphicsList DJ(const double xs, const double ys,const double bold = 1)
+    {
+        QPointF temp=MovingPoint/ScreenSize;
+        MovingPoint+=QPointF(xs,-ys);
+        return MyLine(temp, MovingPoint / ScreenSize, col, false, bold);
+    }
+    inline const OCGraphicsList MyLine(const QPointF p1, const QPointF p2, const QColor& color, const bool BF, const double bold = 1)
+    {
+        return MyLine(p1.x(), p1.y(), p2.x(), p2.y(), color, BF, bold);
+    }
+    inline const OCGraphicsList MyLine(const double x1, const double y1, const double x2, const double y2, const QColor& color, const bool BF=false, const double bold = 1)
+    {
+        OCGraphicsList l;
+        if (BF)
+        {
+            QRectF r=QRectF(x1,y1,x2,y2).normalized();
+            QGraphicsItem* i=Scene->addRect(r,QPen(color),QBrush(color));
+            AppendToList(i);
+            l.append(i);
+            return l;
+        }
+        QPen p(color);
+        //if (!isOne(bold))
+        //{
+            p.setWidth(qRound(DoubleDiv(LineHalfThickNess * 3.0 * bold , ScreenSize)));
+            p.setCapStyle(Qt::RoundCap);
+        //}
+        QGraphicsItem* i=Scene->addLine(x1,y1,x2,y2,p);
+        AppendToList(i);
+        l.append(i);
+        return l;
+    }
+    OCGraphicsList items;
+    inline void AppendToList(QGraphicsItem* item) { if (UseList) items.append(item); }
+    inline void AppendToList(const OCGraphicsList& list) { if (UseList) items.append(list); }
 };
 
 //--------------------------------------------------------------------------
@@ -571,171 +1095,466 @@ private:
 class OCFrameProperties
 {
 public:
-    OCFrameProperties(const int p);
-    const QRectF TranslateBounding(const QPointF& Offset) const;
-    const QRectF TranslateAccidental(const QPointF& Offset) const;
-    QGraphicsItemGroup* group;
-    QGraphicsItemGroup* accidentalGroup;
+    inline OCFrameProperties(const OCSymbolLocation& l) : Location(l) {}
+    inline OCFrameProperties(const QRectF& r, const OCSymbolLocation& l) : BoundingRect(r), Location(l) {}
+    inline OCFrameProperties(const QRectF& r, const QRectF& ra,  const QRectF& rt, const OCSymbolLocation& l) : BoundingRect(r),AccidentalRect(ra),TieRect(rt), Location(l) {}
+    inline const QRectF TranslateBounding(const QPointF& Offset = QPoint()) const
+    {
+        return translateRect(BoundingRect, Offset);
+    }
+    inline const QRectF TranslateAccidental(const QPointF& Offset = QPointF()) const
+    {
+        return translateRect(AccidentalRect, Offset);
+    }
+    inline const QRectF TranslateTie(const QPointF& Offset = QPointF()) const
+    {
+        return translateRect(TieRect, Offset);
+    }
+    inline const QRectF translateRect(const QRectF& r, const QPointF& Offset = QPointF()) const
+    {
+        return r.adjusted(-4,-4,4,4).translated(Offset);
+    }
+public:
     QRectF BoundingRect;
     QRectF AccidentalRect;
-    int Pointer;
+    QRectF TieRect;
+    OCSymbolLocation Location;
 };
 
 //--------------------------------------------------------------------------
 
-class OCFrame
+class OCCursorFrame : public QMacRubberband
+{
+public:
+    OCCursorFrame(QWidget* parent) : QMacRubberband(QRubberBand::Rectangle, QMacRubberband::MacRubberbandYellow, parent) {}
+    ~OCCursorFrame() {}
+    void showAnimated(const QRectF& g)
+    {
+        QGraphicsView* v = reinterpret_cast<QGraphicsView*>(parent());
+        QRectF gg(v->mapFromScene(g.topLeft().toPoint()),v->mapFromScene(g.bottomRight().toPoint()));
+        if (!isVisible())
+        {
+            if (gg.toRect() == geometry())
+            {
+                show();
+            }
+            else
+            {
+                setGeometry(gg.toRect());
+                QMacRubberband::showAnimated();
+            }
+        }
+        else
+        {
+            setGeometry(gg.toRect());
+        }
+    }
+    void showAnimated(const QPointF& Offset, const bool fortegns, const OCFrameProperties& FrameProps)
+    {
+        if (fortegns)
+        {
+            if (qAbs<qreal>(Offset.x()) >= qAbs<qreal>(Offset.y()))
+            {
+                showAnimated(FrameProps.TranslateAccidental());
+            }
+            else
+            {
+                showAnimated(FrameProps.TranslateTie());
+            }
+        }
+        else
+        {
+            showAnimated(FrameProps.TranslateBounding());
+        }
+    }
+};
+
+//--------------------------------------------------------------------------
+static OCFrameProperties nullFrame = OCFrameProperties(OCSymbolLocation());
+
+class OCFrameArray : public QList<OCFrameProperties>
 {
 private:
-    QMacRubberband* RubberBand;
-    void showAnimated(QRectF g);
+    inline QRectF getBoundingRect(QGraphicsItemGroup* g)
+    {
+        if (g == nullptr) return QRectF();
+        return widenRect(g->boundingRect().normalized());
+    }
+    inline QRectF widenRect(QRectF r)
+    {
+        if (r.width() < 4) r.adjust(-2, 0, 2, 0);
+        if (r.height() < 4) r.adjust(0, -2, 0, 2);
+        return r;
+    }
 public:
-    OCFrame(QWidget* parent);
-    ~OCFrame();
-    void EraseFrame();
-    void DrawFrame(const XMLSimpleSymbolWrapper& Symbol, QPointF Offset, const QPointF& zero, const bool fortegns, const int shiftit, OCFrameProperties* FrameProps, OCDraw& ScreenObj);
+    OCFrameArray(){}
+    void AppendGroup(QGraphicsItemGroup* g, const OCSymbolLocation& l, const QRectF& bounding = QRectF())
+    {
+        if (g==nullptr) return;
+        if (g->childItems().empty()) return;
+        const QRectF r = (bounding.isNull()) ? getBoundingRect(g) : widenRect(bounding.normalized());
+        OCFrameProperties F = OCFrameProperties(r,l);
+        append(F);
+    }
+    void AppendAccidentalGroup(QGraphicsItemGroup* g, QGraphicsItemGroup* a, QGraphicsItemGroup* t, const OCSymbolLocation& l)
+    {
+        if (g==nullptr) return;
+        if (g->childItems().empty()) return;
+        OCFrameProperties F=OCFrameProperties(getBoundingRect(g),getBoundingRect(a),getBoundingRect(t),l);
+        append(F);
+    }
+    inline const OCFrameProperties& RetrieveFromPointer(const OCSymbolLocation& l) const
+    {
+        for (const OCFrameProperties& Frame : *this) if (Frame.Location.matches(l)) return Frame;
+        return nullFrame;
+    }
+    inline int Nearest(const double y) const
+    {
+        for (const OCFrameProperties& Frame : *this)
+        {
+            if (Frame.BoundingRect.left() > y) return Frame.Location.Pointer;
+        }
+        return -1;
+    }
+    inline const OCSymbolLocation Inside(const QPointF& m) const
+    {
+        for (int i = size() - 1; i >= 0; i--)
+        {
+            const OCFrameProperties& Frame = (*this)[i];
+            if (Frame.BoundingRect.contains(m)) return Frame.Location;
+        }
+        return OCSymbolLocation();
+    }
+    inline const OCLocationList locationsInside(const QRectF& r) const
+    {
+        OCLocationList ptrs;
+        for (const OCFrameProperties& Frame : *this)
+        {
+            if (r.contains(Frame.BoundingRect)) ptrs.push_back(Frame.Location);
+        }
+        return ptrs;
+    }
 };
 
 //--------------------------------------------------------------------------
 
-class OCSymbolArray
+enum OCNoteAccidentalTypes
 {
-private:
-    QList<OCFrameProperties*> FrameList;
+    noteAccDirty=-3,
+    noteAccDoubleFlat=-2,
+    noteAccFlat=-1,
+    noteAccNone=0,
+    noteAccSharp=1,
+    noteAccDoubleSharp=2
+};
+
+typedef std::array<int,12> OCScaleArray;
+
+class acctype
+{
 public:
-    OCSymbolArray();
-    ~OCSymbolArray();
-    void AppendGroup(QGraphicsItemGroup* g, const int Pointer, const QRectF& bounding=QRectF());
-    void AppendAccidentalGroup(QGraphicsItemGroup* g, QGraphicsItemGroup* a, const int Pointer);
-    OCFrameProperties* RetrieveFromPointer(const int Pointer);
-    const int Inside(const QPoint& m) const;
-    const QList<int> PointersInside(const QRectF& r) const;
-    void clear();
+    inline acctype() {}
+    inline void reset() {
+        isSet = false;
+        current = noteAccNone;
+    }
+    bool isSet = false;
+    OCNoteAccidentalTypes current = noteAccNone;
 };
 
 //--------------------------------------------------------------------------
-
-struct acctype
+enum OCAccidentalSymbols
 {
-    int faste;
-    int current;
+    accNone=0,
+    accFlat,
+    accSharp,
+    accDoubleFlat,
+    accDoubleSharp,
+    accNatural
 };
 
-//--------------------------------------------------------------------------
-
-struct OCStaffAccidentalItem
+enum OCKeyAccidental
 {
-    int HasFortegn;
-    int Pitch;
+    keyAccSharps=-1,
+    keyAccNone=0,
+    keyAccFlats=1
+};
+
+class OCNoteAccidental
+{
+public:
+    inline OCNoteAccidental(const int line=0,const int noteNum=0)
+    {
+        AccSymbol=accNone;
+        LineNum=uint(line);
+        NoteNum=noteNum;
+    }
+    OCAccidentalSymbols AccSymbol;
+    uint LineNum;
     int NoteNum;
+    inline int OneOctaveNoteNum() const { return NoteNum % 12; }
+    OCNoteAccidentalTypes getAccSign(const OCScaleArray& Scale) const
+    {
+        switch (OneOctaveNoteNum())
+        {
+        case 0:
+            return Switch(Scale[0],noteAccSharp,noteAccDoubleFlat,noteAccNone);
+        case 1:
+            return Switch(Scale[1],noteAccDoubleSharp,noteAccFlat,noteAccSharp);
+        case noteAccDoubleSharp:
+            return Switch(Scale[2],noteAccDoubleSharp,noteAccDoubleFlat,noteAccNone);
+        case 3:
+            return Switch(Scale[3],noteAccSharp,noteAccDoubleFlat,noteAccFlat);
+        case 4:
+            return Switch(Scale[4],noteAccDoubleSharp,noteAccFlat,noteAccNone);
+        case 5:
+            return Switch(Scale[5],noteAccSharp,noteAccDoubleFlat,noteAccNone);
+        case 6:
+            return Switch(Scale[6],noteAccDoubleSharp,noteAccFlat,noteAccSharp);
+        case 7:
+            return Switch(Scale[7],noteAccDoubleSharp,noteAccDoubleFlat,noteAccNone);
+        case 8:
+            return Switch(Scale[8],noteAccSharp,noteAccFlat,noteAccFlat);
+        case 9:
+            return Switch(Scale[9],noteAccDoubleSharp,noteAccDoubleFlat,noteAccNone);
+        case 10:
+            return Switch(Scale[10],noteAccSharp,noteAccDoubleFlat,noteAccFlat);
+        case 11:
+            return Switch(Scale[11],noteAccDoubleSharp,noteAccFlat,noteAccNone);
+        }
+        return noteAccNone;
+    }
+    inline void setSymbol(const OCNoteAccidentalTypes AccSign) { AccSymbol = Sign2Symbol(AccSign); }
+private:
+    inline OCAccidentalSymbols Sign2Symbol(const OCNoteAccidentalTypes AccSign) const
+    {
+        switch (AccSign)
+        {
+        case noteAccNone: return accNatural;
+        case noteAccFlat: return accFlat;
+        case noteAccSharp: return accSharp;
+        case noteAccDoubleFlat: return accDoubleFlat;
+        case noteAccDoubleSharp: return accDoubleSharp;
+        default: return accNone;
+        }
+    }
+    inline OCNoteAccidentalTypes Switch(const int In, const OCNoteAccidentalTypes Out1, const OCNoteAccidentalTypes Out2, const OCNoteAccidentalTypes OutElse) const
+    {
+        switch (In)
+        {
+        case 1:
+            return Out1;
+        case 2:
+            return Out2;
+        default:
+            return OutElse;
+        }
+    }
 };
 
 class PrintSignProps : public OCSignType
 {
 public:
-    PrintSignProps();
-    void Fill(const int sign, const XMLSymbolWrapper& Symbol, const int pointer, const QColor color, const int modifier);
-    void Position(const QPointF& NoteCenter, const float balkheight, const float tielen);
-    int Sign;
-    float Sizefactor;
-    int Pointer;
+    PrintSignProps() {}
+    void fill(const XMLSimpleSymbolWrapper& Symbol, const OCSymbolLocation& location, const QColor& color)
+    {
+        set(Symbol);
+        Location=location;
+        Color=color;
+    }
+    inline void setPosition(const QPointF& NoteCenter, const double balkheight, const double tielen)
+    {
+        HeightOnBalk = balkheight + XMLSymbol.pos().y();
+        Pos = XMLSymbol.pos() + NoteCenter;
+        TieLen = tielen;
+    }
+    OCSymbolLocation Location;
+    QPointF Pos;
     QColor Color;
-    int Modifier;
-    float HeightOnBalk;
-    float TieLen;
-    void DM(OCDraw& ScreenObj);
-    void DM(const float OffsetX, const float OffsetY, OCDraw& ScreenObj);
-    void DMVertical(const int UpDown, const float OffsetX, const float OffsetY, const float OffsetYbalk, OCDraw& ScreenObj);
-private:
-    QPointF InitPos;
+    double HeightOnBalk;
+    double TieLen;
+    inline int size() const { return XMLSymbol.size(); }
+    inline void moveTo(OCDraw& ScreenObj)
+    {
+        ScreenObj.moveTo(Pos);
+    }
+    inline void moveTo(const double OffsetX, const double OffsetY, OCDraw& ScreenObj)
+    {
+        ScreenObj.moveTo(Pos.x() + OffsetX, Pos.y() + OffsetY);
+    }
+    inline void moveToVertical(const StemDirection UpDown, const double OffsetY, OCDraw& ScreenObj)
+    {
+        (UpDown == StemDown) ? ScreenObj.moveTo(Pos.x(), HeightOnBalk + OffsetY) : ScreenObj.moveTo(Pos.x(), Pos.y() + OffsetY);
+    }
+    inline void moveToBelow(const StemDirection UpDown, const double OffsetY, OCDraw& ScreenObj)
+    {
+        (UpDown == StemUp) ? ScreenObj.moveTo(Pos.x(), HeightOnBalk + OffsetY) : ScreenObj.moveTo(Pos.x(), Pos.y() + OffsetY);
+    }
+
 };
 
 class PlaySignProps
 {
 public:
-    PlaySignProps();
-    void Fill(const int duration, const int value, const int modulate);
+    PlaySignProps() {}
+    void fill(const int duration, const int modulate)
+    {
+        Duration=duration;
+        Modulate=modulate;
+    }
     int Duration;
-    int Value;
     int Modulate;
 };
 
 //--------------------------------------------------------------------------
-
-const QString MakeUnicode(const QString& txt);
-const int Sgn(const int Num);
-const int Abs(const int Num);
-const int Sgn(const float Num);
-const float Abs(const float Num);
-const double Abs(const double Num);
-const int IntDiv(const int a, const int b);
-const float FloatDiv(const float a, const float b);
-const float FnSize(const float c, const int SymbolSize);
-const float SizeFactor(const int SymbolSize);
-const int Inside(int num, int Low, int High, int Step);
 
 class OCTieWrap
 {
 private:
     QList<char> TieWrap;
 public:
-    OCTieWrap();
+    OCTieWrap() : EraseTies(false) {}
     bool EraseTies;
-    void clear();
-    void Add(const int Value);
-    void plot(const int NoteX, const int NoteY, const int Alti, const int TieDirection, const int UpDown, OCDraw& ScreenObj);
-    void PlotTie(const bool LastTie, const int Antal, const int UpDown, const int TieDirection, const int TieLen, const int Alti, int NextHeight, OCDraw& ScreenObj);
-    void EraseTie();
-    const static QList<QGraphicsItem*> PlSlur(int length, const int leftright, const int slant, int updown, const int curve, OCDraw& ScreenObj);
+    void clear() { TieWrap.clear(); }
+    inline void append(const int Value) { TieWrap.append(char(Value)); }
+    void plotWrappedTie(const int NoteX, const int NoteY, const int Pitch, const int TieDirection, const int UpDown, OCDraw& ScreenObj)
+    {
+        if (TieWrap.contains(char(Pitch)))
+        {
+            ScreenObj.moveTo(NoteX, NoteY);
+            ScreenObj.move(-240, 0);
+            plotSlur(QPointF(-20 * 12, 0), (UpDown * TieDirection), 0, ScreenObj);
+        }
+    }
+    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
+    {
+        if (IsWrap | (Count != 1))
+        {
+            ScreenObj.move(-84, 0);
+            return plotSlur(QPointF(TieLen + 168, 0), (UpDown * TieDirection), 0, ScreenObj, bold);
+        }
+        else
+        {
+            qDebug() << CenterY << NextCenterY;
+            //if (NextCenterY <= 0) NextCenterY = CenterY;
+            if (NextCenterY != CenterY)
+            {
+                ScreenObj.move(-84, 0);// ' UpDown * 24
+                return plotSlur(QPointF(TieLen + 168, CenterY - NextCenterY), UpDown, 0, ScreenObj, bold);
+            }
+            else
+            {
+                ScreenObj.move(-84, 0);// ' UpDown * 24
+                return plotSlur(QPointF(TieLen + 168, 0), UpDown, 0, ScreenObj, bold);
+            }
+        }
+    }
+    void eraseTie()
+    {
+        if (EraseTies)
+        {
+            clear();
+            EraseTies = false;
+        }
+    }
+    const static OCGraphicsList plotSlur(QPointF endpoint, const int updown, const double curve, OCDraw& ScreenObj, double bold = 1.0)
+    {
+        OCGraphicsList l;
+        int moveleft = 0;
+        if (qAbs(endpoint.x()) < 9 * 12) {
+            moveleft = (7 * 12) - qAbs(endpoint.x());
+            endpoint.setX(9 * 12 * Sgn(endpoint.x()));
+        }
+        const double direction = -updown;
+        const QPointF start(0, 0);
+        const QPointF end = endpoint / ScreenObj.ScreenSize;
+        const double thickness = (LineHalfThickNess * 4.0 / ScreenObj.ScreenSize) * bold;
+        const QVector2D dir = QVector2D(end).normalized();
+        const QVector2D normal = QVector2D(-dir.y(),dir.x()) * direction; // vinkelrätt på bågen
+
+        double xaddp1 = normal.x() * (end.x() / 2.0);// * direction;
+        double xaddp2 = xaddp1 / 12.0;
+        if (dir.y() * direction > 0) qSwap(xaddp1, xaddp2);
+
+        const double curveFactor = 1.0 + (curve / 50.0);
+        const double tiltFactor = 1.0 + qAbs(normal.x() / 4.0);
+        const double curvature = ((72.0 / ScreenObj.ScreenSize) + (qAbs(end.x()) / 12.0)) * tiltFactor * curveFactor * direction;
+
+        const QPointF p1((end.x() * 0.1) + xaddp1, curvature);
+        const QPointF p2((end.x() * 0.9) + xaddp2, end.y() + curvature);
+        const QPointF thick(normal.x() * thickness, thickness * direction);
+        const QPointF thin = (thick * 2) / LineHalfThickNess;
+
+        QPainterPath b(start);
+        b.cubicTo(p1, p2, end);
+        b.lineTo(end - thin);
+        b.cubicTo(p2 - thick, p1 - thick, start - thin);
+        b.lineTo(start);
+        b.translate(QPointF((8 * 12) - moveleft, (-updown * 5 * 12)) / ScreenObj.ScreenSize);
+        ScreenObj.translatePath(b);
+        ScreenObj.lastSlur=b.boundingRect();
+        l.append(ScreenObj.plTextPath(b,true,bold,true));
+        return l;
+    }
 };
 
 class OCPrintVarsType //'track
 {
 public:
-    OCPrintVarsType();
-    void Decrement(const int c);
-    int FilePointer;
-    int Meter;
-    QString MeterText;
-    int LowerMeter;
-    int UpDown;
-    int BalkLimit;
-    bool SlantFlag;
-    int J[12];
-    int cueletter;
+    OCPrintVarsType() {}
+    inline void Decrement(const double c)
+    {
+        DurSigns.decrement(c);
+        UpDown.decrem(c);
+        SlantFlag.decrem(c);
+        Articulation.decrem(c);
+        KeyChange=false;
+        ClefChange=false;
+        MasterStuff=false;
+    }
+    inline void setKey(const XMLSimpleSymbolWrapper& Symbol)
+    {
+        CurrentKey.set(Symbol);
+        KeyChange=true;
+    }
+    inline int key() const
+    {
+        return (!CurrentKey.isSet()) ? 0 : CurrentKey.XMLSymbol.getIntVal("Key")-6;
+    }
+    inline void setClef(const XMLSimpleSymbolWrapper& Symbol)
+    {
+        CurrentClef.set(Symbol);
+        ClefChange=true;
+    }
+    inline int clef() const
+    {
+        return (!CurrentClef.isSet()) ? 0 : CurrentClef.XMLSymbol.getIntVal("Clef")+1;
+    }
+    int FilePointer = 0;
+    int Meter = 96;
+    QString MeterText = "4/4";
+    int BalkLimit = 24;
+    OCScaleArray Scale = {0};
+    int cueletter = 0;
     OCMIDIVars MIDI;
-    bool FlipTie;
-    bool ClefChange;
-    bool KeyChange;
-    bool MasterStuff;
+    bool FlipTie = false;
+    bool ClefChange = false;
+    bool KeyChange = false;
+    bool MasterStuff = false;
 
     OCTieWrap TieWrap;
+    OCIntList Ties;
 
     OCSignType CurrentClef;
     OCSignType CurrentKey;
-    OCSignType Articulation;
-    OCSignType Articulationx1;
+    OCVoiceSign Articulation;
+    OCVoiceSign SlantFlag;
+    OCVoiceSign UpDown;
 
-    OCDurSignType SlurDown;
-    OCDurSignType SlurUp;
-    OCDurSignType crescendo;
-    OCDurSignType diminuendo;
-    OCDurSignType BalkOverRide;
-    OCDurSignType Punktoverride;
-    OCDurSignType StregOverRide;
-    OCDurSignType UpDownOverRide;
-    OCDurSignType SlantOverRide;
-
-    int CustomFlag0;
-    int CustomFlag1;
-    int CustomFlag2;
-    int CustomFlag3;
-    int CustomFlag4;
-    int CustomFlag5;
-    int CustomFlag6;
-    int CustomFlag7;
-    int CustomFlag8;
-    int CustomFlag9;
+    OCDurSignList DurSigns;
 };
+
+typedef QVector<OCPrintVarsType> OCPrintVarsArray;
 
 class DomAttributesModel : public QAbstractTableModel
 {
@@ -744,17 +1563,33 @@ private:
     QDomLiteElement* m_Element;
     QMap<int,QString> m_Attributes;
 public:
-    DomAttributesModel(QObject *parent);
-    int rowCount(const QModelIndex &parent = QModelIndex()) const ;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
-    bool setData(const QModelIndex &index, const QVariant &value, int role);
-    void addColumn(int column, QString attributeName);
-    void setXML(QDomLiteElement* XML);
+    DomAttributesModel(QObject */*parent*/) : m_Element(nullptr) {}
+    int rowCount(const QModelIndex &/*parent*/ = QModelIndex()) const { return 1; }
+    int columnCount(const QModelIndex &/*parent*/ = QModelIndex()) const
+    {
+        return (m_Element==nullptr) ? 0 : m_Attributes.count();
+    }
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const
+    {
+        if ((role == Qt::EditRole) | (role == Qt::DisplayRole))
+        {
+            return m_Element->attribute(m_Attributes[index.column()]);
+        }
+        return QVariant();
+    }
+    bool setData(const QModelIndex &index, const QVariant &value, int role)
+    {
+        if (role == Qt::EditRole)
+        {
+            m_Element->setAttribute(m_Attributes[index.column()], value);
+            emit dataChanged(index,index);
+        }
+        return true;
+    }
+    void addColumn(int column, QString attributeName) { m_Attributes.insert(column,attributeName); }
+    void setXML(QDomLiteElement* XML) { m_Element=XML; }
 };
 
-
-#include "CommonCounters.h"
-#include "MIDIFileClasses.h"
+#pragma pack(pop)
 
 #endif // COMMONCLASSES_H

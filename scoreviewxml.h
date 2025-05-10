@@ -1,133 +1,154 @@
 #ifndef SCOREVIEWXML_H
 #define SCOREVIEWXML_H
 
-#include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QScrollBar>
-#include <QWheelEvent>
+//#include <QGraphicsView>
+//#include <QGraphicsScene>
+//#include <QScrollBar>
+//#include <QWheelEvent>
+#include <QApplication>
 #include <QWidget>
 #include <QTimer>
 #include "ocscore.h"
 #include "qhoverbutton.h"
 #include "qiphotorubberband.h"
+#include "qgraphicsviewzoomer.h"
 
 namespace Ui {
     class ScoreViewXML;
 }
 
+enum ImportResult {
+    NoImport,
+    ImportNativeXML,
+    ImportMusicXML,
+    ImportNativeByteArray
+};
+
 class ScoreViewXML : public QGraphicsView
 {
     Q_OBJECT
 public:
+    enum PageMode
+    {
+        PageSizeFixed,
+        PageSizeFollowsResize,
+        PageSizeUnlimited
+    };
     OCCursor Cursor;
-    ScoreViewXML(QWidget *parent = NULL);
+    ScoreViewXML(QWidget *parent = nullptr);
     ~ScoreViewXML();
-    const bool FollowResize() const;
-    const int ActiveStaff() const;
-    const int ActiveVoice() const;
-    const int BarNrOffset() const;
-    const int MasterStaff() const;
-    const int NoteSpace() const;
-    const int StartBar() const;
-    const int EndBar() const;
-    const int Size() const;
-    const bool Locked() const;
-    const bool HideBarNumbers() const;
-
+    PageMode FollowResize() const;
+    int ActiveStaffId() const;
+    int ActiveVoice() const;
+    const OCVoiceLocation ActiveVoiceLocation() const;
+    const OCBarLocation ActiveBarLocation() const;
+    int BarNrOffset() const;
+    int MasterStaff() const;
+    int NoteSpace() const;
+    int StartBar() const;
+    int EndBar() const;
+    double Size() const;
+    bool Locked() const;
+    bool HideBarNumbers() const;
     void SetSystemLength(const int NewSystemLength);
-    const int SystemLength() const;
-
-    QRectF SceneRect();
-    const bool EditProperties(XMLSimpleSymbolWrapper& Symbol , OCRefreshMode& RefreshMode);
+    double SystemLength() const;
+    const QRectF systemRect() const;
+    void createSceneRect();
     void Paint(const OCRefreshMode Mode, const bool UpdateSelection=false);
-    void PasteClipBoardData(const int Staff, const int Voice, const int Pointer, QDomLiteElement* ClipBoardData);
-    void PasteClipBoardData(const int Pointer, QDomLiteElement* ClipBoardData);
-    QDomLiteElement* GetClipBoardData(const int Staff, const int Voice, const int StartPointer, const int EndPointer = 0);
-    QDomLiteElement* GetClipBoardData(const int StartPointer, const int EndPointer = 0);
-    QDomLiteElement* GetClipBoardData(const int Staff,const int Voice, const QList<int>& Pointers);
-    QDomLiteElement* GetClipBoardData(const QList<int>& Pointers);
-    QDomLiteElement* GetClipBoardData();
-    void EnsureVisible(const int iStaff);
-    void EnsureVisible();
-    const int BarsActuallyDisplayed() const;
-    const bool CanTurnPage() const;
-    const int FindPointerToBar(const int Staff, const int Voice, const int BarToFind) const;
-    const int FindPointerToBar(const int BarToFind) const;
-    void Play(const int PlayFromBar, const int Silence, const QString& Path, const int Staff=-1);
+    void PasteClipBoardData(const OCSymbolLocation& SymbolLocation, const XMLVoiceWrapper& ClipBoardData);
+    void PasteClipBoardData(const int Pointer, const XMLVoiceWrapper& ClipBoardData);
+    const XMLVoiceWrapper GetClipBoardData(const OCVoiceLocation& VoiceLocation, const OCSymbolRange& SymbolRange) const;
+    const XMLVoiceWrapper GetClipBoardData(const OCSymbolRange& SymbolRange) const;
+    const XMLVoiceWrapper GetClipBoardData(const OCVoiceLocation& VoiceLocation, const OCPointerList& Pointers) const;
+    const XMLVoiceWrapper GetClipBoardData(const OCPointerList& Pointers) const;
+    const XMLVoiceWrapper GetClipBoardData() const;
+    void ensureVisible(const int iStaff);
+    void ensureVisible();
+    void scrollToBar(const int Bar);
+    int BarsActuallyDisplayed() const;
+    bool CanTurnPage() const;
+    const OCBarSymbolLocation findPointerToBar(const OCBarLocation& Bar) const;
+    const OCBarSymbolLocation findPointerToBar(const OCVoiceLocation& VoiceLocation, const int BarToFind) const;
+    const OCBarSymbolLocation findPointerToBar(const int BarToFind) const;
+    void play(const int PlayFromBar, const int Silence, const QString& Path);
     const QByteArray MIDIPointer(const int PlayFromBar, const int Silence);
-    const int FindCurrentMeter(const int Staff, const int Voice, const int Pointer) const;
-    void Mute(const int Staff, const bool Mute);
-    void Solo(const int Staff, const bool Solo);
-    void PasteXML(XMLSimpleSymbolWrapper& Symbol);
-    void InsertXML(const int Staff, const int Voice, const int Pointer, XMLSimpleSymbolWrapper& Symbol);
-    void InsertXML(const int Pointer, XMLSimpleSymbolWrapper& Symbol);
-    void InsertXML(XMLSimpleSymbolWrapper& Symbol);
-    void AddStaff(const int NewNumber, const QString& Name = "New Staff");
-    void AddVoice(const int iStaff);
-    void AddVoice();
-    const int VoiceCount(const int Staff);
-    const int VoiceCount();
-    const int StaffCount();
-    void DeleteVoice(const int iStaff, const int iVoice);
-    void DeleteVoice(const int iVoice);
-    void DeleteVoice();
-    void DeleteStaff(const int iStaff);
-    void DeleteStaff();
-    void Load(const QString& Path);
-    const bool Save(const QString& Path);
-    OCProperties* GetProperties(const int Pointer, const int Staff, const int Voice);
-    OCProperties* GetProperties(const int Pointer);
-    OCProperties* GetProperties();
-    XMLSimpleSymbolWrapper GetSymbol(const int Pointer, const int Staff, const int Voice);
-    XMLSimpleSymbolWrapper GetSymbol(const int Pointer);
-    XMLSimpleSymbolWrapper GetSymbol();
-    void ChangeProperty(const QList<int>& Pointers, const QString& Name, const QVariant& Value);
-    void ChangeProperty(const int Pointer, const int Staff, const int Voice, const QString& Name, const QVariant& Value);
-    void ChangeProperty(const int Pointer, const QString& Name, const QVariant& Value);
-    void ChangeProperties(const int Pointer, const int Staff, const int Voice, const QStringList& Names, const QVariant& Value);
-    void ChangeProperties(const int Pointer, const QStringList& Names, const QVariant& Value);
+    int findCurrentMeter(const OCSymbolLocation& SymbolLocation) const;
+    const QVector<unsigned long> tickList() const;
+    void pasteSymbol(XMLSimpleSymbolWrapper& Symbol);
+    void insertSymbol(const OCSymbolLocation& SymbolLocation, XMLSimpleSymbolWrapper& Symbol);
+    void insertSymbol(const int Pointer, XMLSimpleSymbolWrapper& Symbol);
+    void insertSymbol(XMLSimpleSymbolWrapper& Symbol);
+    int VoiceCount(const int Staff) const;
+    int VoiceCount() const;
+    int StaffCount() const;
+    void SetXMLScore(XMLScoreWrapper& Doc);
+    ImportResult Load(const QString& Path);
+    bool Save(const QString& Path);
+    void serialize(QDomLiteElement* xml) const;
+    void unserialize(const QDomLiteElement* xml);
+    XMLSimpleSymbolWrapper GetSymbol(const OCSymbolLocation& SymbolLocation) const;
+    XMLSimpleSymbolWrapper GetSymbol(const int Pointer) const;
+    XMLSimpleSymbolWrapper CurrentSymbol() const;
     const OCBarMap& BarMap() const;
-    const int VoiceLen(const int Staff, const int Voice);
-    const int VoiceLen();
-    const int EndOfVoiceBar(const int Staff, const int Voice) const;
-    const int EndOfVoiceBar() const;
-    void About();
-    const OCMIDIVars GetCurrentMIDI() const;
+    int VoiceLen(const OCVoiceLocation& VoiceLocation) const;
+    int VoiceLen() const;
+    int EndOfVoiceBar(const OCVoiceLocation& VoiceLocation) const;
+    int EndOfVoiceBar() const;
     void SetXML(XMLScoreWrapper& NewXML);
+    void SetXML(QDomLiteDocument* NewXML);
     void ReloadXML();
     XMLScoreWrapper XMLScore;
-    const QString StaffName(const int Staff);
-    QDomLiteElement* ActiveTemplate();
-    const QList<QPair<int,int> > SelectionList();
-    const QList<QPair<int,int> > SelectionList(const int Bar1, const int Bar2, const int Staff1, const int Staff2);
-    const int MarkToVoice(const int Mark);
-    const int MarkToStaff(const int Mark);
-    const bool navigationVisible() const;
-    QAction* setAction(const QKeySequence keySequence);
-    const QList<SymbolSearchLocation> Search(const QString& SearchTerm, const int Staff=-1, const int Voice=-1);
+    const QString StaffName(const int Staff) const;
+    const OCSelectionList SelectionList() const;
+    const OCSelectionList SelectionList(const int Bar1, const int Bar2, const int Staff1, const int Staff2) const;
+    int MarkToVoice(const int Mark) const;
+    int MarkToStaff(const int Mark) const;
+    const OCVoiceLocation MarkToVoiceLocation(const int Mark) const;
+    int VoiceLocationToMark(const OCVoiceLocation& v) const;
+    bool navigationVisible() const;
+    QAction* setAction(const QKeySequence keySequence, const QString title = QString());
+    const OCBarSymbolLocationList search(const QString& SearchTerm, const int Staff=-1, const int Voice=-1);
+    QMenu* EditMenu;
+    QAction* actionSelectAll;
+    QAction* actionSelectHome;
+    QAction* actionSelectEnd;
+    QAction* actionSwapForward;
+    QAction* actionSwapBack;
+    QMenu* ScoreMenu;
+    QAction* actionPreviousVoice;
+    QAction* actionNextVoice;
+    QAction* actionPreviousStaff;
+    QAction* actionNextStaff;
+
 public slots:
     void setNavigationVisible(const bool newShowNavigation);
-    void setActiveTemplate(const int Template);
-    void setActiveTemplate(QDomLiteElement* Template);
-    void setFollowResize(const bool NewFollowResize);
-    void setActiveStaff(const int NewActiveStaff);
-    void setActiveVoice(const int NewActiveVoice);
+    void setActiveTemplate();
+    void setActiveTemplate(const XMLTemplateWrapper& XMLTemplate);
+    void setActiveOptions();
+    void setActiveOptions(const XMLScoreOptionsWrapper& XMLOptions);
+    void setFollowResize(const ScoreViewXML::PageMode NewFollowResize);
+    void setActiveStaffId(const int id);
+    void setActiveVoice(int NewActiveVoice);
+    void setActiveVoiceLocation(const OCVoiceLocation& v);
+    void setActiveBarLocation(const OCBarLocation& b);
     void setBarNrOffset(const int NewBarNrOffset);
     void setMasterStaff(const int NewMasterStaff);
     void setNoteSpace(const int NewNoteSpace);
     void setStartBar(const int NewStartBar);
     void setEndBar(const int NewEndBar);
-    void setSize(const int NewSize);
+    void setSize(const double NewSize);
     void setLocked(const bool NewLocked);
     void setHideBarNumbers(const bool NewHideBarNumbers);
-    void Sound();
-    void SoundOff();
-    void MakeBackup(const QString& text);
+    void sound(const int pitch=-1);
+    void sound(const OCSymbolLocation& symbol);
+    void soundOff();
+    void shiftPrefered(const int add);
     void transposeSelected(const int add);
-    void Delete(const int Staff, const int Voice, const int StartPointer, const int EndPointer = 0);
-    void Delete(const int StartPointer, const int EndPointer = 0);
-    void Delete(const int Staff, const int Voice, QList<int>& Pointers);
-    void Delete(QList<int>& Pointers);
+    void dottify(int factor = 0);
+    void Delete(const OCVoiceLocation& VoiceLocation, const OCSymbolRange& SymbolRange);
+    void Delete(const OCSymbolRange& SymbolRange);
+    void Delete(const OCVoiceLocation& VoiceLocation, OCPointerList& Pointers);
+    void Delete(OCPointerList& Pointers);
     void Delete();
     void turnback();
     void turnpage();
@@ -139,22 +160,32 @@ public slots:
     void selectPrevSymbolExtend();
     void selectEnd();
     void selectHome();
+    void selectToEnd();
+    void selectToStart();
+    void selectAll();
     void selectEndExtend();
     void selectHomeExtend();
     void selectNextStaff();
     void selectPrevStaff();
     void selectNextVoice();
     void selectPrevVoice();
+    void selectPreferedUp();
+    void selectPreferedDown();
     void selectPitchUp();
     void selectPitchDown();
     void selectOctaveUp();
     void selectOctaveDown();
-    //void selectInsert();
     void selectBackSpace();
     void selectDelete();
     void selectSwapForward();
     void selectSwapBack();
     void flashSelected();
+    void changeZoom(double zoom);
+    void setZoom(const double Zoom);
+    void toggleAltKey(bool v);
+    void setNoteConfig();
+public:
+    double getZoom() const;
 protected:
     bool viewportEvent(QEvent *event);
     void mousePressEvent(QMouseEvent* event);
@@ -163,79 +194,109 @@ protected:
     void mouseDoubleClickEvent (QMouseEvent* event);
     void resizeEvent(QResizeEvent* event);
     void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
     void scrollContentsBy(int dx, int dy);
     void wheelEvent(QWheelEvent* event);
     void leaveEvent(QEvent *event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    void enterEvent(QEnterEvent* event);
+#else
+    void enterEvent(QEvent* event);
+#endif
 signals:
     void Changed();
     void ScoreChanged();
     void SelectionChanged();
-    void NoteOff(int Pitch);
-    void NoteOn(int Pitch);
-    void ActiveStaffChange(int Staff);
+    void NoteOnOff(bool On, int Pitch, int MixerTrack, OCMIDIVars MIDIInfo);
+    void StaffIndexChanged(int Staff);
     void BarChanged();
     void ProcessingStaff(int Staff);
     void Popup(QPoint Pos);
-    void BackMeUp(QString Text);
+    void PropertiesPopup(QPoint Pos);
+    void BarsPopup(QPoint Pos);
+    void ListPopup(QPoint Pos);
+    void BackMeUp(const QString& Text);
     void NavigationForwardClicked();
     void NavigationBackClicked();
     void NavigationEndClicked();
     void NavigationHomeClicked();
     void SwipeLeftToRight();
     void SwipeRightToLeft();
+    void ZoomChanged(double Zoom);
+    void RequestSymbol(XMLSimpleSymbolWrapper& Symbol, QString Text);
+    void RequestDuratedSymbol(XMLSimpleSymbolWrapper& Symbol, QString Text);
+    void RequestNote(XMLSimpleSymbolWrapper& note);
+    void accepted();
+    void canceled();
 private slots:
     void swipeProc(int value);
 private:
+    QGraphicsViewZoomer* zoomer;
+    const QBrush paperbrush=QBrush(QPixmap(":/lightpaperfibers.png"));
+    int m_StartBar;
+    enum MouseAreas
+    {
+        MouseOutside,
+        MouseOnSymbol,
+        MouseOnBar
+    };
     Ui::ScoreViewXML *ui;
-    float swipeDelta;
+    double swipeDelta;
     bool touchDown;
     int swipePos;
     int swipeBackPos;
-    int m_SystemLength;
-    int m_StartBar;
+    double m_SystemLength;
     int m_EndBar;
     bool Dragging;
     bool MouseDown;
-    int MouseButton;
-    QPointF Holdm;
-    bool toneon;
+    Qt::MouseButton MouseButton;
+    MouseAreas MouseArea;
+    bool altMod = false;
+    int MouseAreaIndex;
+    bool altModifier (const QMouseEvent* event = nullptr);
+    void writeAltKeySymbol(const OCPointerList& ptrs);
+    void writeAltkeyNote(const QPointF& mappedPos);
+    void writeMoveSymbol(const QPointF& moved, const Qt::KeyboardModifiers& modifiers);
+    int insideStaffId(const QPointF& p) const;
+    int pitchFromPoint(const OCSymbolLocation& l, const QPointF& m);
+    QPointF m_HoldMappedPos;
     OCMIDIVars CurrentMIDI;
-    //int m_MIDIChannel;
-    //int m_MIDIPatch;
-    int d2pitch;
+    int soundMark;
     int soundPitch;
     QTimer soundTimer;
-    //int m_MIDITranspose;
     bool m_NavigationVisible;
-    bool m_FollowResize;
-    int m_ActiveStaff;
-    int m_ActiveVoice;
     bool m_Locked;
     QiPhotoRubberband* SelectRubberband;
     QHoverRubberband* HoverRubberband;
     OCScore Score;
-    OCFrame* Frame;
+    OCCursorFrame* CursorFrame;
     QGraphicsScene* Scene;
     QHoverButton* turnpagebutton;
     QHoverButton* turnbackbutton;
     QHoverButton* fastforwardbutton;
     QHoverButton* fastbackbutton;
-    QDomLiteElement m_XMLLastPasted;
-    XMLSimpleSymbolWrapper* CurrentSymbol;
-    QDomLiteElement* m_ActiveTemplate;
+    XMLVoiceWrapper m_XMLLastPasted;
+    XMLTemplateWrapper ActiveTemplate;
+    XMLScoreOptionsWrapper ActiveOptions;
+    XMLSimpleSymbolWrapper LastSymbol;
+    XMLSimpleSymbolWrapper LastNote;
     OCDraw ScreenObj;
-    OCFrameProperties* CurrentFrame;
+    const OCFrameProperties& CurrentFrame();
     OCMIDIFile MidiData;
     QTimer ScrollTimer;
     QTimeLine swipeLine;
-    const int StaffPos(const int Staff) const;
-    const int PointerBegin(const int Staff, const int Voice) const;
-    const int PointerBegin() const;
-    void NextStaff(const int Direction);
-    const int KeepIn(const int num, const int Low, const int High) const;
-    const int StaffOrder(const int Staff) const;
-    void putFrame(const QPointF& moved, const int Modifiers);
+    int activeStaffTop() const;
+    const OCBarSymbolLocation pointerBegin(const OCVoiceLocation& Voice) const;
+    const OCBarSymbolLocation pointerBegin() const;
+    void nextStaff(const int Direction);
+    int activeStaffPos() const;
+    double scaled(const double v) const;
+    double staffTopScaled(int id) const;
+    double activeStaffTopScaled() const;
     void zeroSwipe();
+    QRectF mapToSceneRect(const QRect& r);
+    QRect mapFromSceneRect(const QPointF& a, const QPointF& b);
+    const QRect mapFromSceneRect(const QRectF& r);
 };
 
 #endif // SCOREVIEWXML_H

@@ -30,7 +30,7 @@
      </property>
      <widget class="QWidget" name="tab_2">
       <attribute name="icon">
-       <iconset resource="ObjectComposerXML.qrc">
+       <iconset resource="Resources.qrc">
         <normaloff>:/treble_clef.png</normaloff>:/treble_clef.png</iconset>
       </attribute>
       <attribute name="title">
@@ -58,7 +58,16 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="margin">
+          <property name="leftMargin">
+           <number>12</number>
+          </property>
+          <property name="topMargin">
+           <number>12</number>
+          </property>
+          <property name="rightMargin">
+           <number>12</number>
+          </property>
+          <property name="bottomMargin">
            <number>12</number>
           </property>
           <item>
@@ -79,7 +88,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/fast_forward.png</normaloff>:/mini/mini/fast_forward.png</iconset>
             </property>
             <property name="iconSize">
@@ -108,7 +117,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/play.png</normaloff>:/mini/mini/play.png</iconset>
             </property>
             <property name="iconSize">
@@ -137,7 +146,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/back.png</normaloff>:/mini/mini/back.png</iconset>
             </property>
             <property name="iconSize">
@@ -166,7 +175,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/rewind.png</normaloff>:/mini/mini/rewind.png</iconset>
             </property>
             <property name="iconSize">
@@ -233,7 +242,7 @@
      </widget>
      <widget class="QWidget" name="tab">
       <attribute name="icon">
-       <iconset resource="ObjectComposerXML.qrc">
+       <iconset resource="Resources.qrc">
         <normaloff>:/measure.png</normaloff>:/measure.png</iconset>
       </attribute>
       <attribute name="title">
@@ -347,7 +356,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="ObjectComposerXML.qrc"/>
+  <include location="Resources.qrc"/>
  </resources>
  <connections>
   <connection>

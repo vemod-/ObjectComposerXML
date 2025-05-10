@@ -9,13 +9,13 @@
 #include <QToolButton>
 #include <QCheckBox>
 #include <QSpinBox>
-#include "scoreviewxml.h"
+#include "csymbol.h"
 
 class CCustomButton :public QWidget
 {
     Q_OBJECT
 public:
-    CCustomButton(QString Caption,QWidget* parent=0);
+    CCustomButton(const QString& Caption,QWidget* parent=nullptr);
     QToolButton* tb;
 };
 
@@ -23,7 +23,7 @@ class CCustomCheck :public QWidget
 {
     Q_OBJECT
 public:
-    CCustomCheck(QWidget* parent=0);
+    CCustomCheck(QWidget* parent=nullptr);
     QCheckBox* cb;
 };
 
@@ -35,23 +35,29 @@ class CPropertyWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit CPropertyWindow(QWidget *parent = 0);
+    explicit CPropertyWindow(QWidget *parent = nullptr);
     ~CPropertyWindow();
     void Paint();
     void Clear();
-public slots:
-    void Fill(OCProperties* Properties);
+    void Fill(OCProperties *Properties);
+    void Fill(const XMLSimpleSymbolWrapper& Symbol,const int Voice);
+    void UpdateProperties(const XMLSimpleSymbolWrapper& Symbol,const int Voice);
+    QSize contentSize();
 protected:
     void leaveEvent(QEvent* event);
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+    void enterEvent(QEnterEvent *event);
+#else
     void enterEvent(QEvent *event);
+#endif
 signals:
-    void Changed(QString Name, OCProperties* p);
+    void Changed(QString Name, QVariant Value, bool Custom);
 private:
     Ui::CPropertyWindow *ui;
     QString LastSelected;
-    OCProperties* m_PropColl;
+    OCProperties* m_PropColl=nullptr;
     QMacTreeWidget* table;
-    QWidget* edit;
+    QWidget* edit=nullptr;
     QTreeWidgetItem* editRow;
     QString PropertyText(OCProperty* p);
     void HideItems();
@@ -63,7 +69,7 @@ private slots:
     void NumberChanged(int Value);
     void NumberChanged();
     void SliderChanged();
-    void TextChanged(QString Value);
+    void TextChanged(const QString &Value);
     void TextChanged();
     void CustomChanged();
 };

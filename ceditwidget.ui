@@ -79,7 +79,7 @@
     <rect>
      <x>310</x>
      <y>60</y>
-     <width>361</width>
+     <width>391</width>
      <height>58</height>
     </rect>
    </property>
@@ -90,7 +90,16 @@
     </size>
    </property>
    <layout class="QGridLayout" name="gridLayout" columnstretch="10,1">
-    <property name="margin">
+    <property name="leftMargin">
+     <number>8</number>
+    </property>
+    <property name="topMargin">
+     <number>8</number>
+    </property>
+    <property name="rightMargin">
+     <number>8</number>
+    </property>
+    <property name="bottomMargin">
      <number>8</number>
     </property>
     <property name="spacing">
@@ -142,7 +151,16 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -349,14 +367,14 @@
    </property>
    <layout class="QFormLayout" name="formLayout_2">
     <item row="0" column="0">
-     <widget class="QLabel" name="label_8">
+     <widget class="QLabel" name="ControllerLabel">
       <property name="text">
        <string>Controller:</string>
       </property>
      </widget>
     </item>
     <item row="2" column="0">
-     <widget class="QLabel" name="label_9">
+     <widget class="QLabel" name="ValueLabel">
       <property name="text">
        <string>Value:</string>
       </property>
@@ -398,7 +416,16 @@
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>

@@ -1,28 +1,27 @@
 #ifndef CSTAFFSDIALOG_H
 #define CSTAFFSDIALOG_H
 
-#include <QStyledItemDelegate>
+//#include <QStyledItemDelegate>
 #include "CommonClasses.h"
-#include <QDialog>
-#include <QAbstractListModel>
+//#include <QDialog>
 #include <QDataWidgetMapper>
 
 namespace Ui {
 class CStaffsDialog;
 }
-
+/*
 class SpeakerDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 
 public:
-    SpeakerDelegate(QWidget *parent = 0) : QStyledItemDelegate(parent) {}
+    SpeakerDelegate(QWidget *parent = nullptr) : QStyledItemDelegate(parent) {}
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const;
 protected:
     bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index);
 };
-
+*/
 class CXMLVoiceModel : public QAbstractTableModel
 {
     Q_OBJECT
@@ -70,7 +69,7 @@ class CStaffsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CStaffsDialog(QWidget *parent = 0);
+    explicit CStaffsDialog(QWidget *parent = nullptr);
     ~CStaffsDialog();
     int ShowModal();
     void Fill(XMLScoreWrapper& Doc);

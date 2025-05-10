@@ -1,10 +1,12 @@
 #include "qapplearrowbutton.h"
-#include <QGraphicsDropShadowEffect>
-#include <QBitmap>
-#include <QLinearGradient>
-#include <QTextOption>
+//#include <QGraphicsDropShadowEffect>
+//#include <QBitmap>
+//#include <QLinearGradient>
+//#include <QTextOption>
 #include <QPainter>
-#include <QPolygon>
+#include <QPainterPath>
+//#include <QMatrix4x4>
+//#include <QPolygon>
 
 QAppleArrowButton::QAppleArrowButton(QWidget *parent) : QToolButton(parent)
 {
@@ -21,20 +23,20 @@ QAppleArrowButton::ArrowDirection QAppleArrowButton::arrowDirection()
     return m_ArrowDirection;
 }
 
-void drawArrowShape(QPainter &p,QRect &r,QAppleArrowButton::ArrowDirection d)
+void drawArrowShape(QPainter &p,const QRectF &r,QAppleArrowButton::ArrowDirection d)
 {
-    float halfHeight=r.height()/2.0;
-    float thirdHeight=r.height()/3.0;
-    float sixthHeight=r.height()/6.0;
-    float cornerDiam=r.height()/3.0;
-    float arrowFactor=0.8;
+    double halfHeight=r.height()/2.0;
+    double thirdHeight=r.height()/3.0;
+    double sixthHeight=r.height()/6.0;
+    double cornerDiam=r.height()/3.0;
+    double arrowFactor=0.8;
 
-    QPainterPath rightArrow(QPoint(r.right(),r.top()+halfHeight));
-    rightArrow.cubicTo(QPoint(r.right()-(thirdHeight*arrowFactor),r.bottom()-sixthHeight),QPoint(r.right()-(halfHeight*arrowFactor),r.bottom()),QPoint(r.right()-(halfHeight*arrowFactor)-sixthHeight,r.bottom()));
+    QPainterPath rightArrow(QPointF(r.right(),r.top()+halfHeight));
+    rightArrow.cubicTo(QPointF(r.right()-(thirdHeight*arrowFactor),r.bottom()-sixthHeight),QPointF(r.right()-(halfHeight*arrowFactor),r.bottom()),QPointF(r.right()-(halfHeight*arrowFactor)-sixthHeight,r.bottom()));
     rightArrow.arcTo(r.left(),r.bottom()-cornerDiam,cornerDiam,cornerDiam,-90,-90);
     rightArrow.arcTo(r.left(),r.top(),cornerDiam,cornerDiam,180,-90);
-    rightArrow.lineTo(QPoint(r.right()-(halfHeight*arrowFactor)-sixthHeight,r.top()));
-    rightArrow.cubicTo(QPoint(r.right()-(halfHeight*arrowFactor),r.top()),QPoint(r.right()-(thirdHeight*arrowFactor),r.top()+sixthHeight),QPoint(r.right(),r.top()+halfHeight));
+    rightArrow.lineTo(QPointF(r.right()-(halfHeight*arrowFactor)-sixthHeight,r.top()));
+    rightArrow.cubicTo(QPointF(r.right()-(halfHeight*arrowFactor),r.top()),QPointF(r.right()-(thirdHeight*arrowFactor),r.top()+sixthHeight),QPointF(r.right(),r.top()+halfHeight));
 
     QPainterPath leftRounded(r.topRight());
     leftRounded.lineTo(r.bottomRight());
@@ -48,7 +50,7 @@ void drawArrowShape(QPainter &p,QRect &r,QAppleArrowButton::ArrowDirection d)
     }
     else if (d==QAppleArrowButton::Left)
     {
-        QMatrix mirrorMatrix;
+        QTransform mirrorMatrix;
         mirrorMatrix.scale(-1, 1);
         QPainterPath leftArrow = (rightArrow * mirrorMatrix).translated(r.width()-1,0);
         p.drawPath(leftArrow);
@@ -61,7 +63,7 @@ void drawArrowShape(QPainter &p,QRect &r,QAppleArrowButton::ArrowDirection d)
     }
     else if (d==QAppleArrowButton::RoundRight)
     {
-        QMatrix mirrorMatrix;
+        QTransform mirrorMatrix;
         mirrorMatrix.scale(-1, 1);
         QPainterPath rightRounded = (leftRounded * mirrorMatrix).translated(r.width()-1,0);
         p.drawPath(rightRounded);
@@ -95,7 +97,7 @@ QImage QAppleArrowButton::setBrightness(QImage img, int value, bool desaturate)
 
 QImage QAppleArrowButton::minBrightness(QImage img, int value)
 {
-    float factor=(255-value)/255.0;
+    double factor=(255-value)/255.0;
     for (int x=0;x<img.width();x++)
     {
         for (int y=0;y<img.height();y++)
@@ -106,7 +108,7 @@ QImage QAppleArrowButton::minBrightness(QImage img, int value)
             int h, s, v, a;
             color.getHsv(&h, &s, &v, &a);
             s=0;
-            v=(v*factor)+value;
+            v=int(v*factor)+value;
             color.setHsv(h, s, v, a);
             img.setPixel(x,y, color.rgba());
         }
@@ -117,25 +119,25 @@ QImage QAppleArrowButton::minBrightness(QImage img, int value)
 void QAppleArrowButton::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
-    QRect roundRect(rect());
+    QRectF roundRect(rect());
     roundRect.adjust(0,0,0,-1);
     //roundRect.translate(1,1);
     QImage px;
     //QPixmap mask;
-    QRect textRect(rect());
+    QRectF textRect(rect());
     textRect.translate(0,-1);
-    QRect iconRect=rect();
-    QRect r(textRect);
+    QRectF iconRect=rect();
+    QRectF r(textRect);
     r.translate(0,1);
     QPainter p(this);
     p.setWorldMatrixEnabled(false);
     p.setViewTransformEnabled(false);
-    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::HighQualityAntialiasing | QPainter::TextAntialiasing);
+    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     QTextOption o(Qt::AlignCenter);
     p.setFont(font());
     QPen dpen("#333");
     dpen.setJoinStyle(Qt::RoundJoin);
-    QRect shadowRect(roundRect);
+    QRectF shadowRect(roundRect);
     shadowRect.translate(0,1);
     QPen pPen("#666");
     pPen.setJoinStyle(Qt::RoundJoin);
@@ -149,26 +151,26 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         //iconRect.setWidth(iconRect.width()-2);
         //iconRect.setHeight(iconRect.height()-2);
         iconRect.adjust(0,2,-3,-3);
-        QSize s(24,24);
-        if (icon().availableSizes().count()) s = icon().availableSizes()[0];
-        float aspect=(float)s.width()/(float)s.height();
-        float thisaspect=(float)iconRect.width()/(float)iconRect.height();
+        QSizeF s(24,24);
+        if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
+        double aspect=s.width()/s.height();
+        double thisaspect=iconRect.width()/iconRect.height();
         if (aspect<thisaspect)
         {
-            iconRect.setWidth((float)iconRect.height()*aspect);
+            iconRect.setWidth(iconRect.height()*aspect);
             //iconRect.setLeft((float)(rect().width()-iconRect.width())/2.0);
             iconRect.translate((rect().width()-iconRect.width())/2.0,0);
         }
         if (aspect>thisaspect)
         {
-            iconRect.setHeight((float)iconRect.width()*aspect);
+            iconRect.setHeight(iconRect.width()*aspect);
             iconRect.translate(0,(rect().height()-iconRect.height())/2.0);
         }
         //iconRect.translate(1,1);
         //iconRect.adjust(2,2,-2,-2);
         r=iconRect;
         r.translate(0,1);
-        px = icon().pixmap(s).toImage().convertToFormat(QImage::Format_ARGB32);
+        px = icon().pixmap(s.toSize()).toImage().convertToFormat(QImage::Format_ARGB32);
         //mask = QPixmap(icon().pixmap(s).createHeuristicMask());
     }
     if (this->isEnabled())
@@ -293,6 +295,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
     if (roundRect.left()<0)
     {
         p.setPen(dpen);
-        p.drawLine(0,0,0,roundRect.height());
+        p.drawLine(0,0,0,int(roundRect.height()));
     }
 }

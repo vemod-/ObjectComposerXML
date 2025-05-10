@@ -7,10 +7,10 @@ CMeasureControl::CMeasureControl(QWidget *parent) :
 {
     ui->setupUi(this);
     UpdateInches();
-    connect(ui->spinBox,SIGNAL(valueChanged(int)),this,SLOT(UpdateInches()));
-    connect(ui->doubleSpinBox,SIGNAL(valueChanged(double)),this,SLOT(UpdateMillimeters()));
-    connect(ui->spinBox,SIGNAL(valueChanged(int)),this,SIGNAL(Changed()));
-    connect(ui->doubleSpinBox,SIGNAL(valueChanged(double)),this,SIGNAL(Changed()));
+    connect(ui->spinBox,qOverload<int>(&QSpinBox::valueChanged),this,&CMeasureControl::UpdateInches);
+    connect(ui->doubleSpinBox,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CMeasureControl::UpdateMillimeters);
+    connect(ui->spinBox,qOverload<int>(&QSpinBox::valueChanged),this,&CMeasureControl::Changed);
+    connect(ui->doubleSpinBox,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CMeasureControl::Changed);
 }
 
 CMeasureControl::~CMeasureControl()
@@ -18,7 +18,7 @@ CMeasureControl::~CMeasureControl()
     delete ui;
 }
 
-const int CMeasureControl::Millimeters()
+int CMeasureControl::Millimeters()
 {
     return ui->spinBox->value();
 }
@@ -39,6 +39,6 @@ void CMeasureControl::UpdateInches()
 void CMeasureControl::UpdateMillimeters()
 {
     ui->spinBox->blockSignals(true);
-    ui->spinBox->setValue((int)(ui->doubleSpinBox->value()*25.4));
+    ui->spinBox->setValue(int(ui->doubleSpinBox->value()*25.4));
     ui->spinBox->blockSignals(false);
 }

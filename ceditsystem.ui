@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>333</height>
+    <height>346</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
    <item>
     <layout class="QFormLayout" name="formLayout">
      <item row="0" column="1">
-      <widget class="QListWidget" name="listWidget">
+      <widget class="QListWidget" name="staffList">
        <property name="minimumSize">
         <size>
          <width>0</width>

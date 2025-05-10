@@ -1,0 +1,399 @@
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+<instruments>
+    <bank number="0">
+        <instrument name="Acoustic Grand Piano" />
+        <instrument name="Bright Acoustic Piano" />
+        <instrument name="Electric Grand Piano" />
+        <instrument name="Honky-tonk Piano" />
+        <instrument name="Electric Piano 1" />
+        <instrument name="Electric Piano 2" />
+        <instrument name="Harpsichord" />
+        <instrument name="Clavinet" />
+        <instrument name="Celesta" />
+        <instrument name="Glockenspiel" />
+        <instrument name="Music Box" />
+        <instrument name="Vibraphone" />
+        <instrument name="Marimba" />
+        <instrument name="Xylophone" />
+        <instrument name="Tubular Bells" />
+        <instrument name="Dulcimer" />
+        <instrument name="Drawbar Organ" />
+        <instrument name="Percussive Organ" />
+        <instrument name="Rock Organ" />
+        <instrument name="Church Organ" />
+        <instrument name="Reed Organ" />
+        <instrument name="Accordion" />
+        <instrument name="Harmonica" />
+        <instrument name="Tango Accordion" />
+        <instrument name="Acoustic Guitar (nylon)" />
+        <instrument name="Acoustic Guitar (steel)" />
+        <instrument name="Electric Guitar (jazz)" />
+        <instrument name="Electric Guitar (clean)" />
+        <instrument name="Electric Guitar (muted)" />
+        <instrument name="Overdriven Guitar" />
+        <instrument name="Distortion Guitar" />
+        <instrument name="Guitar harmonics" />
+        <instrument name="Acoustic Bass" />
+        <instrument name="Electric Bass (finger)" />
+        <instrument name="Electric Bass (pick)" />
+        <instrument name="Fretless Bass" />
+        <instrument name="Slap Bass 1" />
+        <instrument name="Slap Bass 2" />
+        <instrument name="Synth Bass 1" />
+        <instrument name="Synth Bass 2" />
+        <instrument name="Violin" />
+        <instrument name="Viola" />
+        <instrument name="Cello" />
+        <instrument name="Contrabass" />
+        <instrument name="Tremolo Strings" />
+        <instrument name="Pizzicato Strings" />
+        <instrument name="Orchestral Harp" />
+        <instrument name="Timpani" />
+        <instrument name="String Ensemble 1" />
+        <instrument name="String Ensemble 2" />
+        <instrument name="SynthStrings 1" />
+        <instrument name="SynthStrings 2" />
+        <instrument name="Choir Aahs" />
+        <instrument name="Voice Oohs" />
+        <instrument name="Synth Voice" />
+        <instrument name="Orchestra Hit" />
+        <instrument name="Trumpet" />
+        <instrument name="Trombone" />
+        <instrument name="Tuba" />
+        <instrument name="Muted Trumpet" />
+        <instrument name="French Horn" />
+        <instrument name="Brass Section" />
+        <instrument name="SynthBrass 1" />
+        <instrument name="SynthBrass 2" />
+        <instrument name="Soprano Sax" />
+        <instrument name="Alto Sax" />
+        <instrument name="Tenor Sax" />
+        <instrument name="Baritone Sax" />
+        <instrument name="Oboe" />
+        <instrument name="English Horn" />
+        <instrument name="Bassoon" />
+        <instrument name="Clarinet" />
+        <instrument name="Piccolo" />
+        <instrument name="Flute" />
+        <instrument name="Recorder" />
+        <instrument name="Pan Flute" />
+        <instrument name="Blown Bottle" />
+        <instrument name="Shakuhachi" />
+        <instrument name="Whistle" />
+        <instrument name="Ocarina" />
+        <instrument name="Lead 1 (square)" />
+        <instrument name="Lead 2 (sawtooth)" />
+        <instrument name="Lead 3 (calliope)" />
+        <instrument name="Lead 4 (chiff)" />
+        <instrument name="Lead 5 (charang)" />
+        <instrument name="Lead 6 (voice)" />
+        <instrument name="Lead 7 (fifths)" />
+        <instrument name="Lead 8 (bass + lead)" />
+        <instrument name="Pad 1 (new age)" />
+        <instrument name="Pad 2 (warm)" />
+        <instrument name="Pad 3 (polysynth)" />
+        <instrument name="Pad 4 (choir)" />
+        <instrument name="Pad 5 (bowed)" />
+        <instrument name="Pad 6 (metallic)" />
+        <instrument name="Pad 7 (halo)" />
+        <instrument name="Pad 8 (sweep)" />
+        <instrument name="FX 1 (rain)" />
+        <instrument name="FX 2 (soundtrack)" />
+        <instrument name="FX 3 (crystal)" />
+        <instrument name="FX 4 (atmosphere)" />
+        <instrument name="FX 5 (brightness)" />
+        <instrument name="FX 6 (goblins)" />
+        <instrument name="FX 7 (echoes)" />
+        <instrument name="FX 8 (sci-fi)" />
+        <instrument name="Sitar" />
+        <instrument name="Banjo" />
+        <instrument name="Shamisen" />
+        <instrument name="Koto" />
+        <instrument name="Kalimba" />
+        <instrument name="Bag pipe" />
+        <instrument name="Fiddle" />
+        <instrument name="Shanai" />
+        <instrument name="Tinkle Bell" />
+        <instrument name="Agogo" />
+        <instrument name="Steel Drums" />
+        <instrument name="Woodblock" />
+        <instrument name="Taiko Drum" />
+        <instrument name="Melodic Tom" />
+        <instrument name="Synth Drum" />
+        <instrument name="Reverse Cymbal" />
+        <instrument name="Guitar Fret Noise" />
+        <instrument name="Breath Noise" />
+        <instrument name="Seashore" />
+        <instrument name="Bird Tweet" />
+        <instrument name="Telephone Ring" />
+        <instrument name="Helicopter" />
+        <instrument name="Applause" />
+        <instrument name="Gunshot" />
+    </bank>
+    <bank number="1">
+        <instrument name="Standard Drum Kit"/> <!-- Program 1 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Room Drum Kit"/> <!-- Program 9 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Power Drum Kit"/> <!-- Program 17 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Electronic Drum Kit"/> <!-- Program 25 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="TR-808 Kit"/> <!-- Program 33 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Jazz Drum Kit"/> <!-- Program 41 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Brush Drum Kit"/> <!-- Program 49 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="Orchestra Drum Kit"/> <!-- Program 57 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument name="TR-909 Kit"/> <!-- Program 65 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 73 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 81 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 89 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 97 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 105 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 113 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/> <!-- Program 121 -->
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+        <instrument/>
+    </bank>
+</instruments>
+<controllers>
+    <controller name="Bank Select (coarse)"></controller>
+    <controller name="Modulation Wheel (coarse)"></controller>
+    <controller name="Breath Controller (coarse)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Foot Controller (coarse)"></controller>
+    <controller name="Portamento Time (coarse)"></controller>
+    <controller name="Data Entry (coarse)"></controller>
+    <controller name="Channel Volume (coarse)"></controller>
+    <controller name="Balance (coarse)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Pan (coarse)"></controller>
+    <controller name="Expression Controller (coarse)"></controller>
+    <controller name="Effect Control 1 (coarse)"></controller>
+    <controller name="Effect Control 2 (coarse)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="General Purpose Controller 1"></controller>
+    <controller name="General Purpose Controller 2"></controller>
+    <controller name="General Purpose Controller 3"></controller>
+    <controller name="General Purpose Controller 4"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Bank Select (fine)"></controller>
+    <controller name="Modulation Wheel (fine)"></controller>
+    <controller name="Breath Controller (fine)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Foot Controller (fine)"></controller>
+    <controller name="Portamento Time (fine)"></controller>
+    <controller name="Data Entry (fine)"></controller>
+    <controller name="Channel Volume (fine)"></controller>
+    <controller name="Balance (fine)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Pan (fine)"></controller>
+    <controller name="Expression Controller (fine)"></controller>
+    <controller name="Effect Control 1 (fine)"></controller>
+    <controller name="Effect Control 2 (fine)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="General Purpose Controller 1 (fine)"></controller>
+    <controller name="General Purpose Controller 2 (fine)"></controller>
+    <controller name="General Purpose Controller 3 (fine)"></controller>
+    <controller name="General Purpose Controller 4 (fine)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Hold Pedal (on/off)"></controller>
+    <controller name="Portamento (on/off)"></controller>
+    <controller name="Sostenuto (on/off)"></controller>
+    <controller name="Soft Pedal (on/off)"></controller>
+    <controller name="Legato Footswitch"></controller>
+    <controller name="Hold 2"></controller>
+    <controller name="Sound Controller 1 (default: Sound Variation)"></controller>
+    <controller name="Sound Controller 2 (default: Timbre/Harmonic Intensity)"></controller>
+    <controller name="Sound Controller 3 (default: Release Time)"></controller>
+    <controller name="Sound Controller 4 (default: Attack Time)"></controller>
+    <controller name="Sound Controller 5 (default: Brightness)"></controller>
+    <controller name="Sound Controller 6"></controller>
+    <controller name="Sound Controller 7"></controller>
+    <controller name="Sound Controller 8"></controller>
+    <controller name="Sound Controller 9"></controller>
+    <controller name="Sound Controller 10"></controller>
+    <controller name="General Purpose Controller 5"></controller>
+    <controller name="General Purpose Controller 6"></controller>
+    <controller name="General Purpose Controller 7"></controller>
+    <controller name="General Purpose Controller 8"></controller>
+    <controller name="Portamento Control"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="High-Resolution Velocity Prefix"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Effects 1 Depth (default: Reverb Send)"></controller>
+    <controller name="Effects 2 Depth (default: Tremolo Depth)"></controller>
+    <controller name="Effects 3 Depth (default: Chorus Send)"></controller>
+    <controller name="Effects 4 Depth (default: Celeste Depth)"></controller>
+    <controller name="Effects 5 Depth (default: Phaser Depth)"></controller>
+    <controller name="Data Increment"></controller>
+    <controller name="Data Decrement"></controller>
+    <controller name="Non-Registered Parameter Number (coarse)"></controller>
+    <controller name="Non-Registered Parameter Number (fine)"></controller>
+    <controller name="Registered Parameter Number (coarse)"></controller>
+    <controller name="Registered Parameter Number (fine)"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="Undefined"></controller>
+    <controller name="All Sound Off"></controller>
+    <controller name="Reset All Controllers"></controller>
+    <controller name="Local Control (on/off)"></controller>
+    <controller name="All Notes Off"></controller>
+    <controller name="Omni Mode Off"></controller>
+    <controller name="Omni Mode On"></controller>
+    <controller name="Mono Mode"></controller>
+    <controller name="Poly Mode"></controller>
+</controllers>
+</data>

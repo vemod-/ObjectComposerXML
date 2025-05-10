@@ -2,146 +2,110 @@
 #define OCSCORE_H
 
 #include "CommonClasses.h"
-#include "ocsymbolscollection.h"
+#include "ocnotelist.h"
 
-typedef OCPrintVarsType* OCPrintVarsArray;
-typedef OCPlayBackVarsType* OCPlayVarsArray;
-typedef int* OCPointerArray;
-typedef bool* OCBoolArray;
-typedef OCSignList* OCSignListArray;
-typedef CNotesToPlay* OCNotesToPlayArray;
-typedef OCNoteList* OCNoteListArray;
-
-enum TrackPlayTypes
-{
-    tSPlayStartEnd = 1,
-    tSPlayStart = 2,
-    tSPlayEnd = 3,
-    tSPlayPortamento = 4,
-    tSPlayNone = 5
-};
-
-struct SymbolSearchLocation
-{
-    int Bar;
-    int Staff;
-    int Voice;
-    int Pointer;
-};
-
-class CTrack
+class CVoice : public XMLVoiceWrapper
 {
 private:
-    OCPrintVarsType fibset;
-    void PlBrLine(const int xs, const int Bracket, const int Tuborg, const int stavedistance, OCDraw& ScreenObj);
-    void FillBetweenNotes(int& py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray dcurrent, OCStaffAccidentals& lfortegn);
-    void FiBBetweenNotes(int& py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset, QList<int> &LastTiedNotes);
-    const QList<SymbolSearchLocation> SearchBetweenNotes(int &py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset, QString SearchTerm);
-    void FakePlotBetweenNotes(int& py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset);
-    void FiBPlayBetweenNotes(int &py, QDomLiteElement* XMLStaff, const int NumOfTracks, OCCounter& CountIt, OCPlayVarsArray pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay, const int TrackOffset);
-    const int CalcNoteTime(XMLSymbolWrapper& Symbol, const int Rounded, OCPlayBackVarsType& pcurrent, OCSignList& SignsToPlay) const;
-    const int CalcVoicedTime(const int NoteTime, const int Rounded, OCPlayBackVarsType& pcurrent, OCSignList& SignsToPlay) const;
-    void PlayNotesOff(CNotesToPlay& NotesToPlay, const int VoicedTime, OCMIDIFile& MFile, OCPlayBackVarsType& pcurrent, bool& HasBeen);
-    void PlayPortamentoNotes(const int ThisPitch, CNotesToPlay& NotesToPlay, OCPlayBackVarsType& pcurrent, OCMIDIFile& MFile);
-    void PlayPortamentoCleanUp(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType& pcurrent);
-    void PlayExprClear(OCPlayBackVarsType& pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay);
-    void PlayNotesOn(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType& pcurrent, const int ThisVelocity , const int VoicedTime, const int NoteOnPitch);
-    void PlayDuringNote(OCSignList& SignsToPlay, XMLSymbolWrapper& XMLNote, const int VoicedTime, int& NoteOnPitch, bool& HasBeen, OCMIDIFile& MFile, OCPlayBackVarsType& pcurrent, const int NoteTime);
-
+    OCPrintVarsType pageStartVars;
+    const QRectF plBarLine(const double xs, const XMLTemplateStaffWrapper& templateStaff, OCDraw& ScreenObj);
+    void fillBetweenNotes(OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals);
+    void findBarBetweenNotes(OCStaffCounterPrint& voiceVarsArray);
+    const OCBarSymbolLocationList searchBetweenNotes(OCStaffCounterPrint& voiceVarsArray, const QString& SearchTerm);
+    void fakePlotBetweenNotes(OCStaffCounterPrint& voiceVarsArray);
+    void findBarPlayBetweenNotes(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay, const int TrackOffset);
+    int calcNoteTime(const XMLSymbolWrapper& Symbol, const int Rounded, OCPlayBackVarsType& voiceVars, OCPlaySignList& SignsToPlay) const;
+    void playNotesOff(CNotesToPlay& NotesToPlay, int DeltaTime, OCMIDIFile& MFile, OCPlayBackVarsType& voiceVars, bool Pedal);
+    void playPortamentoNotes(const int ThisPitch, CNotesToPlay& NotesToPlay, OCPlayBackVarsType& voiceVars, OCMIDIFile& MFile);
+    void playExprClear(OCPlayBackVarsType& voiceVars, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay);
+    void playNotesOn(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType& voiceVars, const int ThisVelocity , const int VoicedTime, const int NoteOnPitch);
+    void playDuringNote(OCPlaySignList& SignsToPlay, const XMLSymbolWrapper& XMLNote, int& VoicedTime, int& NoteOnPitch, OCMIDIFile& MFile, OCPlayBackVarsType& voiceVars, const int NoteTime);
+    void playDuringPause(OCPlaySignList& SignsToPlay, int NoteOnPitch, OCMIDIFile& MFile, OCPlayBackVarsType& voiceVars);
 public:
-    int TrackNum;
-    int StaveNum;
-    CTrack();
-    ~CTrack();
-    void plMTr(OCBarList& BarList,QDomLiteElement* XMLVoice,QDomLiteElement* XMLTemplate, const QColor TC, OCSymbolArray& MTObj, OCDraw& ScreenObj, XMLScoreWrapper& XMLScore);
-    void getsetting(OCPrintVarsType& tempsetting);
-    void putsetting(OCPrintVarsType& tempsetting);
-    void PlfirstClef(OCBarList& BarList, OCDraw& ScreenObj);
-    void PlfirstAcc(OCBarList& BarList, OCDraw& ScreenObj);
-    void FormatBar(const int CurrentBar, const int ActualBar, OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate);
-    void PlTrack(OCBarList& BarList, XMLScoreWrapper& XMLScore, OCSymbolArray& SymbolList, OCNoteList& NoteList, OCDraw& ScreenObj, OCPrintStaffVarsType &sCurrent, const QColor TrackColor);
-    const int FillChunk(int& py, OCCounter& CountIt, OCNoteList& NoteList, OCPrintVarsArray dcurrent, const int NumOfTracks, QDomLiteElement* XMLVoice, OCStaffAccidentals& lfortegn, OCBarList& BarList, const int XFysic, QList<int> &LastTiedNotes, OCDraw& ScreenObj);
-    const int FiBChunk(int& Pnt, QDomLiteElement* XMLVoice, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks, QList<int> &LastTiedNotes);
-    const int FiBPlayChunk(int &Pnt, QDomLiteElement* XMLStaff, OCCounter& CountIt, OCPlayVarsArray pcurrent, const int NumOfTracks, OCSignList& SignsToPlay, int& AccelCounter, OCMIDIFile& MFile, const int TrackOffset);
-    const int PlayChunk(int &Pnt, QDomLiteElement* XMLStaff, OCCounter& CountIt, OCPlayVarsArray pcurrent, const int NumOfTracks, OCSignList& SignsToPlay, CNotesToPlay& NotesToPlay, int& VoicedTime, OCMIDIFile& MFile, int MIDITrackNumber);
-    void PlayBetweenNotes(int& py, QDomLiteElement* XMLStaff, const int NumOfTracks, OCCounter& CountIt, OCPlayVarsArray pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay, const int MIDITrackNumber);
-    const int SearchChunk(int &Pnt, QDomLiteElement* XMLVoice, QList<SymbolSearchLocation>& l, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks, const QString& SearchTerm);
-    const int FakePlotChunk(int& Pnt, QDomLiteElement* XMLVoice, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks);
-    const int GetFirstChannel(QDomLiteElement* XMLVoice);
+    OCVoiceLocation VoiceLocation;
+    OCFrameArray FrameList;
+    CVoice(QDomLiteElement* e, const int staff, const int index);
+    ~CVoice();
+    void plotMasterStuff(OCPageBarList& BarList, const QColor& TC, OCDraw& ScreenObj, const XMLScoreWrapper& XMLScore);
+    void getPageStartVars(OCPrintVarsType& voiceVars);
+    void setPageStartVars(const OCPrintVarsType& voiceVars);
+    void plfirstClef(OCPageBarList& BarList, OCDraw& ScreenObj);
+    void plfirstKey(OCPageBarList& BarList, OCDraw& ScreenObj);
+    void formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate);
+    void plVoice(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, OCNoteList& NoteList, OCDraw& ScreenObj, const XMLTemplateStaffWrapper& XMLTemplateStaff, const QColor& TrackColor);
+    int fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, const double XFysic, OCDraw& ScreenObj);
+    int findBarChunk(OCStaffCounterPrint& voiceVarsArray);
+    int findBarPlayChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, OCMIDIFile& MFile, const int TrackOffset);
+    int playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, int MIDITrackNumber);
+    void playBetweenNotes(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay, const int MIDITrackNumber);
+    int searchChunk(OCBarSymbolLocationList& l, OCStaffCounterPrint& CountIt, const QString& SearchTerm);
+    int FakePlotChunk(OCStaffCounterPrint& voiceVarsArray);
+    int getFirstChannel();
 };
 
-class CStaff
+class CStaff : public XMLStaffWrapper
 {
 private:
-    QList<CTrack*> Track;
-    const int NumOfTracks() const;
-    QList<int> LastTiedNotes;
-    void PlLines(const int SystemLength, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const int StartBar, const int StavePlacement, OCDraw& ScreenObj);
-    void FillNoteLists(OCNoteListArray NoteLists, OCBarList& BarList, QDomLiteElement* XMLStaff, OCDraw& ScreenObj);
-    bool ChordCollision(OCNoteList& NoteList1, OCNoteList& NoteList2) const;
-    void CheckChordCollision(OCNoteListArray NoteLists, CStaffCounter& StaffCount);
+    QList<CVoice> Voices;
+    const QRectF plotLinesAndBrackets(const double SystemLength, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const int StartBar, const int StavePlacement, OCDraw& ScreenObj);
+    OCNoteListArray fillNoteLists(OCPageBarList& BarList, OCDraw& ScreenObj);
+    bool chordCollision(OCNoteList& NoteList1, OCNoteList& NoteList2) const;
+    void checkChordCollision(OCNoteListArray& NoteLists, OCStaffCounterPrint& StaffCount);
 public:
-    QList<QGraphicsItem*> ItemList;
-    bool Solo;
-    bool Mute;
-    int StaveNum;
-    CStaff();
+    OCGraphicsList ItemList;
+    OCStaffLocation StaffLocation;
+    OCFrameArray& FrameList(const int Voice) { return Voices[Voice].FrameList; }
+    CStaff(QDomLiteElement* e, const int index);
     ~CStaff();
-    void AddTrack();
-    void FormatBar(const int CurrentBar, const int ActualBar, OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate);
-    void plMTr(OCBarList& BarList, QDomLiteElement* XMLStaff, QDomLiteElement* XMLTemplate, const QColor TC , OCSymbolArray& MTObj, OCDraw& ScreenObj, XMLScoreWrapper& XMLScore);
-    void DeleteTrack(const int TrackNumber);
-    void PlStaff(OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, OCSymbolArray& SymbolList, const QColor color, QList<CStaff*> &Staffs, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj);
-    void Findall(const int dbr, QDomLiteElement *XMLStaff);
-    void fibPlay(const int dbr, QDomLiteElement* XMLStaff, OCMIDIFile& MFile, OCPointerArray py, const int TrackOffset, OCPlayVarsArray pcurrent, OCSignListArray SignsToPlay);
-    void Play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, QDomLiteElement* XMLStaff, const int silence);
-    const QList<SymbolSearchLocation> Search(QDomLiteElement* XMLStaff, const QString& SearchTerm, const int TrackToSearch=-1) const;
-    void FakePlot(const int TrackToSearch, const int PointerGoal, QDomLiteElement* XMLStaff, OCMIDIVars& MIDI);
-    void SetStavenum(const int Stave);
-    void FillBarsArray(QDomLiteElement* XMLStaff, OCBarMap& bars, const int StaffOffset);
+    void formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate);
+    void plotMasterStuff(OCPageBarList& BarList, const QColor& TC , OCDraw& ScreenObj, const XMLScoreWrapper& XMLScore);
+    void plotStaff(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, CStaff& MasterStaff, OCDraw& ScreenObj);
+    void findall(const int dbr);
+    void findBarPlay(const int dbr, OCMIDIFile& MFile, const int TrackOffset, OCStaffCounterPlay& voiceVarsArray, OCPlaySignListArray& SignsToPlay);
+    void play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, const int silence, const OCBarMap& barmap);
+    const OCBarSymbolLocationList search(const QString& SearchTerm, const int TrackToSearch=-1);
+    const OCPrintVarsType fakePlot(const int TrackToSearch, const int TargetIndex);
+    void fillBarsArray(OCBarMap& bars, const int StaffOffset);
 };
 
-class OCScore
+class OCScore : public XMLStaffCollectionWrapper
 {
 private:
-    QList<CStaff*> Staff;
-    OCBarList BarList;
-    OCSymbolArray SymbolList;
-    const int NumOfStaves();
-    void findall(const int BarToFind, XMLScoreWrapper& XMLScore, QDomLiteElement* Template);
+    QList<CStaff> Staffs;
+    OCPageBarList BarList;
+    void findall(const int BarToFind, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options);
 public:
     OCScore();
     ~OCScore();
-    const int ActuallyPrinted() const;
-    const int StartBar() const;
-    const int SystemLength() const;
-
-    const bool IsEnded(QDomLiteElement* XMLTemplate) const;
-    void EraseSystem(int Stave, QGraphicsScene* Scene);
-    void EraseAll(QGraphicsScene* Scene);
-    void PlSystem(const int q, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const QColor color, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj);
-    void PlSystemNoList(const int q, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const QColor color, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj);
-    void PageBackFormat(XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate);
-    void FormatPage(XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const int SysLen, const int Start, const int End=0);
-    void ReformatPage(const int SysLen);
-    const QString ToolTipText(const int Pointer,const int Stave,const  int TrackNr) const;
-    void Play(const int StartBr, XMLScoreWrapper& XMLScore, const int silence, OCMIDIFile& MFile, const QString& Path, const int StaveNum=-1);
-    const QByteArray MIDIPointer(const int StartBr, XMLScoreWrapper& XMLScore, const int silence, OCMIDIFile& MFile);
-    void Mute(const int Stave, const bool Muted);
-    void Solo(const int Stave, const bool Solo);
-    void AddStave(const int NewNumber);
-    void AddTrack(const int Stave);
-    void DeleteTrack(const int Stave, const int Track);
-    void DeleteStave(const int Stave);
-    QList<SymbolSearchLocation> Search(XMLScoreWrapper& XMLScore, const QString& SearchTerm, const int Stave=-1, const int Track=-1) const;
-    void FakePlot(const int Stave, const int Track, const int PointerGoal, XMLScoreWrapper& XMLScore, OCMIDIVars& MIDI);
-    void CreateBarMap(XMLScoreWrapper& XMLScore);
+    int barsActuallyPrinted() const;
+    int startBar() const;
+    double systemLength() const;
+    bool isEnded(const XMLTemplateWrapper& XMLTemplate) const;
+    void eraseSystem(int Stave, QGraphicsScene* Scene);
+    void eraseAll(QGraphicsScene* Scene);
+    void plotStaff(const int q, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj);
+    void plotStaffNoList(const int q, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj);
+    void formatPageBack(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options);
+    void formatPage(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const double SysLen, const int Start, const int End=0);
+    void reformatPage(const int SysLen);
+    const QString toolTipText(const OCSymbolLocation& Symbol) const;
+    void play(const int StartBr, const int silence, const QString& Path);
+    const QByteArray MIDIPointer(const int StartBr, const int silence);
+    OCBarSymbolLocationList search(const QString& SearchTerm, const int Stave=-1, const int Track=-1);
+    const OCMIDIVars fakePlot(const OCSymbolLocation& Target);
+    int fakePlotClef(const OCSymbolLocation& Target);
+    void createBarMap();
     const OCBarMap& BarMap() const;
-    const bool StaffEmpty(const int Staff, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate);
-    void MakeStaves(XMLScoreWrapper& XMLScore);
-    OCFrameProperties* GetFrame(const int Pointer);
-    int InsideFrame(const QPoint& m) const;
-    const QList<int> PointersInside(const QRect& r) const;
+    bool StaffEmpty(const int StaffPos, const XMLTemplateWrapper& XMLTemplate);
+    void assignXML(const XMLScoreWrapper& XMLScore);
+    const OCFrameProperties& getFrame(const OCSymbolLocation& l);
+    const OCSymbolLocation insideFrame(const QPointF& m);
+    const OCSymbolLocation nearestLocation(const double y, const OCSymbolLocation& currentLocation);
+    const OCLocationList locationsInside(const QRectF& r);
+    const OCPointerList pointersInsideVoice(const QRectF& r, const OCVoiceLocation& v);
+    const QRectF getBarlineX(const int BarNum);
+    int insideBarline(const QPointF& x);
+    OCFrameArray& FrameList(const int Staff, const int Voice);
 };
 
 #endif // OCSCORE_H

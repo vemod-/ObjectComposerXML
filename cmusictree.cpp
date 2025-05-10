@@ -2,6 +2,9 @@
 #include "ui_cmusictree.h"
 //#include "mouseevents.h"
 #include "ocsymbolscollection.h"
+#include <QAction>
+#include <QHeaderView>
+#include <QGridLayout>
 
 CMusicTree::CMusicTree(QWidget *parent) :
     QWidget(parent),
@@ -10,42 +13,35 @@ CMusicTree::CMusicTree(QWidget *parent) :
     ui->setupUi(this);
     setAutoFillBackground(true);
     table = new QMacTreeWidget(this);
-    //table->setWindowFlags((Qt::WindowFlags)(table->windowFlags()|Qt::WA_OpaquePaintEvent|Qt::WA_PaintOnScreen));
-    //table->setAutoFillBackground(true);
     table->setColumnCount(2);
-    table->setEditTriggers(0);
+    table->setEditTriggers(QFlag(0));
     table->setSelectionMode(QAbstractItemView::ExtendedSelection);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    //table->header()->setFixedHeight(tablerowheight);
-    //table->setIndentation(12);
-    //table->setUniformRowHeights(true);
-    //table->setAnimated(false);
-    //table->setAttribute(Qt::WA_MacShowFocusRect, 0);
     table->setHeaderHidden(true);
-    //table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    QGridLayout* layout=new QGridLayout;
-    layout->setMargin(0);
+    table->setContextMenuPolicy(Qt::CustomContextMenu);
+    table->setDragDropMode(QTreeWidget::InternalMove);
+    table->setDefaultDropAction(Qt::IgnoreAction);
+    auto layout=new QGridLayout;
+    layout->setContentsMargins(0,0,0,0);
     layout->setVerticalSpacing(0);
     layout->addWidget(table,0,0);
     setLayout(layout);
-    //MouseEvents* ev=new MouseEvents;
-    //table->viewport()->installEventFilter(ev);
-    //connect(ev,SIGNAL(MouseRelease(QMouseEvent*)),this,SLOT(MouseRelease(QMouseEvent*)));
-    //connect(ev,SIGNAL(MouseMove(QMouseEvent*)),this,SLOT(MouseMove(QMouseEvent*)));
-    //connect(ev,SIGNAL(MouseEnter(QEvent*)),this,SLOT(MouseEnter(QEvent*)));
-    //connect(ev,SIGNAL(MouseLeave(QEvent*)),this,SLOT(MouseLeave(QEvent*)));
-    connect(table,SIGNAL(itemClicked(QTreeWidgetItem*,int)),this,SLOT(ClickItem(QTreeWidgetItem*,int)));
-    connect(table,SIGNAL(Popup(QPoint)),this,SIGNAL(Popup(QPoint)));
+
+    connect(table,&QTreeWidget::itemClicked,this,&CMusicTree::ClickItem);
+    connect(table,&QTreeWidget::itemDoubleClicked,this,&CMusicTree::DoubleClickItem);
+    connect(table,&QWidget::customContextMenuRequested,this,&CMusicTree::showContextMenu);
+    connect(table,&QMacTreeWidget::Popup,this,&CMusicTree::Popup);
+    connect(table,&QMacTreeWidget::itemsMoved,this,&CMusicTree::ItemsMoved);
 }
 
 void CMusicTree::keyReleaseEvent(QKeyEvent *event)
 {
-    QKeySequence s(event->key(),event->modifiers());
+    QKeySequence s(event->key(),int(event->modifiers()));
     if (s.matches(QKeySequence::Delete))
     {
         table->blockSignals(true);
         table->setUpdatesEnabled(false);
-        SendDelete();
+        emit SendDelete();
         AdjustSelection();
         table->setFocus();
         table->blockSignals(false);
@@ -56,7 +52,7 @@ void CMusicTree::keyReleaseEvent(QKeyEvent *event)
     {
         table->blockSignals(true);
         table->setUpdatesEnabled(false);
-        SendBackspace();
+        emit SendBackspace();
         AdjustSelection();
         table->setFocus();
         table->blockSignals(false);
@@ -66,70 +62,7 @@ void CMusicTree::keyReleaseEvent(QKeyEvent *event)
     if ((event->key() != Qt::Key_Up) && (event->key() != Qt::Key_Down)) return;
     ItemChange();
 }
-/*
-void CMusicTree::MouseRelease(QMouseEvent* event)
-{
-    if (event->button() & Qt::RightButton)
-    {
-        emit Popup(this->cursor().pos());
-    }
-}
 
-void CMusicTree::MouseEnter(QEvent *event)
-{
-    Q_UNUSED(event);
-    table->setMouseTracking(true);
-}
-
-void CMusicTree::MouseLeave(QEvent *event)
-{
-    Q_UNUSED(event);
-    QTreeWidgetItemIterator it(table);
-    while (*it)
-    {
-        QTreeWidgetItem* item=(*it);
-        item->setFirstColumnSpanned(true);
-        ++it;
-    }
-    table->setMouseTracking(false);
-}
-
-void CMusicTree::MouseMove(QMouseEvent *event)
-{
-    QTreeWidgetItemIterator it(table);
-    QTreeWidgetItem* i=table->itemAt(event->pos());
-    while (*it)
-    {
-        QTreeWidgetItem* item=(*it);
-        if (i==item)
-        {
-            if (!item->icon(1).isNull())
-            {
-                item->setFirstColumnSpanned(false);
-            }
-        }
-        else
-        {
-            item->setFirstColumnSpanned(true);
-        }
-        ++it;
-    }
-}
-*/
-/*
-void CMusicTree::resizeEvent(QResizeEvent *event)
-{
-    QWidget::resizeEvent(event);
-    if (table->verticalScrollBar()->isVisible())
-    {
-        table->setColumnWidth(0,table->width()-(22+2)-table->verticalScrollBar()->width());
-    }
-    else
-    {
-        table->setColumnWidth(0,table->width()-(22+2));
-    }
-}
-*/
 CMusicTree::~CMusicTree()
 {
     table->clear();
@@ -142,21 +75,42 @@ void CMusicTree::ClickItem(QTreeWidgetItem* item, int Col)
     {
         if (table->indexOfTopLevelItem(item)==-1)
         {
-            if (item->text(0) != "EndOfVoice")
-            {
-                emit Delete(item->data(0,32).toInt());
-            }
+            emit Delete(item->data(0,32).toInt());
         }
     }
     else
     {
         ItemChange();
+        //if (Cursor->SelCount()) emit Popup(QCursor::pos());
     }
+}
+
+void CMusicTree::DoubleClickItem(QTreeWidgetItem* /*item*/, int /*Col*/)
+{
+    emit Properties(QCursor::pos());
+}
+
+void CMusicTree::ItemsMoved(QList<QTreeWidgetItem *>) {
+    QTreeWidgetItemIterator it(table);
+    QList<int> l;
+    while (*it) {
+        if ((*it)->data(0,32).isValid()) {
+            l.append((*it)->data(0,32).toInt());
+        }
+        ++it;
+    }
+    emit Rearranged(l);
+}
+
+void CMusicTree::showContextMenu(QPoint /*p*/)
+{
+    ItemChange();
+    if (Cursor->SelCount()) emit Popup(QCursor::pos());
 }
 
 QAction* CMusicTree::setAction(QKeySequence keySequence)
 {
-    QAction* a=new QAction(this);
+    auto a=new QAction(this);
     a->setShortcut(keySequence);
     a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
     this->addAction(a);
@@ -178,32 +132,27 @@ void CMusicTree::AdjustSelection()
             fb.setBold(true);
             if (Cursor->IsSelected(item->data(0,32).toInt()))
             {
-                item->setTextColor(0,selectedcolor);
+                item->setForeground(0,selectedcolor);
                 item->setSelected(true);
                 item->setFont(0,fb);
-                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
                 item->setCheckState(0,Qt::Checked);
             }
-            else if (Cursor->GetPos()==item->data(0,32).toInt())
+            else if (Cursor->currentPointer()==item->data(0,32).toInt())
             {
-                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
                 item->setCheckState(0,Qt::Unchecked);
-                item->setTextColor(0,markedcolor);
+                item->setForeground(0,markedcolor);
                 item->setSelected(true);
                 item->setFont(0,fb);
             }
             else
             {
-                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
                 item->setCheckState(0,Qt::Unchecked);
-                item->setTextColor(0,activestaffcolor);
+                item->setForeground(0,activestaffcolor);
                 item->setSelected(false);
                 item->setFont(0,f);
-            }
-            if (item->text(0)=="EndOfVoice")
-            {
-                item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-                item->setCheckState(0,Qt::Unchecked);
             }
         }
     }
@@ -211,16 +160,16 @@ void CMusicTree::AdjustSelection()
 
 void CMusicTree::ItemChange()
 {
-    if (table->selectedItems().count())
+    if (!table->selectedItems().empty())
     {
         table->blockSignals(true);
         table->setUpdatesEnabled(false);
         Cursor->SetPos(table->selectedItems()[0]->data(0,32).toInt());
-        foreach(QTreeWidgetItem* item,table->selectedItems())
+        for (QTreeWidgetItem* item : (const QList<QTreeWidgetItem*>)table->selectedItems())
         {
             if (table->indexOfTopLevelItem(item)==-1)
             {
-                if ((item->checkState(0)) || (table->selectedItems().count()>1)) Cursor->AddSel(item->data(0,32).toInt());
+                if ((item->checkState(0)) || (table->selectedItems().size()>1)) Cursor->AddSel(item->data(0,32).toInt());
             }
         }
         emit SelectionChanged();
@@ -230,49 +179,42 @@ void CMusicTree::ItemChange()
     }
 }
 
-void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int StartBar, int BarCount, int Staff, int Voice, OCCursor* C)
+void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int BarCount, const OCBarLocation& BarLocation, OCCursor* C)
 {
-    int Pointer=BarMap.GetPointer(StartBar, Staff, Voice);
-    int EndPointer=BarMap.GetPointer(StartBar+BarCount, Staff, Voice);
-    int Bar=StartBar;
-    int FirstMeter=BarMap.GetMeter(StartBar, Staff, Voice);
+    int Pointer=BarMap.GetPointer(BarLocation).Pointer;
+    int EndPointer=BarMap.GetPointer(OCBarLocation(BarLocation,BarLocation.Bar+BarCount)).Pointer;
+    int FirstMeter=BarMap.GetMeter(BarLocation);
     table->setUpdatesEnabled(false);
     table->blockSignals(true);
     Cursor=C;
     table->hide();
     table->clear();
     table->setHeaderLabels(QStringList() << tr("Symbol") << QString());
-    QTreeWidgetItem* selItem=0;
-    if (Cursor != 0)
+    QTreeWidgetItem* selItem=nullptr;
+    if (Cursor != nullptr)
     {
-        QString StaffText="<br>"+XMLScore.StaffName(Staff)+" Voice "+QString::number(Voice+1);
+        QString StaffText="<br>"+XMLScore.StaffName(BarLocation.StaffId)+" Voice "+QString::number(BarLocation.Voice+1);
         QString Info;
-        int BarCount=Bar;
-        OCCounter CountIt;
-        QDomLiteElement* XMLVoice = XMLScore.Voice(Staff, Voice);
-        XMLSymbolWrapper Symbol(XMLVoice,Pointer,FirstMeter);
+        OCCounter CountIt(BarLocation.Bar);
+        const XMLVoiceWrapper& XMLVoice = XMLScore.Voice(BarLocation);
         QColor col;
         forever
         {
-            CountIt.reset();
+            //CountIt.reset();
             col=activestaffcolor;
-            FirstMeter=BarMap.GetMeter(BarCount,Staff,Voice);
-            BarCount++;
+            FirstMeter=BarMap.GetMeter(OCBarLocation(BarLocation,CountIt.barCount()));
             int SymbolCount=0;
-            QTreeWidgetItem* BarItem=table->createTopLevelItem(tr("Bar")+" "+QString::number(BarCount));
-            //BarItem->setFlags(Qt::ItemIsEnabled);
-            //BarItem->setText(0,"BAR "+QString::number(BarCount));
-            //BarItem->setTextColor(0,"#666666");
-            //BarItem->setFirstColumnSpanned(true);
+            QTreeWidgetItem* BarItem=table->createTopLevelItem(tr("Bar")+" "+QString::number(CountIt.barCount()+1));
+            BarItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsDropEnabled);
             table->addTopLevelItem(BarItem);
-            forever
+            while (Pointer < XMLVoice.symbolCount())
             {
-                Symbol=XMLSymbolWrapper(XMLVoice,Pointer,FirstMeter);
+                const XMLSymbolWrapper& Symbol=XMLVoice.XMLSymbol(Pointer,FirstMeter);
                 if (Cursor->IsSelected(Pointer))
                 {
                     col=selectedcolor;
                 }
-                else if (Cursor->GetPos()==Pointer)
+                else if (Cursor->currentPointer()==Pointer)
                 {
                     col=markedcolor;
                 }
@@ -282,43 +224,15 @@ void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int StartBar,
                 }
                 if (Symbol.IsRestOrValuedNote())
                 {
-                    CountIt.Flip(Symbol.ticks());
-                    CountIt.Flip1(Symbol.ticks());
+                    CountIt.flipAll(Symbol.ticks());
                 }
-                else if (Symbol.IsEndOfVoice())
+                else if (Symbol.IsTuplet())
                 {
-                    Info = OCSymbolsCollection::Description(Symbol);
-                    QTreeWidgetItem *nameItem = table->createStandardItem(Info);
-                    nameItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-                    nameItem->setCheckState(0,Qt::Unchecked);
-                    if ((col==selectedcolor) || (col==markedcolor))
-                    {
-                        QFont f(nameItem->font(0));
-                        f.setBold(true);
-                        nameItem->setFont(0,f);
-                        selItem=nameItem;
-                    }
-                    nameItem->setTextColor(0,col);
-                    nameItem->setData(0,32,Pointer);
-                    nameItem->setSizeHint(0,QSize(-1,tablerowheight));
-                    BarItem->addChild(nameItem);
-                    BarItem->setExpanded(true);
-                    break;
-                }
-                else if (Symbol.Compare("Tuplet"))
-                {
-                     CountIt.Tuplets(Pointer, XMLVoice);
+                     CountIt.tuplets(Pointer, XMLVoice);
                  }
-                /*
-                else if (Symbol.Compare("Time"))
-                {
-                     FirstMeter = CTime::GetTicks(Symbol);
-                }
-                */
-                Info = OCSymbolsCollection::Description(Symbol);
+                Info = Symbol.description();
                 QTreeWidgetItem *nameItem = table->createStandardItem(Info,QString(),1);
-                //nameItem->setText(0,Info);
-                nameItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+                nameItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsDragEnabled);
                 nameItem->setCheckState(0,Qt::Unchecked);
                 if ((col==selectedcolor) || (col==markedcolor))
                 {
@@ -328,34 +242,30 @@ void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int StartBar,
                     selItem=nameItem;
                     if (col==selectedcolor) nameItem->setCheckState(0,Qt::Checked);
                 }
-                nameItem->setIcon(0,OCSymbolsCollection::Icon(Symbol.name(),0));
-                //nameItem->setIcon(1,QIcon(":/fileclose.png"));
-                nameItem->setTextColor(0,col);
+                nameItem->setIcon(0,OCSymbolsCollection::SymbolIcon(Symbol));
+                nameItem->setForeground(0,col);
                 nameItem->setData(0,32,Pointer);
-                nameItem->setToolTip(0,"<b>"+Info+"</b><br>Bar "+QString::number(BarCount)+" Symbol "+QString::number(SymbolCount+1)+StaffText);
+                nameItem->setToolTip(0,"<b>"+Info+"</b><br>Bar "+QString::number(CountIt.barCount()+1)+" Symbol "+QString::number(SymbolCount+1)+StaffText);
                 nameItem->setToolTip(1,"Delete "+Info);
-                //nameItem->setSizeHint(0,QSize(-1,tablerowheight));
-                //nameItem->setSizeHint(1,QSize(22,tablerowheight));
                 BarItem->addChild(nameItem);
                 BarItem->setExpanded(true);
-                //BarItem->setSizeHint(0,QSize(-1,tablerowheight));
                 SymbolCount++;
                 Pointer++;
-                if (CountIt.NewBar(FirstMeter)) break;
+                if (CountIt.newBar(FirstMeter)) break;
             }
-            if ((Pointer >= EndPointer) || Symbol.IsEndOfVoice()) break;
-            CountIt.BarFlip();
+            if ((Pointer >= EndPointer) || Pointer >= XMLVoice.symbolCount()) break;
+            CountIt.barFlip();
         }
     }
-    //MouseLeave(0);
-    //table->setColumnWidth(1,22);
-    //table->resizeColumnToContents(1);
-    //table->header()->adjustSize();
-    if (selItem != 0) table->scrollToItem(selItem);
+    if (selItem != nullptr) table->scrollToItem(selItem);
     table->show();
     table->adjust();
-    //resizeEvent(0);
+    table->setColumnWidth(1,100);
     table->blockSignals(false);
     table->setUpdatesEnabled(true);
 }
 
+QSize CMusicTree::contentSize()
+{
+    return table->contentSize();
+}

@@ -1,15 +1,137 @@
 #include "scoreviewxml.h"
-#include "ui_scoreviewxml.h"
+#include "ui_ScoreViewXML.h"
+#include <QAction>
+#include <QMenu>
+#include <QScrollBar>
+#include "ocsymbolscollection.h"
+#include "cmusicxml.h"
 //#include <QGLWidget>
 
-float signedSqrt(float value)
+double signedSqrt(double value)
 {
-    return Sgn(value)*qSqrt(Abs(value));
+    return Sgn<double>(value)*qSqrt(qAbs<double>(value));
+}
+
+ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
+    ui(new Ui::ScoreViewXML)
+{
+    ui->setupUi(this);
+    viewport()->setAttribute(Qt::WA_AcceptTouchEvents,true);
+    touchDown=false;
+    swipeDelta=0;
+    swipePos=0;
+    swipeBackPos=0;
+    swipeLine.setDuration(200);
+    swipeLine.setEasingCurve(QEasingCurve::InCurve);
+    connect(&swipeLine, &QTimeLine::frameChanged, this, &ScoreViewXML::swipeProc);
+    setAutoFillBackground(true);
+    SelectRubberband=new QiPhotoRubberband(this);
+    HoverRubberband=new QHoverRubberband(QRubberBand::Rectangle,this);
+    SelectRubberband->hide();
+    HoverRubberband->hide();
+    m_XMLLastPasted.clear();
+    turnpagebutton=new QHoverButton(this,QIcon(":/turnpage.png"),QSize(96,96),QHoverButton::TopRight);
+    connect(turnpagebutton,&QAbstractButton::clicked,this,&ScoreViewXML::NavigationForwardClicked);
+    turnbackbutton=new QHoverButton(this,QIcon(":/turnback.png"),QSize(96,96),QHoverButton::LeftTop);
+    connect(turnbackbutton,&QAbstractButton::clicked,this,&ScoreViewXML::NavigationBackClicked);
+    fastforwardbutton=new QHoverButton(this,QIcon(":/fast-forward.png"),QSize(128,128),QHoverButton::Right);
+    connect(fastforwardbutton,&QAbstractButton::clicked,this,&ScoreViewXML::NavigationEndClicked);
+    fastbackbutton=new QHoverButton(this,QIcon(":/fast-back.png"),QSize(128,128),QHoverButton::Left);
+    connect(fastbackbutton,&QAbstractButton::clicked,this,&ScoreViewXML::NavigationHomeClicked);
+    connect(&soundTimer,&QTimer::timeout,this,&ScoreViewXML::soundOff);
+
+    setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    setOptimizationFlags(QGraphicsView::DontSavePainterState | QGraphicsView::DontAdjustForAntialiasing);
+    setRenderHints(renderinghints);
+    setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
+    Scene = new QGraphicsScene(this);
+    Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
+    setScene(Scene);
+    Scene->setBackgroundBrush(paperbrush);
+    ScreenObj.Scene=Scene;
+    ScreenObj.Cursor = &Cursor;
+    CursorFrame=new OCCursorFrame(this);
+    MouseDown=false;
+    Dragging=false;
+    MouseButton=Qt::NoButton;
+    MouseArea=MouseOutside;
+    MouseAreaIndex=0;
+    soundMark=0;
+    soundPitch=0;
+    m_Locked=false;
+    m_NavigationVisible=false;
+    setMouseTracking(true);
+    zoomer = new QGraphicsViewZoomer(this);
+    connect(zoomer,&QGraphicsViewZoomer::ZoomChanged,this,&ScoreViewXML::changeZoom);
+
+    XMLScore.newScore();
+    Score.assignXML(XMLScore);
+    setFollowResize(PageSizeFollowsResize);
+    setStartBar(0);
+    setSize(12);
+    setActiveTemplate();
+    setActiveOptions();
+    m_EndBar=0;
+    m_StartBar=0;
+    m_SystemLength = (900 * 12);
+    setActiveStaffId(0);
+    setSceneRect(0,0,800,systemRect().height());
+
+    EditMenu = new QMenu(this);
+    actionSwapForward = EditMenu->addAction("Swap forward",QKeySequence::SelectNextWord,this,&ScoreViewXML::selectSwapForward);
+    actionSwapBack = EditMenu->addAction("Swap back",QKeySequence::SelectPreviousWord,this,&ScoreViewXML::selectSwapBack);
+    EditMenu->addSeparator();
+    actionSelectAll = EditMenu->addAction("Select All",QKeySequence::SelectAll,this,&ScoreViewXML::selectAll);
+    actionSelectHome = EditMenu->addAction("Select from Start to here",QKeySequence::SelectStartOfLine,this,&ScoreViewXML::selectHomeExtend);
+    actionSelectEnd = EditMenu->addAction("Select from here to End",QKeySequence::SelectEndOfLine,this,&ScoreViewXML::selectEndExtend);
+
+    ScoreMenu = new QMenu(this);
+    actionPreviousVoice = ScoreMenu->addAction("Previous Voice",QKeySequence(Qt::META | Qt::ALT | Qt::Key_Up),this,&ScoreViewXML::selectPrevVoice);
+    actionNextVoice = ScoreMenu->addAction("Next Voice",QKeySequence(Qt::META | Qt::ALT | Qt::Key_Down),this,&ScoreViewXML::selectNextVoice);
+    actionPreviousStaff = ScoreMenu->addAction("Previous Staff",QKeySequence::MoveToStartOfBlock,this,&ScoreViewXML::selectPrevStaff);
+    actionNextStaff = ScoreMenu->addAction("Next Staff",QKeySequence::MoveToEndOfBlock,this,&ScoreViewXML::selectNextStaff);
+
+    connect(setAction(QKeySequence::MoveToNextChar),&QAction::triggered,this,&ScoreViewXML::selectNextSymbol);
+    connect(setAction(QKeySequence::MoveToPreviousChar),&QAction::triggered,this,&ScoreViewXML::selectPrevSymbol);
+    connect(setAction(QKeySequence::SelectNextChar),&QAction::triggered,this,&ScoreViewXML::selectNextSymbolExtend);
+    connect(setAction(QKeySequence::SelectPreviousChar),&QAction::triggered,this,&ScoreViewXML::selectPrevSymbolExtend);
+    connect(setAction(QKeySequence::MoveToStartOfLine),&QAction::triggered,this,&ScoreViewXML::selectHome);
+    connect(setAction(QKeySequence::MoveToEndOfLine),&QAction::triggered,this,&ScoreViewXML::selectEnd);
+
+    connect(setAction(QKeySequence(Qt::ALT | Qt::Key_Left)),&QAction::triggered,this,&ScoreViewXML::selectHome);
+    connect(setAction(QKeySequence(Qt::ALT | Qt::Key_Right)),&QAction::triggered,this,&ScoreViewXML::selectEnd);
+
+    connect(setAction(QKeySequence(Qt::META | Qt::Key_Up)),&QAction::triggered,this,&ScoreViewXML::selectPreferedUp);
+    connect(setAction(QKeySequence(Qt::META | Qt::Key_Down)),&QAction::triggered,this,&ScoreViewXML::selectPreferedDown);
+
+    //connect(setAction(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Up)),SIGNAL(triggered()),this,SLOT(selectOctaveUp()));
+    //connect(setAction(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Down)),SIGNAL(triggered()),this,SLOT(selectOctaveDown()));
+
+    connect(setAction(QKeySequence::MoveToNextPage),&QAction::triggered,this,&ScoreViewXML::turnpage);
+    connect(setAction(QKeySequence::MoveToPreviousPage),&QAction::triggered,this,&ScoreViewXML::turnback);
+    connect(setAction(QKeySequence::MoveToNextLine),&QAction::triggered,this,&ScoreViewXML::selectPitchDown);
+    connect(setAction(QKeySequence::MoveToPreviousLine),&QAction::triggered,this,&ScoreViewXML::selectPitchUp);
+    connect(setAction(QKeySequence::SelectNextLine),&QAction::triggered,this,&ScoreViewXML::selectOctaveDown);
+    connect(setAction(QKeySequence::SelectPreviousLine),&QAction::triggered,this,&ScoreViewXML::selectOctaveUp);
+    connect(setAction(Qt::Key_Backspace),&QAction::triggered,this,&ScoreViewXML::selectBackSpace);
+    connect(setAction(QKeySequence::Delete),&QAction::triggered,this,&ScoreViewXML::selectDelete);
+
+    connect(setAction(Qt::Key_Return),&QAction::triggered,this,&ScoreViewXML::accepted);
+    connect(setAction(Qt::Key_Escape),&QAction::triggered,this,&ScoreViewXML::canceled);
+
+    Paint(tsReformat);
+}
+
+ScoreViewXML::~ScoreViewXML()
+{
+    soundTimer.disconnect();
+    Score.eraseAll(Scene);
+    delete ui;
 }
 
 void ScoreViewXML::zeroSwipe()
 {
-    if (swipeDelta)
+    if (!isZero(swipeDelta))
     {
         touchDown=false;
         if (swipeLine.state()==QTimeLine::Running)
@@ -27,10 +149,143 @@ void ScoreViewXML::zeroSwipe()
     }
 }
 
+QRectF ScoreViewXML::mapToSceneRect(const QRect &r)
+{
+    return QRectF(mapToScene(r.topLeft()),mapToScene(r.bottomRight()));
+}
+
+QRect ScoreViewXML::mapFromSceneRect(const QPointF &a, const QPointF &b)
+{
+    return QRect(QGraphicsView::mapFromScene(a),QGraphicsView::mapFromScene(b));
+}
+
+const QRect ScoreViewXML::mapFromSceneRect(const QRectF &r)
+{
+    return QRect(QGraphicsView::mapFromScene(r.topLeft()),QGraphicsView::mapFromScene(r.bottomRight()));
+}
+
 void ScoreViewXML::swipeProc(int value)
 {
-    this->scroll(value-swipeBackPos,0);
+    scroll(value-swipeBackPos,0);
     swipeBackPos=value;
+}
+
+bool ScoreViewXML::altModifier(const QMouseEvent *event) {
+    if (event) return altMod || (event->modifiers() & Qt::AltModifier);
+    return altMod || (QApplication::queryKeyboardModifiers() & Qt::AltModifier);
+}
+
+void ScoreViewXML::writeAltKeySymbol(const OCPointerList &ptrs) {
+    if (LastSymbol.isDurated()) {
+        Cursor.SetSel(ptrs,VoiceLen());
+        emit RequestDuratedSymbol(LastSymbol,"Paste Durated Symbol");
+    }
+    else {
+        for (int i = ptrs.size()-1; i >= 0; i--) {
+            if (GetSymbol(ptrs[i]).IsValuedNote()) {
+                Cursor.SetPos(ptrs[i]);
+                emit RequestSymbol(LastSymbol,"Paste Symbol");
+            }
+        }
+    }
+}
+
+void ScoreViewXML::writeAltkeyNote(const QPointF &mappedPos) {
+    const OCSymbolLocation& l = Score.nearestLocation(mappedPos.x()-16,Cursor.location());
+    LastNote.setAttribute("NoteType",0);
+    if (l.Pointer > -1) {
+        const OCFrameProperties& p = Score.getFrame(l);
+        if ((p.BoundingRect.left() < mappedPos.x()) && (p.BoundingRect.right() > mappedPos.x())) {
+            LastNote.setAttribute("NoteType",2);
+        }
+        Cursor.setLocation(l);
+    }
+    else {
+        Cursor.SetPos(VoiceLen());
+    }
+    if (!LastNote.IsRest())
+    {
+        LastNote.setPitch(pitchFromPoint(Cursor.location(),mappedPos));
+        sound(LastNote.pitch());
+    }
+}
+
+void ScoreViewXML::writeMoveSymbol(const QPointF &moved, const Qt::KeyboardModifiers &modifiers) {
+    QPoint qp=(moved*Size()*SizeFactor(ActiveTemplate.staffFromId(Cursor.location().StaffId).size())).toPoint();
+    if (MouseButton != Qt::RightButton) {
+        setCursor(Qt::PointingHandCursor);
+        HoverRubberband->hide();
+        for (const int& i : Cursor.SelectedPointers()) {
+            XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(i);
+            if (!XMLSymbol.IsPitchedNote()) {
+                if (modifiers == Qt::ShiftModifier) qp.setY(IntDiv(qp.y() / 6,16) * 16 * 6);
+                XMLSymbol.setLeft(qp.x() + XMLSymbol.left());
+                XMLSymbol.setTop(-qp.y() + XMLSymbol.top());
+            }
+            else
+            {
+                if (qAbs<qreal>(moved.x()) > qAbs<qreal>(moved.y())) {
+                    XMLSymbol.setLeft(qp.x() + XMLSymbol.left());
+                }
+                else {
+                    const int p = boundStep<int>(0, (-qp.y() / 28) + XMLSymbol.pitch(), 127);
+                    if (p != soundPitch) sound(p);
+                    XMLSymbol.setPitch(p);
+                }
+            }
+        }
+    }
+    else if (MouseButton==Qt::RightButton) {
+        if (qAbs<qreal>(moved.x()) >= qAbs<qreal>(moved.y())) {
+            for (const int& i : Cursor.SelectedPointers()) {
+                XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(i);
+                if (XMLSymbol.IsPitchedNote()) XMLSymbol.setAttribute("AccidentalLeft",qp.x() + XMLSymbol.getIntVal("AccidentalLeft"));
+            }
+        }
+        else {
+            for (const int& i : Cursor.SelectedPointers()) {
+                XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(i);
+                if (XMLSymbol.IsTiedNote()) XMLSymbol.setAttribute("TieTop",-qp.y() + XMLSymbol.getIntVal("TieTop"));
+                qp.setY(int(moved.y()));
+                if (XMLSymbol.Compare("Hairpin")) XMLSymbol.setAttribute("Gap",qBound<int>(-9, -qp.y() + XMLSymbol.getIntVal("Gap"), 20));
+                if (XMLSymbol.Compare("Slur")) XMLSymbol.setAttribute("Curve",qBound<int>(-9, -qp.y() + XMLSymbol.getIntVal("Curve"), 20));
+            }
+        }
+    }
+}
+
+int ScoreViewXML::insideStaffId(const QPointF &p) const
+{
+    for (int StaffPos = 0 ; StaffPos < ActiveTemplate.staffCount() ; StaffPos++) {
+        const int staffTop = ActiveTemplate.staffTop(StaffPos);
+        if (p.y() > scaled(staffTop)) {
+            if (p.y() < scaled(staffTop+ScoreStaffLinesHeight)) {
+                return ActiveTemplate.staffId(StaffPos);
+            }
+        }
+    }
+    return -1;
+}
+
+int ScoreViewXML::pitchFromPoint(const OCSymbolLocation &l, const QPointF &m)
+{
+    const int clef = Score.fakePlotClef(l);
+    const int pitch = 74 - int(((m.y() * Size()) - ActiveTemplate.staffTopFromId(l.StaffId)) / 28) - int((52 - CClef::LineDiff(clef)) * 12.0 / 28.0);
+    return boundStep<int>(0, pitch, 127);
+}
+
+const OCFrameProperties &ScoreViewXML::CurrentFrame() { return Score.getFrame(Cursor.location()); }
+
+int ScoreViewXML::activeStaffTop() const { return ActiveTemplate.staffTopFromId(ActiveStaffId()); }
+
+const OCBarSymbolLocation ScoreViewXML::pointerBegin(const OCVoiceLocation &Voice) const
+{
+    return BarMap().GetPointer(OCBarLocation(Voice,StartBar()));
+}
+
+const OCBarSymbolLocation ScoreViewXML::pointerBegin() const
+{
+    return pointerBegin(Cursor.location());
 }
 
 void ScoreViewXML::turnpage()
@@ -38,7 +293,7 @@ void ScoreViewXML::turnpage()
     setStartBar(StartBar()+BarsActuallyDisplayed());
     Paint(tsNavigate);
     emit BarChanged();
-    if (!CanTurnPage()) turnpagebutton->MouseLeave(0);
+    if (!CanTurnPage()) turnpagebutton->MouseLeave(nullptr);
 }
 
 void ScoreViewXML::leaveEvent(QEvent *event)
@@ -49,13 +304,22 @@ void ScoreViewXML::leaveEvent(QEvent *event)
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
+    if (altModifier()) Paint(tsRedrawActiveStave);
     zeroSwipe();
     QGraphicsView::leaveEvent(event);
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+void ScoreViewXML::enterEvent(QEnterEvent* event)
+#else
+void ScoreViewXML::enterEvent(QEvent* event)
+#endif
+{
+    QGraphicsView::enterEvent(event);
+}
+
 bool ScoreViewXML::viewportEvent(QEvent *event)
 {
-    //qDebug() << event;
     if (event->type()==QTouchEvent::TouchBegin)
     {
         zeroSwipe();
@@ -70,58 +334,67 @@ bool ScoreViewXML::viewportEvent(QEvent *event)
 
 void ScoreViewXML::wheelEvent(QWheelEvent* event)
 {
+    if ((zoomer->getZoom() > 1) && (FollowResize() != PageSizeFixed))
+    {
+        QGraphicsView::wheelEvent(event);
+        return;
+    }
     if (HoverRubberband->isVisible())
     {
         HoverRubberband->hide();
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
-    if (this->FollowResize())
+    if (FollowResize() != PageSizeUnlimited)
     {
         if (ScrollTimer.isActive()) return;
         if (swipeLine.state()==QTimeLine::Running) return;
-        if (event->orientation()==Qt::Horizontal)
+        const int xDelta = event->angleDelta().x();
+        if (xDelta)
         {
             if (touchDown)
             {
-                if ((event->delta()>40) & (StartBar()>0))
+                if (xDelta > 40)
                 {
-                    ScrollTimer.setSingleShot(true);
-                    ScrollTimer.start(1000);
-                    touchDown=false;
-                    this->scroll(-swipePos,0);
-                    swipeDelta=0;
-                    swipePos=0;
-                    emit SwipeLeftToRight();
-                    swipeDelta=0;
-                    swipePos=0;
-                    event->accept();
-                    return;
+                    if (StartBar() > 0)
+                    {
+                        ScrollTimer.setSingleShot(true);
+                        ScrollTimer.start(1000);
+                        touchDown=false;
+                        scroll(-swipePos,0);
+                        swipeDelta=0;
+                        swipePos=0;
+                        emit SwipeLeftToRight();
+                        swipeDelta=0;
+                        swipePos=0;
+                        event->accept();
+                        return;
+                    }
                 }
-                if ((event->delta()<-40) & (CanTurnPage()))
+                if (xDelta < -40)
                 {
-                    ScrollTimer.setSingleShot(true);
-                    ScrollTimer.start(1000);
-                    touchDown=false;
-                    this->scroll(-swipePos,0);
-                    swipeDelta=0;
-                    swipePos=0;
-                    emit SwipeRightToLeft();
-                    swipeDelta=0;
-                    swipePos=0;
-                    event->accept();
-                    return;
+                    if (CanTurnPage())
+                    {
+                        ScrollTimer.setSingleShot(true);
+                        ScrollTimer.start(1000);
+                        touchDown=false;
+                        scroll(-swipePos,0);
+                        swipeDelta=0;
+                        swipePos=0;
+                        emit SwipeRightToLeft();
+                        swipeDelta=0;
+                        swipePos=0;
+                        event->accept();
+                        return;
+                    }
                 }
-                else
-                {
-                    float f=signedSqrt(swipeDelta+event->delta());
-                    int i=qRound(f)-qRound((float)swipePos);
-                    swipePos+=i;
-                    this->scroll(i,0);
-                    swipeDelta+=event->delta();
-                    event->accept();
-                    return;
-                }
+                const double f=signedSqrt(swipeDelta+xDelta);
+                const int i=qRound(f)-swipePos;
+                swipePos+=i;
+                scroll(i,0);
+                swipeDelta+=xDelta;
+                event->accept();
+                return;
             }
         }
     }
@@ -130,11 +403,11 @@ void ScoreViewXML::wheelEvent(QWheelEvent* event)
 
 void ScoreViewXML::turnback()
 {
-    Score.PageBackFormat(XMLScore,m_ActiveTemplate);
-    setStartBar(Score.StartBar());
+    Score.formatPageBack(XMLScore,ActiveTemplate,ActiveOptions);
+    setStartBar(Score.startBar());
     Paint(tsNavigate);
     emit BarChanged();
-    if (StartBar()<=0) turnbackbutton->MouseLeave(0);
+    if (StartBar()<=0) turnbackbutton->MouseLeave(nullptr);
 }
 
 void ScoreViewXML::fastforward()
@@ -142,7 +415,7 @@ void ScoreViewXML::fastforward()
     setStartBar(EndOfVoiceBar());
     Paint(tsNavigate);
     emit BarChanged();
-    fastforwardbutton->MouseLeave(0);
+    fastforwardbutton->MouseLeave(nullptr);
 }
 
 void ScoreViewXML::fastback()
@@ -150,185 +423,102 @@ void ScoreViewXML::fastback()
     setStartBar(0);
     Paint(tsNavigate);
     emit BarChanged();
-    fastbackbutton->MouseLeave(0);
+    fastbackbutton->MouseLeave(nullptr);
 }
 
-const bool ScoreViewXML::CanTurnPage() const
+bool ScoreViewXML::CanTurnPage() const
 {
-    if (this->FollowResize())
-    {
-        return (EndOfVoiceBar() >= StartBar() + BarsActuallyDisplayed()) & (BarsActuallyDisplayed()>0);
-    }
-    return (BarMap().BarCountAll(m_ActiveTemplate) > StartBar() + BarsActuallyDisplayed());
+    if (FollowResize()==PageSizeFollowsResize) return (EndOfVoiceBar() >= StartBar() + BarsActuallyDisplayed()) && (BarsActuallyDisplayed()>0);
+    if (FollowResize()==PageSizeFixed) return (BarMap().BarCountAll(ActiveTemplate) > StartBar() + BarsActuallyDisplayed());
+    return false;
 }
 
-ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
-ui(new Ui::ScoreViewXML)
+const OCBarSymbolLocation ScoreViewXML::findPointerToBar(const OCBarLocation &Bar) const
 {
-    ui->setupUi(this);
-    this->viewport()->setAttribute(Qt::WA_AcceptTouchEvents,true);
-    CurrentSymbol=0;
-    swipeDelta=0;
-    swipePos=0;
-    swipeBackPos=0;
-    swipeLine.setDuration(200);
-    swipeLine.setEasingCurve(QEasingCurve::InCurve);
-    connect(&swipeLine, SIGNAL(frameChanged(int)), this, SLOT(swipeProc(int)));
-    setAutoFillBackground(true);
-    SelectRubberband=new QiPhotoRubberband(this);
-    HoverRubberband=new QHoverRubberband(QRubberBand::Rectangle,this);
-    SelectRubberband->hide();
-    HoverRubberband->hide();
-    m_XMLLastPasted.clear("Voice");
-    turnpagebutton=new QHoverButton(this,QIcon(":/turnpage.png"),QSize(96,96),QHoverButton::TopRight);
-    connect(turnpagebutton,SIGNAL(clicked()),this,SIGNAL(NavigationForwardClicked()));
-    turnbackbutton=new QHoverButton(this,QIcon(":/turnback.png"),QSize(96,96),QHoverButton::LeftTop);
-    connect(turnbackbutton,SIGNAL(clicked()),this,SIGNAL(NavigationBackClicked()));
-    fastforwardbutton=new QHoverButton(this,QIcon(":/fast-forward.png"),QSize(128,128),QHoverButton::Right);
-    connect(fastforwardbutton,SIGNAL(clicked()),this,SIGNAL(NavigationEndClicked()));
-    fastbackbutton=new QHoverButton(this,QIcon(":/fast-back.png"),QSize(128,128),QHoverButton::Left);
-    connect(fastbackbutton,SIGNAL(clicked()),this,SIGNAL(NavigationHomeClicked()));
-    connect(&soundTimer,SIGNAL(timeout()),this,SLOT(SoundOff()));
-
-    this->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    this->setOptimizationFlags(QGraphicsView::DontSavePainterState | QGraphicsView::DontAdjustForAntialiasing);
-    setRenderHints(renderinghints);
-    this->setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
-    Scene = new QGraphicsScene(this);
-    Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    setScene(Scene);
-    ScreenObj.Scene=Scene;
-    ScreenObj.Cursor = &Cursor;
-    Frame=new OCFrame(this);
-    MouseDown=false;
-    toneon=false;
-    m_Locked=false;
-    m_NavigationVisible=false;
-    setMouseTracking(true);
-    d2pitch=0;
-
-    XMLScore.newScore();
-    setFollowResize(true);
-    setBarNrOffset(0);
-    setHideBarNumbers(false);
-    setMasterStaff(0);
-    setNoteSpace(16);
-    setStartBar(0);
-    setSize(12);
-    setActiveTemplate(0);
-    setActiveStaff(0);
-    setActiveVoice(0);
-    setEndBar(0);
-    m_SystemLength = (900 * 12);
-    Cursor.SetPos(0);
-    Cursor.SetZero();
-    setSceneRect(0,0,800,SceneRect().height());
-
-    connect(setAction(QKeySequence::MoveToNextChar),SIGNAL(triggered()),this,SLOT(selectNextSymbol()));
-    connect(setAction(QKeySequence::MoveToPreviousChar),SIGNAL(triggered()),this,SLOT(selectPrevSymbol()));
-    connect(setAction(QKeySequence::SelectNextChar),SIGNAL(triggered()),this,SLOT(selectNextSymbolExtend()));
-    connect(setAction(QKeySequence::SelectPreviousChar),SIGNAL(triggered()),this,SLOT(selectPrevSymbolExtend()));
-    connect(setAction(QKeySequence::MoveToStartOfLine),SIGNAL(triggered()),this,SLOT(selectHome()));
-    connect(setAction(QKeySequence::MoveToEndOfLine),SIGNAL(triggered()),this,SLOT(selectEnd()));
-    connect(setAction(QKeySequence::SelectStartOfLine),SIGNAL(triggered()),this,SLOT(selectHomeExtend()));
-    connect(setAction(QKeySequence::SelectEndOfLine),SIGNAL(triggered()),this,SLOT(selectEndExtend()));
-    connect(setAction(QKeySequence::MoveToStartOfBlock),SIGNAL(triggered()),this,SLOT(selectPrevStaff()));
-    connect(setAction(QKeySequence::MoveToEndOfBlock),SIGNAL(triggered()),this,SLOT(selectNextStaff()));
-
-    connect(setAction(QKeySequence(Qt::CTRL +Qt::ALT + Qt::Key_Up)),SIGNAL(triggered()),this,SLOT(selectPrevVoice()));
-    connect(setAction(QKeySequence(Qt::CTRL +Qt::ALT + Qt::Key_Down)),SIGNAL(triggered()),this,SLOT(selectNextVoice()));
-
-    connect(setAction(QKeySequence::MoveToNextPage),SIGNAL(triggered()),this,SLOT(turnpage()));
-    connect(setAction(QKeySequence::MoveToPreviousPage),SIGNAL(triggered()),this,SLOT(turnback()));
-    connect(setAction(QKeySequence::SelectNextWord),SIGNAL(triggered()),this,SLOT(selectSwapForward()));
-    connect(setAction(QKeySequence::SelectPreviousWord),SIGNAL(triggered()),this,SLOT(selectSwapBack()));
-    connect(setAction(QKeySequence::MoveToNextLine),SIGNAL(triggered()),this,SLOT(selectPitchDown()));
-    connect(setAction(QKeySequence::MoveToPreviousLine),SIGNAL(triggered()),this,SLOT(selectPitchUp()));
-    connect(setAction(QKeySequence::SelectNextLine),SIGNAL(triggered()),this,SLOT(selectOctaveDown()));
-    connect(setAction(QKeySequence::SelectPreviousLine),SIGNAL(triggered()),this,SLOT(selectOctaveUp()));
-    connect(setAction(Qt::Key_Backspace),SIGNAL(triggered()),this,SLOT(selectBackSpace()));
-    connect(setAction(QKeySequence::Delete),SIGNAL(triggered()),this,SLOT(selectDelete()));
-    Paint(tsReformat);
+    return Score.BarMap().GetPointer(Bar);
 }
 
-ScoreViewXML::~ScoreViewXML()
+const OCBarSymbolLocation ScoreViewXML::findPointerToBar(const OCVoiceLocation &VoiceLocation, const int BarToFind) const
 {
-    Score.EraseAll(Scene);
-    delete Scene;
-    delete Frame;
-    if (CurrentSymbol != 0) delete CurrentSymbol;
-    delete ui;
+    return Score.BarMap().GetPointer(OCBarLocation(VoiceLocation,BarToFind));
 }
 
-QAction* ScoreViewXML::setAction(const QKeySequence keySequence)
+const OCBarSymbolLocation ScoreViewXML::findPointerToBar(const int BarToFind) const
 {
-    QAction* a=new QAction(this);
+    return findPointerToBar(Cursor.location(),BarToFind);
+}
+
+ScoreViewXML::PageMode ScoreViewXML::FollowResize() const { return PageMode(ActiveOptions.followResize()); }
+
+int ScoreViewXML::ActiveStaffId() const { return Cursor.location().StaffId; }
+
+int ScoreViewXML::ActiveVoice() const { return Cursor.location().Voice; }
+
+const OCVoiceLocation ScoreViewXML::ActiveVoiceLocation() const { return Cursor.location(); }
+
+const OCBarLocation ScoreViewXML::ActiveBarLocation() const { return OCBarLocation(Cursor.location(),m_StartBar); }
+
+int ScoreViewXML::BarNrOffset() const { return ActiveOptions.barNumberOffset(); }
+
+int ScoreViewXML::MasterStaff() const { return ActiveOptions.masterStaff(); }
+
+int ScoreViewXML::NoteSpace() const { return ActiveOptions.noteSpace(); }
+
+int ScoreViewXML::StartBar() const { return m_StartBar; }
+
+int ScoreViewXML::EndBar() const { return m_EndBar; }
+
+double ScoreViewXML::Size() const { return ActiveOptions.size(); }
+
+bool ScoreViewXML::Locked() const { return m_Locked; }
+
+bool ScoreViewXML::HideBarNumbers() const { return ActiveOptions.hideBarNumbers(); }
+
+void ScoreViewXML::SetSystemLength(const int NewSystemLength) { m_SystemLength = NewSystemLength; }
+
+double ScoreViewXML::SystemLength() const { return m_SystemLength; }
+
+QAction* ScoreViewXML::setAction(const QKeySequence keySequence, const QString title)
+{
+    auto a=new QAction(this);
     a->setShortcut(keySequence);
-    a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-    this->addAction(a);
+    a->setShortcutContext(Qt::ApplicationShortcut);
+    a->setText(title);
+    addAction(a);
     return a;
-}
-
-const int ScoreViewXML::StaffPos(const int Staff) const
-{
-    return XMLScore.StaffPos(m_ActiveTemplate,Staff);
-}
-
-void ScoreViewXML::MakeBackup(const QString& Text)
-{
-    emit BackMeUp(Text);
-}
-
-const bool ScoreViewXML::Locked() const
-{
-    return m_Locked;
-}
-
-void ScoreViewXML::setLocked(const bool NewLocked)
-{
-    m_Locked=NewLocked;
-    this->setMouseTracking(!NewLocked);
-}
-
-const bool ScoreViewXML::navigationVisible() const
-{
-    return m_NavigationVisible;
-}
-
-void ScoreViewXML::setNavigationVisible(const bool newShowNavigation)
-{
-    m_NavigationVisible=newShowNavigation;
 }
 
 void ScoreViewXML::keyPressEvent(QKeyEvent *event)
 {
+    QGraphicsView::keyPressEvent(event);
     if ((event->key() == Qt::Key_Shift) || (event->key() == Qt::Key_Control)) return;
+    if (event->key() == Qt::Key_Return) emit accepted();
     SelectRubberband->hide();
+}
+
+void ScoreViewXML::keyReleaseEvent(QKeyEvent * event) {
+    QGraphicsView::keyReleaseEvent(event);
+    if (event->key() == Qt::Key_Alt) Paint(tsRedrawActiveStave);
 }
 
 void ScoreViewXML::selectNextSymbolExtend()
 {
     SelectRubberband->hide();
-    if (Cursor.SelCount()==0)
-    {
-        if (Cursor.SelEnd() + 1 < VoiceLen()) Cursor.ExtendSel(Cursor.SelEnd());
+    if (Cursor.SelCount()==0) {
+        if (Cursor.SelEnd() + 1 < VoiceLen()) Cursor.ExtendSel(Cursor.SelEnd(),VoiceLen());
     }
-    else
-    {
-        if (Cursor.SelEnd() + 1 < VoiceLen()-1) Cursor.ExtendSel(Cursor.SelEnd() + 1);
+    else {
+        if (Cursor.SelEnd() + 1 < VoiceLen()) Cursor.ExtendSel(Cursor.SelEnd() + 1,VoiceLen());
     }
-    Cursor.MaxSel(VoiceLen() - 1);
-    if ((Cursor.SelEnd() > FindPointerToBar(StartBar() + BarsActuallyDisplayed())) && (m_FollowResize))
-    {
+    if ((Cursor.SelEnd() > findPointerToBar(StartBar() + BarsActuallyDisplayed()).Pointer) && (FollowResize()==PageSizeFollowsResize)) {
         setStartBar(StartBar()+BarsActuallyDisplayed());
         Paint(tsNavigate);
         emit BarChanged();
     }
-    else
-    {
+    else {
         Paint(tsRedrawActiveStave);
     }
-    Sound();
+    sound();
     emit SelectionChanged();
 }
 
@@ -337,27 +527,17 @@ void ScoreViewXML::selectPrevSymbolExtend()
     SelectRubberband->hide();
     if (Cursor.SelStart() > 0)
     {
-        if (Cursor.SelCount()==0)
-        {
-            Cursor.SetPos(Cursor.GetPos()-1);
-            Cursor.ExtendSel(Cursor.GetPos());
-        }
-        else
-        {
-            Cursor.ExtendSel(Cursor.SelStart() - 1);
-        }
-        Cursor.MaxSel(VoiceLen() - 1);
-        if ((Cursor.SelStart() < PointerBegin()) && (m_FollowResize))
-        {
+        (Cursor.SelCount() == 0) ? Cursor.SetRange(OCSymbolRange(Cursor.currentPointer()-1,Cursor.currentPointer()),VoiceLen()) :
+                                 Cursor.ExtendSel(Cursor.SelStart() - 1,VoiceLen());
+        if ((Cursor.SelStart() < pointerBegin().Pointer) && (FollowResize()==PageSizeFollowsResize)) {
             setStartBar(StartBar()-1);
             Paint(tsNavigate);
             emit BarChanged();
         }
-        else
-        {
+        else {
             Paint(tsRedrawActiveStave);
         }
-        Sound();
+        sound();
         emit SelectionChanged();
     }
 }
@@ -365,15 +545,10 @@ void ScoreViewXML::selectPrevSymbolExtend()
 void ScoreViewXML::selectNextSymbol()
 {
     SelectRubberband->hide();
-    if (Cursor.GetPos() < VoiceLen() - 1)
+    if (Cursor.currentPointer()+1 < VoiceLen())
     {
-        Cursor.SetPos(Cursor.GetPos()+1);
-        Cursor.MaxSel(VoiceLen() - 1);
-        if (Cursor.GetPos() >= VoiceLen() - 1)
-        {
-            Cursor.SetZero();
-        }
-        if ((Cursor.GetPos() >= FindPointerToBar(StartBar() + BarsActuallyDisplayed())) && (m_FollowResize))
+        Cursor.SetPos(Cursor.currentPointer()+1,VoiceLen());
+        if ((Cursor.currentPointer() >= findPointerToBar(StartBar() + BarsActuallyDisplayed()).Pointer) && (FollowResize()==PageSizeFollowsResize))
         {
             setStartBar(StartBar()+BarsActuallyDisplayed());
             Paint(tsNavigate);
@@ -383,7 +558,7 @@ void ScoreViewXML::selectNextSymbol()
         {
             Paint(tsRedrawActiveStave);
         }
-        Sound();
+        sound();
         emit SelectionChanged();
     }
 }
@@ -391,10 +566,10 @@ void ScoreViewXML::selectNextSymbol()
 void ScoreViewXML::selectPrevSymbol()
 {
     SelectRubberband->hide();
-    if (Cursor.GetPos() > 0)
+    if (Cursor.currentPointer() > 0)
     {
-        Cursor.SetPos(Cursor.GetPos()-1);
-        if ((Cursor.GetPos() < PointerBegin()) && (m_FollowResize))
+        Cursor.SetPos(Cursor.currentPointer()-1);
+        if ((Cursor.currentPointer() < pointerBegin().Pointer) && (FollowResize()==PageSizeFollowsResize))
         {
             setStartBar(StartBar()-1);
             Paint(tsNavigate);
@@ -404,7 +579,7 @@ void ScoreViewXML::selectPrevSymbol()
         {
             Paint(tsRedrawActiveStave);
         }
-        Sound();
+        sound();
         emit SelectionChanged();
     }
 }
@@ -412,14 +587,20 @@ void ScoreViewXML::selectPrevSymbol()
 void ScoreViewXML::selectEnd()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    setStartBar(EndOfVoiceBar());
-    Cursor.SetZero();
-    while (Cursor.GetPos() != VoiceLen() - 1)
+    while (Cursor.currentPointer()+1 < VoiceLen())
     {
-        Cursor.SetPos(Cursor.GetPos()+1);
+        Cursor.SetPos(Cursor.currentPointer()+1);
     }
-    Paint(tsNavigate);
+    if (FollowResize() != PageSizeUnlimited)
+    {
+        setStartBar(EndOfVoiceBar());
+        Paint(tsNavigate);
+    }
+    else
+    {
+        Paint(tsRedrawActiveStave);
+        scrollToBar(EndOfVoiceBar());
+    }
     emit SelectionChanged();
     emit BarChanged();
 }
@@ -427,22 +608,56 @@ void ScoreViewXML::selectEnd()
 void ScoreViewXML::selectHome()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    setStartBar(0);
     Cursor.SetPos(0);
-    Paint(tsNavigate);
+    if (FollowResize() != PageSizeUnlimited)
+    {
+        setStartBar(0);
+        Paint(tsNavigate);
+    }
+    else
+    {
+        Paint(tsRedrawActiveStave);
+        scrollToBar(0);
+    }
     emit SelectionChanged();
     emit BarChanged();
+}
+
+void ScoreViewXML::selectToEnd()
+{
+    Cursor.ExtendSel(VoiceLen()-1);
+    Paint(tsRedrawActiveStave);
+    emit SelectionChanged();
+}
+
+void ScoreViewXML::selectToStart()
+{
+    Cursor.ExtendSel(0);
+    Paint(tsRedrawActiveStave);
+    emit SelectionChanged();
+}
+
+void ScoreViewXML::selectAll()
+{
+    Cursor.ExtendSel(OCSymbolRange(0,VoiceLen()-1));
+    Paint(tsRedrawActiveStave);
+    emit SelectionChanged();
 }
 
 void ScoreViewXML::selectEndExtend()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    setStartBar(EndOfVoiceBar());
     Cursor.ExtendSel(VoiceLen()-1);
-    Cursor.MaxSel(VoiceLen() - 1);
-    Paint(tsNavigate);
+    if (FollowResize() != PageSizeUnlimited)
+    {
+        setStartBar(EndOfVoiceBar());
+        Paint(tsNavigate);
+    }
+    else
+    {
+        Paint(tsRedrawActiveStave);
+        scrollToBar(EndOfVoiceBar());
+    }
     emit SelectionChanged();
     emit BarChanged();
 }
@@ -450,71 +665,59 @@ void ScoreViewXML::selectEndExtend()
 void ScoreViewXML::selectHomeExtend()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    setStartBar(0);
     Cursor.ExtendSel(0);
-    Cursor.MaxSel(VoiceLen()-1);
-    Paint(tsNavigate);
+    if (FollowResize() != PageSizeUnlimited)
+    {
+        setStartBar(0);
+        Paint(tsNavigate);
+    }
+    else
+    {
+        Paint(tsRedrawActiveStave);
+        scrollToBar(0);
+    }
     emit SelectionChanged();
     emit BarChanged();
 }
 
 void ScoreViewXML::selectNextStaff()
 {
-    NextStaff(1);
+    nextStaff(1);
 }
 
 void ScoreViewXML::selectPrevStaff()
 {
-    NextStaff(-1);
+    nextStaff(-1);
 }
 
 void ScoreViewXML::selectNextVoice()
 {
     SelectRubberband->hide();
-    setActiveVoice(KeepIn(m_ActiveVoice + 1,0,VoiceCount()-1));
-    Cursor.MaxSel(VoiceLen()-1);
+    setActiveVoice(boundRoll(0, Cursor.location().Voice + 1, VoiceCount()-1));
+    Cursor.MaxSel(VoiceLen());
     Paint(tsVoiceIndexChanged);
-    emit ActiveStaffChange(m_ActiveStaff);
+    emit StaffIndexChanged(Cursor.location().StaffId);
     emit SelectionChanged();
 }
 
 void ScoreViewXML::selectPrevVoice()
 {
     SelectRubberband->hide();
-    setActiveVoice(KeepIn(m_ActiveVoice - 1,0,VoiceCount()-1));
-    Cursor.MaxSel(VoiceLen()-1);
+    setActiveVoice(boundRoll(0, Cursor.location().Voice - 1, VoiceCount()-1));
+    Cursor.MaxSel(VoiceLen());
     Paint(tsVoiceIndexChanged);
-    emit ActiveStaffChange(m_ActiveStaff);
+    emit StaffIndexChanged(Cursor.location().StaffId);
     emit SelectionChanged();
 }
 
-void ScoreViewXML::transposeSelected(const int add)
+void ScoreViewXML::selectPreferedUp()
 {
-    MakeBackup("Pitch");
-    int PitchChanged=0;
-    const QList<int>& l=Cursor.Pointers();
-    for (int lTemp = 0 ; lTemp < l.count() ; lTemp++)
-    {
-        int Pointer = l[lTemp];
-        XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pointer);
-        if (XMLSymbol.IsAnyNote())
-        {
-            int iTemp1=XMLSymbol.getVal("Pitch");
-            if (iTemp1>0)
-            {
-                XMLSymbol.setAttribute("Pitch",Inside(iTemp1 + add, 1, 127, 1));
-                PitchChanged = iTemp1+add;
-            }
-        }
-    }
-    if (PitchChanged != 0)
-    {
-        Paint(tsRedrawActiveStave);
-        Sound();
-        emit SelectionChanged();
-    }
-    emit Changed();
+    shiftPrefered(1);
+}
+
+void ScoreViewXML::selectPreferedDown()
+{
+    shiftPrefered(-1);
 }
 
 void ScoreViewXML::selectPitchUp()
@@ -537,19 +740,200 @@ void ScoreViewXML::selectOctaveDown()
     transposeSelected(-12);
 }
 
+void ScoreViewXML::shiftPrefered(const int add)
+{
+    if (!Cursor.SelCount()) return;
+    emit BackMeUp("Prefered");
+    int PreferedChanged = 0;
+    for (const int& Pointer : Cursor.SelectedPointers())
+    {
+        XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pointer);
+        if (!XMLSymbol.IsPitchedNote())
+        {
+            OCProperties& p = OCSymbolsCollection::GetProperties(XMLSymbol);
+            const QString s = p.preferedCaption();
+            if (!s.isEmpty())
+            {
+                OCProperty& e = p.property(s);
+                const int i = boundRoll(e.Min.toInt(),XMLSymbol.getIntVal(s) + Sgn<int>(add),e.Max.toInt());
+                XMLSymbol.setAttribute(s,i);
+                PreferedChanged ++;
+            }
+        }
+    }
+    if (PreferedChanged) Paint(tsRedrawActiveStave);
+    emit Changed();
+}
+
+void ScoreViewXML::transposeSelected(const int add)
+{
+    if (!Cursor.SelCount()) return;
+    emit BackMeUp("Pitch");
+    int PitchChanged=0;
+    for (const int& Pointer : Cursor.SelectedPointers())
+    {
+        XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pointer);
+        if (XMLSymbol.IsPitchedNote())
+        {
+            const int iTemp1=XMLSymbol.pitch();
+            if (iTemp1>0)
+            {
+                XMLSymbol.setPitch(boundStep<int>(0, iTemp1 + add, 127));
+                PitchChanged = iTemp1+add;
+            }
+        }
+    }
+    if (PitchChanged != 0)
+    {
+        Paint(tsRedrawActiveStave);
+        sound();
+        emit SelectionChanged();
+    }
+    emit Changed();
+}
+
+void ScoreViewXML::dottify(int factor)
+{
+    const OCPointerList& l = Cursor.SelectedPointers();
+    int i = 0;
+
+    QList<XMLSimpleSymbolWrapper> symbols;
+
+    int ticks = 0;
+    int beatTicks = 0;
+    QString undotext;
+    switch (factor)
+    {
+        case 2:
+        {
+            undotext="Straighten";
+            break;
+        }
+        case 3:
+        {
+            undotext="Triolize";
+            break;
+        }
+        case 8:
+        {
+            undotext="Double Dottify";
+            break;
+        }
+        case 4:
+        default:
+        {
+            undotext="Dottify";
+            factor = 4;
+            break;
+        }
+    }
+    const double longLen = double(factor - 1) / factor;
+    const double shortLen = 1.0 / factor;
+    while ((i < l.size()) && (symbols.size() < 2))
+    {
+        XMLSimpleSymbolWrapper s = GetSymbol(l[i++]);
+        if (s.IsValuedRestOrValuedNote())
+        {
+            symbols.append(s);
+            ticks += s.tickCalc();
+        }
+    }
+    if (symbols.size() == 2)
+    {
+        beatTicks = symbols[0].tickCalc() + symbols[1].tickCalc();
+        emit BackMeUp(undotext);
+        if (symbols[0].tickCalc() >= symbols[1].tickCalc())
+        {
+            symbols[0].setNoteValFromTicks(beatTicks*longLen);
+            symbols[1].setNoteValFromTicks(beatTicks*shortLen);
+        }
+        else
+        {
+            symbols[0].setNoteValFromTicks(beatTicks*shortLen);
+            symbols[1].setNoteValFromTicks(beatTicks*longLen);
+        }
+    }
+    if (!beatTicks) return;
+
+    while (i < l.size())
+    {
+        symbols.clear();
+        while (ticks - beatTicks >= 0) ticks -= beatTicks;
+        while ((i < l.size()) && ticks < beatTicks)
+        {
+            XMLSimpleSymbolWrapper s = GetSymbol(l[i++]);
+            if (s.IsValuedRestOrValuedNote())
+            {
+                symbols.append(s);
+                ticks += s.tickCalc();
+            }
+        }
+        if (symbols.size() == 2)
+        {
+            if (symbols[0].tickCalc() + symbols[1].tickCalc() == beatTicks)
+            {
+                if (symbols[0].tickCalc() >= symbols[1].tickCalc())
+                {
+                    symbols[0].setNoteValFromTicks(beatTicks*longLen);
+                    symbols[1].setNoteValFromTicks(beatTicks*shortLen);
+                }
+                else
+                {
+                    symbols[0].setNoteValFromTicks(beatTicks*shortLen);
+                    symbols[1].setNoteValFromTicks(beatTicks*longLen);
+                }
+            }
+        }
+    }
+
+    Paint(tsRedrawActiveStave);
+    emit SelectionChanged();
+    emit Changed();
+}
+
+void ScoreViewXML::Delete(const OCVoiceLocation &VoiceLocation, const OCSymbolRange &SymbolRange)
+{
+    XMLScore.Clear1Voice(VoiceLocation, OCSymbolRange(SymbolRange.Start, qMin(SymbolRange.End,VoiceLen(VoiceLocation) - 1)));
+    Cursor.SetPos(SymbolRange.Start,VoiceLen());
+}
+
+void ScoreViewXML::Delete(const OCSymbolRange &SymbolRange)
+{
+    Delete(Cursor.location(),SymbolRange);
+}
+
+void ScoreViewXML::Delete(const OCVoiceLocation &VoiceLocation, OCPointerList &Pointers)
+{
+    if (Pointers.empty()) return;
+    while (Pointers.last() >= VoiceLen(VoiceLocation)) Pointers.removeLast();
+    XMLScore.Clear1Voice(VoiceLocation, Pointers);
+    Cursor.SetPos(Pointers.first(),VoiceLen());
+    //Cursor.MaxSel(VoiceLen());
+}
+
+void ScoreViewXML::Delete(OCPointerList &Pointers)
+{
+    Delete(Cursor.location(),Pointers);
+}
+
+void ScoreViewXML::Delete()
+{
+    Delete(Cursor.SelectedPointers());
+}
+
 void ScoreViewXML::selectBackSpace()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
+    if (m_Locked) return;
     if (Cursor.SelCount()==0)
     {
         //Back Delete
         if (Cursor.SelStart() > 0)
         {
-            MakeBackup("Backspace");
+            emit BackMeUp("Backspace");
             Cursor.SetPos(Cursor.SelStart() - 1);
-            Delete(Cursor.GetPos());// SelectedVoice.Symbols.Remove Cursor.Pos
-            if (Cursor.GetPos() < PointerBegin())
+            Delete(Cursor.currentPointer());
+            if (Cursor.currentPointer() < pointerBegin().Pointer)
             {
                 setStartBar(StartBar()-1);
                 Paint(tsReformat);
@@ -564,7 +948,7 @@ void ScoreViewXML::selectBackSpace()
     else
     {
         //Delete selection
-        MakeBackup("Delete");
+        emit BackMeUp("Delete");
         Delete();
         Paint(tsReformat);
         emit ScoreChanged();
@@ -574,14 +958,14 @@ void ScoreViewXML::selectBackSpace()
 void ScoreViewXML::selectDelete()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
+    if (m_Locked) return;
     if (Cursor.SelCount()==0)
     {
         //Delete
-        if (Cursor.SelEnd() < VoiceLen()-1)
+        if (Cursor.SelEnd() < VoiceLen())
         {
-            MakeBackup("Delete");
-            Delete(Cursor.GetPos());// SelectedVoice.Symbols.Remove Cursor.Pos
+            emit BackMeUp("Delete");
+            Delete(Cursor.currentPointer());
             Paint(tsReformat);
             emit ScoreChanged();
         }
@@ -589,7 +973,7 @@ void ScoreViewXML::selectDelete()
     else
     {
         //Delete selection
-        MakeBackup("Delete");
+        emit BackMeUp("Delete");
         Delete();
         Paint(tsReformat);
         emit ScoreChanged();
@@ -599,16 +983,17 @@ void ScoreViewXML::selectDelete()
 void ScoreViewXML::selectSwapForward()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    if (Cursor.GetPos() + 1 < VoiceLen() - 1)
+    if (m_Locked) return;
+    if (Cursor.currentPointer() + 1 < VoiceLen())
     {
-        Cursor.SetPos(Cursor.GetPos()+1);
-        if (Cursor.GetPos() < VoiceLen() - 1)
+        Cursor.SetPos(Cursor.currentPointer()+1);
+        if (Cursor.currentPointer() < VoiceLen())
         {
-            MakeBackup("Swap");
-            QDomLiteElement* Edit = GetClipBoardData(Cursor.GetPos(), Cursor.GetPos());
-            Delete(Cursor.GetPos());//SelectedVoice.Symbols.Remove Cursor.Pos
-            PasteClipBoardData(Cursor.GetPos() - 1, Edit);
+            emit BackMeUp("Swap");
+            const XMLVoiceWrapper Edit = GetClipBoardData(OCSymbolRange(Cursor.currentPointer(), Cursor.currentPointer()));
+            Delete(Cursor.currentPointer());
+            PasteClipBoardData(Cursor.currentPointer() - 1, Edit);
+            Cursor.SetPos(Cursor.currentPointer());
             Paint(tsReformat);
         }
         else
@@ -622,18 +1007,19 @@ void ScoreViewXML::selectSwapForward()
 void ScoreViewXML::selectSwapBack()
 {
     SelectRubberband->hide();
-    if (!m_FollowResize) return;
-    if (Cursor.GetPos() > 0)
+    if (m_Locked) return;
+    if (Cursor.currentPointer() > 0)
     {
-        Cursor.SetPos(Cursor.GetPos()-1);
-        if (Cursor.GetPos() + 1 != VoiceLen() - 1)
+        Cursor.SetPos(Cursor.currentPointer()-1);
+        if (Cursor.currentPointer() + 1 < VoiceLen())
         {
-            if (Cursor.GetPos() != VoiceLen() - 1)
+            if (Cursor.currentPointer() < VoiceLen())
             {
-                MakeBackup("Swap");
-                QDomLiteElement* Edit = GetClipBoardData(Cursor.GetPos(), Cursor.GetPos());
-                Delete(Cursor.GetPos());//SelectedVoice.Symbols.Remove Cursor.Pos
-                PasteClipBoardData(Cursor.GetPos() + 1, Edit);
+                emit BackMeUp("Swap");
+                XMLVoiceWrapper Edit = GetClipBoardData(OCSymbolRange(Cursor.currentPointer(), Cursor.currentPointer()));
+                Delete(Cursor.currentPointer());
+                PasteClipBoardData(Cursor.currentPointer() + 1, Edit);
+                Cursor.SetPos(Cursor.currentPointer());
                 Paint(tsReformat);
             }
         }
@@ -645,27 +1031,50 @@ void ScoreViewXML::selectSwapBack()
     }
 }
 
-void ScoreViewXML::Sound()
+void ScoreViewXML::sound(const int pitch)
 {
     if (soundTimer.isActive())
     {
         soundTimer.stop();
-        SoundOff();
+        soundOff();
     }
-    soundPitch=-1;
-    XMLSimpleSymbolWrapper XMLSymbol=GetSymbol();
-    if (XMLSymbol.IsAnyNote())
+    soundPitch=pitch;
+    if (soundPitch==-1)
     {
-        soundPitch=XMLSymbol.getVal("Pitch");
+        if (CurrentSymbol().IsPitchedNote()) soundPitch=CurrentSymbol().pitch();
     }
-    if (soundPitch>-1) emit NoteOn(soundPitch);
-    soundTimer.setSingleShot(true);
-    soundTimer.start(300);
+    if (soundPitch>-1)
+    {
+        CurrentMIDI = Score.fakePlot(Cursor.location());
+        soundMark=VoiceLocationToMark(Cursor.location());
+        emit NoteOnOff(true, soundPitch, soundMark, CurrentMIDI);
+        soundTimer.setSingleShot(true);
+        soundTimer.start(300);
+    }
 }
 
-void ScoreViewXML::SoundOff()
+void ScoreViewXML::sound(const OCSymbolLocation& symbol)
 {
-    if (soundPitch>-1) emit NoteOff(soundPitch);
+    if (!GetSymbol(symbol).IsPitchedNote()) return;
+    if (soundTimer.isActive())
+    {
+        soundTimer.stop();
+        soundOff();
+    }
+    soundPitch=GetSymbol(symbol).pitch();
+    if (soundPitch>-1)
+    {
+        CurrentMIDI = Score.fakePlot(symbol);
+        soundMark=VoiceLocationToMark(symbol);
+        emit NoteOnOff(true, soundPitch, soundMark, CurrentMIDI);
+        soundTimer.setSingleShot(true);
+        soundTimer.start(300);
+    }
+}
+
+void ScoreViewXML::soundOff()
+{
+    if (soundPitch>-1) emit NoteOnOff(false, soundPitch, soundMark, CurrentMIDI);
     soundPitch=-1;
 }
 
@@ -678,15 +1087,14 @@ void ScoreViewXML::scrollContentsBy(int dx, int dy)
         setCursor(Qt::ArrowCursor);
     }
     QGraphicsView::scrollContentsBy(dx,dy);
-    this->viewport()->update();
+    viewport()->update();
 }
 
 void ScoreViewXML::resizeEvent(QResizeEvent *event)
 {
-    if (m_FollowResize)
+    if (FollowResize()==PageSizeFollowsResize)
     {
-        int WindowWidth=this->geometry().width();//visibleArea.width();
-        if (Scene->width() != WindowWidth)
+        if (!closeEnough<double>(Scene->width(),width()))
         {
             Paint(tsReformat);
             return;
@@ -694,7 +1102,7 @@ void ScoreViewXML::resizeEvent(QResizeEvent *event)
     }
     else
     {
-        setSceneRect(SceneRect());
+        createSceneRect();
     }
     QGraphicsView::resizeEvent(event);
 }
@@ -702,489 +1110,625 @@ void ScoreViewXML::resizeEvent(QResizeEvent *event)
 void ScoreViewXML::Paint(const OCRefreshMode DrawMode, const bool UpdateSelection)
 {
     SelectRubberband->hide();
-    this->setUpdatesEnabled(false);
+    setUpdatesEnabled(false);
     if (DrawMode != tsRedrawActiveStave)
     {
-        Score.EraseAll(Scene);
-        int picheight = SceneRect().height();
-        if (m_FollowResize)
+        Score.eraseAll(Scene);
+        double picheight = systemRect().height();
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        if (FollowResize()==PageSizeFollowsResize)
         {
-            int WindowWidth=this->geometry().width();//visibleArea.width();
-            if (picheight>this->geometry().height()) WindowWidth-=this->verticalScrollBar()->width();
+            int WindowWidth = width();
+            if (picheight > height()) WindowWidth -= verticalScrollBar()->width();
             setSceneRect(0,0,WindowWidth,picheight);
-            m_SystemLength = (WindowWidth - 40) * XMLScore.getVal("Size");
+            m_SystemLength = (WindowWidth - 40) * Size();
+            if (zoomer->getZoom()<1) m_SystemLength /= zoomer->getZoom();
+        }
+        else if (FollowResize()==PageSizeFixed)
+        {
+            createSceneRect();
+        }
+        if (FollowResize()==PageSizeUnlimited)
+        {
+            if (DrawMode == tsReformat)
+            {
+                if (DrawMode == tsReformat) Score.createBarMap();
+                setStartBar(0);
+                Score.formatPage(XMLScore, ActiveTemplate, ActiveOptions, SystemLength(), StartBar(), -1);
+                m_SystemLength = Score.systemLength();
+                createSceneRect();
+            }
         }
         else
         {
-            setSceneRect(SceneRect());
-        }
-        if ((DrawMode == tsReformat) || (DrawMode == tsNavigate) || (DrawMode == tsVoiceIndexChanged))
-        {
-            if (DrawMode == tsReformat) Score.CreateBarMap(XMLScore);
-            setStartBar(qMin(StartBar(),EndOfVoiceBar()));
-            //if (StartBar()>EndOfVoiceBar()) setStartBar(EndOfVoiceBar());
-            Score.FormatPage(XMLScore, m_ActiveTemplate, SystemLength(), StartBar(), EndBar());
+            if ((DrawMode == tsReformat) || (DrawMode == tsNavigate) || (DrawMode == tsVoiceIndexChanged))
+            {
+                if (DrawMode == tsReformat) Score.createBarMap();
+                setStartBar(hiBound<int>(StartBar(),EndOfVoiceBar()));
+                Score.formatPage(XMLScore, ActiveTemplate, ActiveOptions, SystemLength(), StartBar(), EndBar());
+            }
         }
         QColor col(inactivestaffcolor);
         if (m_Locked) col=activestaffcolor;
-        for (int c = 0 ; c < m_ActiveTemplate->childCount() ; c++)
+        for (int StaffPos = 0; StaffPos < ActiveTemplate.staffCount(); StaffPos++)
         {
-            ScreenObj.SetXY(ScoreLeftMargin,StaffPos(c));
-            if (XMLScore.AllTemplateIndex(m_ActiveTemplate,c) != m_ActiveStaff)
+            const int StaffId = ActiveTemplate.staffId(StaffPos);
+            if (StaffId != Cursor.location().StaffId)
             {
-                if (c > -1) Score.PlSystem(XMLScore.AllTemplateIndex(m_ActiveTemplate,c), XMLScore, m_ActiveTemplate, col, m_ActiveStaff, m_ActiveVoice, c, ScreenObj);
+                ScreenObj.init(ScoreLeftMargin,ActiveTemplate.staffTopFromId(StaffId));
+                Score.plotStaff(StaffId, XMLScore, ActiveTemplate, ActiveOptions, col, ScreenObj);
             }
         }
     }
-    Cursor.MaxSel(VoiceLen() - 1);
-    Score.FakePlot(m_ActiveStaff, m_ActiveVoice, Cursor.GetPos(), XMLScore, CurrentMIDI);
-    ScreenObj.SetXY(ScoreLeftMargin,StaffPos(StaffOrder(m_ActiveStaff)));// '(82 * 12) + (100 * 12 * CLng(osystem.stavenum ))
-    if (DrawMode == tsRedrawActiveStave) Score.EraseSystem(m_ActiveStaff,Scene);
-    Score.PlSystem(m_ActiveStaff, XMLScore, m_ActiveTemplate, activestaffcolor, m_ActiveStaff, m_ActiveVoice, StaffOrder(m_ActiveStaff), ScreenObj);
-    this->viewport()->update();
-    this->setUpdatesEnabled(true);
+    Cursor.MaxSel(VoiceLen());
+    ScreenObj.init(ScoreLeftMargin,activeStaffTop());
+    if (DrawMode == tsRedrawActiveStave) Score.eraseSystem(Cursor.location().StaffId,Scene);
+    Score.plotStaff(Cursor.location().StaffId, XMLScore, ActiveTemplate, ActiveOptions, activestaffcolor, ScreenObj);
+    viewport()->update();
+    setUpdatesEnabled(true);
     if (UpdateSelection) emit SelectionChanged();
+}
+
+void ScoreViewXML::PasteClipBoardData(const OCSymbolLocation &SymbolLocation, const XMLVoiceWrapper &ClipBoardData)
+{
+    XMLScore.Paste1Voice(SymbolLocation, ClipBoardData);
+    m_XMLLastPasted.copy(ClipBoardData);
+}
+
+void ScoreViewXML::PasteClipBoardData(const int Pointer, const XMLVoiceWrapper &ClipBoardData)
+{
+    XMLScore.Paste1Voice(OCSymbolLocation(Cursor.location(), Pointer), ClipBoardData);
+    m_XMLLastPasted.copy(ClipBoardData);
+}
+
+const XMLVoiceWrapper ScoreViewXML::GetClipBoardData(const OCVoiceLocation &VoiceLocation, const OCSymbolRange &SymbolRange) const
+{
+    XMLVoiceWrapper data;
+    if (SymbolRange.End - SymbolRange.Start >= 0)
+    {
+        int count=0;
+        for (int i = SymbolRange.Start ; i <= SymbolRange.End ; i++)
+        {
+            data.insertChild(XMLScore.Symbol(VoiceLocation.StaffId,VoiceLocation.Voice,i),count++);
+        }
+    }
+    return data;
+}
+
+const XMLVoiceWrapper ScoreViewXML::GetClipBoardData(const OCSymbolRange &SymbolRange) const
+{
+    return GetClipBoardData(Cursor.location(),SymbolRange);
+}
+
+const XMLVoiceWrapper ScoreViewXML::GetClipBoardData(const OCVoiceLocation &VoiceLocation, const OCPointerList &Pointers) const
+{
+    XMLVoiceWrapper data;
+    for (int i = 0 ; i < Pointers.size() ; i++)
+    {
+        data.insertChild(XMLScore.Symbol(VoiceLocation.StaffId,VoiceLocation.Voice,Pointers[i]),i);
+    }
+    return data;
+}
+
+const XMLVoiceWrapper ScoreViewXML::GetClipBoardData(const OCPointerList &Pointers) const
+{
+    return GetClipBoardData(Cursor.location(),Pointers);
+}
+
+const XMLVoiceWrapper ScoreViewXML::GetClipBoardData() const
+{
+    return GetClipBoardData(Cursor.SelectedPointers());
 }
 
 void ScoreViewXML::mouseDoubleClickEvent(QMouseEvent *event)
 {
     Q_UNUSED(event);
+    if (MouseArea == MouseOutside)
+        emit BarsPopup(QCursor::pos());
+    else if (MouseArea == MouseOnBar)
+        emit ListPopup(QCursor::pos());
+    else
+        emit PropertiesPopup(QCursor::pos()+QPoint(5,5));
 }
 
 void ScoreViewXML::flashSelected()
 {
-    QPoint zero(mapToScene(0,0).toPoint());
-    XMLSimpleSymbolWrapper Symbol=GetSymbol();
-    if (!Symbol.IsEndOfVoice())
-    {
-        OCFrameProperties* fp=Score.GetFrame(Cursor.GetPos());
-        Frame->DrawFrame(Symbol, QPointF(),zero, false, 0, fp, ScreenObj);
-        Frame->EraseFrame();
-    }
+    CursorFrame->showAnimated(CurrentFrame().TranslateBounding());
+    CursorFrame->hideAnimated();
 }
 
-void ScoreViewXML::putFrame(const QPointF& moved, const int Modifiers)
+void ScoreViewXML::changeZoom(double zoom)
 {
-    HoverRubberband->hide();
-    QPoint zero(mapToScene(0,0).toPoint());
-    QPointF os=moved;
-    if (CurrentSymbol->IsAnyNote() && (MouseButton == Qt::RightButton))
-    {
-        Frame->DrawFrame(*CurrentSymbol, os.toPoint(),zero, true, Modifiers, CurrentFrame, ScreenObj);
-    }
-    else if ((MouseButton == Qt::RightButton) & (CurrentSymbol->Compare("Slur", "Hairpin")))
-    {
-        os.setX(0);
-        Frame->DrawFrame(*CurrentSymbol, os.toPoint(), zero, false, 100, CurrentFrame, ScreenObj);
-    }
-    else if (!CurrentSymbol->IsEndOfVoice())
-    {
-        if (MouseButton!=Qt::RightButton) Frame->DrawFrame(*CurrentSymbol, os.toPoint(),zero, false, Modifiers, CurrentFrame, ScreenObj);
-    }
+    if (HoverRubberband->isVisible()) HoverRubberband->hide();
+    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom()<1)) Paint(tsReformat,true);
+    emit ZoomChanged(zoom);
+}
+
+void ScoreViewXML::setZoom(const double Zoom)
+{
+    zoomer->setZoom(Zoom);
+    if (HoverRubberband->isVisible()) HoverRubberband->hide();
+    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom()<1)) Paint(tsReformat,true);
+}
+
+void ScoreViewXML::toggleAltKey(bool v) {
+    qDebug() << "altkey" << v << altMod;
+    altMod = v;
+}
+
+void ScoreViewXML::setNoteConfig() {
+    emit RequestNote(LastNote);
+    qDebug() << LastNote.noteValue() << LastNote.pitch() << LastNote.getIntVal("Ticks");
+}
+
+double ScoreViewXML::getZoom() const
+{
+    return zoomer->getZoom();
 }
 
 void ScoreViewXML::mousePressEvent(QMouseEvent *event)
 {
+    //qDebug() << "Press";
     if (m_Locked) return;
+    Paint(tsRedrawActiveStave);
     Dragging=false;
     MouseDown = true;
     MouseButton=event->button();
-    QPointF m(mapToScene(event->pos()));
-    Holdm=m;
-    int newsys = m_ActiveStaff;
-    for (int c = 0 ; c < m_ActiveTemplate->childCount() ; c++)
+    const QPointF m(mapToScene(event->pos()));
+    m_HoldMappedPos=m;
+    const int newstaffId = insideStaffId(m);
+    int newbar = Score.insideBarline(m);
+    if (newstaffId == -1) newbar=-1;
+    const OCSymbolLocation& newLocation = Score.insideFrame(m);
+    if (newbar > -1)
     {
-        int staffPos = StaffPos(c);
-        if ((m.y() > (staffPos/XMLScore.getVal("Size"))) & (m.y() < ((staffPos+ScoreStaffLinesHeight)/XMLScore.getVal("Size"))))
+        if (newstaffId != Cursor.location().StaffId)
         {
-            newsys = XMLScore.AllTemplateIndex(m_ActiveTemplate,c);
-            break;
+            HoverRubberband->hide();
+            setActiveStaffId(newstaffId);
+            Paint(tsVoiceIndexChanged);
+            emit StaffIndexChanged(Cursor.location().StaffId);
         }
     }
-    if (m_ActiveStaff != newsys)
+    else if (newLocation.Pointer > -1)
     {
-        HoverRubberband->hide();
-        setActiveStaff(newsys);
-        setActiveVoice(0);
-        ScreenObj.SetXY(ScoreLeftMargin,StaffPos(StaffOrder(m_ActiveStaff)));
-        Paint(tsVoiceIndexChanged);
-        emit ActiveStaffChange(m_ActiveStaff);
+        if ((newLocation.StaffId != Cursor.location().StaffId) || (newLocation.Voice != Cursor.location().Voice))
+        {
+            HoverRubberband->hide();
+            Cursor.setLocation(newLocation);
+            Paint(tsVoiceIndexChanged);
+            emit StaffIndexChanged(Cursor.location().StaffId);
+        }
     }
-    int CursorPos;
-    if (MouseButton==Qt::RightButton)
+    if (newbar > -1)
     {
-        CursorPos=Cursor.GetPos();
+        MouseArea = MouseOnBar;
+        MouseAreaIndex=newbar;
+    }
+    else if (newLocation.Pointer > -1)
+    {
+        MouseArea = MouseOnSymbol;
+        MouseAreaIndex=newLocation.Pointer;
+        SelectRubberband->hide();
+        if (event->modifiers() & Qt::ShiftModifier)
+        {
+            Cursor.ExtendSel(newLocation.Pointer,VoiceLen());
+            if (altModifier(event) && (LastSymbol.isValid()))
+            {
+                writeAltKeySymbol(Cursor.SelectedPointers());
+                Paint(tsReformat);
+                emit ScoreChanged();
+            }
+            else
+            {
+                Paint(tsRedrawActiveStave);
+                emit SelectionChanged();
+            }
+        }
+        else if (event->modifiers() == Qt::ControlModifier)
+        {
+            if (Cursor.SelCount()==0) Cursor.AddSel(Cursor.currentPointer());
+            Cursor.AddSel(newLocation.Pointer,VoiceLen());
+            Paint(tsRedrawActiveStave);
+            emit SelectionChanged();
+        }
+        else if (altModifier(event))
+        {
+            Cursor.SetPos(newLocation.Pointer);
+            if (LastSymbol.isValid() && (!LastSymbol.isDurated()))
+            {
+                emit RequestSymbol(LastSymbol,"Paste Symbol");
+                Paint(tsReformat);
+                emit ScoreChanged();
+            }
+            else
+            {
+                Paint(tsRedrawActiveStave);
+                emit SelectionChanged();
+            }
+        }
+        else
+        {
+            Cursor.SetPos(newLocation.Pointer);
+            Paint(tsRedrawActiveStave);
+            emit SelectionChanged();
+        }
+        sound();
+        HoverRubberband->hide();
+        CursorFrame->showAnimated(CurrentFrame().TranslateBounding());
+    }
+    else if (newstaffId > -1)
+    {
+        MouseArea=MouseOutside;
+        MouseAreaIndex=-1;
+        HoverRubberband->hide();
+        setActiveStaffId(newstaffId);
+        Paint(tsVoiceIndexChanged);
+        emit StaffIndexChanged(Cursor.location().StaffId);
     }
     else
     {
-        SelectRubberband->hide();
-        CursorPos= Score.InsideFrame(m.toPoint());
-    }
-    int EOV = VoiceLen() - 1;
-    if (CursorPos == -1) CursorPos = EOV;
-    if (CursorPos > EOV) CursorPos = EOV;
-    Score.FakePlot(m_ActiveStaff, m_ActiveVoice, CursorPos, XMLScore, CurrentMIDI);
-    if (CurrentSymbol != 0) delete CurrentSymbol;
-    CurrentSymbol = new XMLSimpleSymbolWrapper(XMLScore.Voice(m_ActiveStaff, m_ActiveVoice),CursorPos);
-    if (CurrentSymbol->IsAnyNote())
-    {
-        d2pitch = CurrentSymbol->getVal("Pitch");
-        toneon = true;
-    }
-    CurrentFrame = Score.GetFrame(CursorPos);
-    if (event->modifiers() == Qt::ShiftModifier)
-    {
-        Cursor.ExtendSel(CursorPos);
-        Cursor.MaxSel(EOV);
-        emit SelectionChanged();
-    }
-    else if (event->modifiers() == Qt::ControlModifier)
-    {
-        if (Cursor.SelCount()==0) Cursor.AddSel(Cursor.GetPos());
-        Cursor.AddSel(CursorPos);
-        Cursor.MaxSel(EOV);
-        emit SelectionChanged();
-    }
-    else if (event->modifiers() == (Qt::ControlModifier | Qt::AltModifier))
-    {
-        MakeBackup("Paste");
-        XMLScore.Paste1Voice(m_ActiveStaff, m_ActiveVoice, CursorPos, &m_XMLLastPasted);
-        Cursor.SetZero();
-        Cursor.SetPos(CursorPos);
-        Paint(tsReformat);
-        emit ScoreChanged();
-    }
-    else if (MouseButton!=Qt::RightButton)
-    {
-        Cursor.SetPos(CursorPos);
-        if (CursorPos == EOV)
-        {
-            Cursor.SetZero();
-        }
-        emit SelectionChanged();
-    }
-    if (toneon) emit NoteOn(d2pitch);
-    if (!(event->modifiers() & Qt::ControlModifier))
-    {
-        putFrame(QPoint(),event->modifiers());
+        MouseArea=MouseOutside;
+        MouseAreaIndex=-1;
     }
 }
 
 void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
 {
+    //qDebug() << "Mouse move";
     if (!MouseDown)
     {
         if (m_NavigationVisible)
         {
             if (CanTurnPage())
             {
-                int w=this->width()+1;
-                if (this->verticalScrollBar()->isVisible()) w-=this->verticalScrollBar()->width();
-                turnpagebutton->Activate(QPointF(w-turnpagebutton->width(),0),event->pos(),QRect(w-25,0,25,25));
-                fastforwardbutton->Activate(QPointF(w-fastforwardbutton->width(),(this->height()-fastforwardbutton->height())/2),event->pos(),QRect(w-5,(this->height()-fastforwardbutton->height())/2,5,128));
+                int w = width() + 1;
+                if (verticalScrollBar()->isVisible()) w -= verticalScrollBar()->width();
+                turnpagebutton->Activate(QPointF(w - turnpagebutton->width(),0),event->pos(),QRect(w-25,0,25,25));
+                fastforwardbutton->Activate(QPointF(w - fastforwardbutton->width(),(height() - fastforwardbutton->height()) / 2),event->pos(),QRect(w - 5,(height() - fastforwardbutton->height()) / 2,5,128));
             }
             if (StartBar()>0)
             {
                 turnbackbutton->Activate(QPointF(0,0),event->pos(),QRect(0,0,25,25));
-                fastbackbutton->Activate(QPointF(0,(this->height()-fastbackbutton->height())/2),event->pos(),QRect(5,(this->height()-fastbackbutton->height())/2,5,128));
+                fastbackbutton->Activate(QPointF(0,(height() - fastbackbutton->height()) / 2),event->pos(),QRect(5,(height() - fastbackbutton->height()) / 2,5,128));
             }
         }
     }
-    static int pnt=-1;
     if (m_Locked) return;
-    int prevpitch=d2pitch;
-    QPointF m(mapToScene(event->pos()));
-    int TempPointer=-1;
-    if (!SelectRubberband->isVisible())
+    const QPointF mappedPos(mapToScene(event->pos()));
+    if (!MouseDown)
     {
-        TempPointer = Score.InsideFrame(m.toPoint());
-        if (TempPointer>=VoiceLen()) TempPointer=-1;
-        QPoint zero(mapToScene(0,0).toPoint());
-        if (TempPointer > -1)
+        if (!SelectRubberband->isVisible())
         {
-            if (pnt != TempPointer)
+            const int newStaffIndex = insideStaffId(mappedPos);
+            int newBar = Score.insideBarline(mappedPos);
+            if (newStaffIndex == -1) newBar=-1;
+            const OCSymbolLocation& newLocation = Score.insideFrame(mappedPos);
+            if (!altModifier(event))
             {
-                pnt=TempPointer;
-                this->setCursor(Qt::PointingHandCursor);
-                HoverRubberband->setGeometry(Score.GetFrame(pnt)->TranslateBounding(-zero).toRect());
-                HoverRubberband->show(40);
-                XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(pnt);
-                this->setToolTip("<b>"+OCSymbolsCollection::Description(XMLSymbol)+"</b><br>"+Score.ToolTipText(TempPointer,m_ActiveStaff,m_ActiveVoice)+"<br><b>"+XMLScore.StaffName(XMLScore.TemplateOrderStaff(m_ActiveTemplate,m_ActiveStaff))+"</b> Voice <b>"+QString::number(m_ActiveVoice+1)+"</b>");
-            }
-        }
-        else
-        {
-            if (pnt>-1)
-            {
-                pnt=-1;
-                this->setCursor(Qt::ArrowCursor);
-                HoverRubberband->hide();
-                this->setToolTip(QString());
-            }
-            bool Match=false;
-            for (int c = 0 ; c < m_ActiveTemplate->childCount() ; c++)
-            {
-                if (XMLScore.AllTemplateIndex(m_ActiveTemplate,c) != m_ActiveStaff)
+                if (newBar > -1)
                 {
-                    int staffPos = StaffPos(c);
-                    if ((m.y() > (staffPos/XMLScore.getVal("Size"))) & (m.y() < ((staffPos+ScoreStaffLinesHeight)/XMLScore.getVal("Size"))))
+                    setCursor(Qt::PointingHandCursor);
+                    QRectF barX=Score.getBarlineX(newBar);
+                    barX.setTop(staffTopScaled(newStaffIndex));
+                    barX.setHeight(scaled(ScoreStaffLinesHeight));
+                    barX.setRight(Score.getBarlineX(newBar+1).left()+3);
+                    HoverRubberband->setGeometry(mapFromSceneRect(barX.adjusted(-3,-3,3,3)));
+                    HoverRubberband->show(40);
+                    setToolTip("Bar "+QString::number(newBar+1));
+                }
+                else if (newLocation.Pointer > -1)
+                {
+                    setCursor(Qt::PointingHandCursor);
+                    HoverRubberband->setGeometry(mapFromSceneRect(Score.getFrame(newLocation).TranslateBounding()));
+                    HoverRubberband->show(40);
+                    const XMLSimpleSymbolWrapper& XMLSymbol=GetSymbol(newLocation);
+                    setToolTip("<b>"+XMLSymbol.description()+"</b><br>"+Score.toolTipText(newLocation)+"<br><b>"+ XMLScore.StaffName(newLocation.StaffId)+"</b> Voice <b>"+QString::number(newLocation.Voice+1)+"</b>");
+                    sound(newLocation);
+                }
+                else if (newStaffIndex > -1)
+                {
+                    setCursor(Qt::PointingHandCursor);
+                    HoverRubberband->setGeometry(mapFromSceneRect(QRectF(scaled(ScoreLeftMargin),staffTopScaled(newStaffIndex),scaled(m_SystemLength),scaled(ScoreStaffLinesHeight)).adjusted(-4,-4,4,4)));
+                    HoverRubberband->show(40);
+                    setToolTip(XMLScore.StaffName(newStaffIndex));
+                }
+                else
+                {
+                    setCursor(Qt::ArrowCursor);
+                    HoverRubberband->hide();
+                    setToolTip(QString());
+                }
+            }
+            else // altKey
+            {
+                Paint(tsRedrawActiveStave);
+                HoverRubberband->hide();
+                if ((newLocation.Pointer > -1) && (newLocation.Pointer < VoiceLen(newLocation)))
+                {
+                    if ((LastSymbol.isValid()) && (GetSymbol(newLocation).IsAnyNote()))
                     {
-                        this->setCursor(Qt::PointingHandCursor);
-                        HoverRubberband->setGeometry(QRect(ScoreLeftMargin/XMLScore.getVal("Size"),staffPos/XMLScore.getVal("Size"),m_SystemLength/XMLScore.getVal("Size"),ScoreStaffLinesHeight/XMLScore.getVal("Size")).translated(-zero).adjusted(-4,-4,4,4));
-                        HoverRubberband->show(20);
-                        this->setToolTip(XMLScore.StaffName(m_ActiveTemplate,c));
-                        Match=true;
-                        break;
+                        setCursor(QCursor(OCSymbolsCollection::SymbolIcon(LastSymbol).pixmap(32,32)));
+                        setToolTip(LastSymbol.name());
+                    }
+                    else
+                    {
+                        setCursor(Qt::ArrowCursor);
+                        setToolTip(QString());
+                    }
+                }
+                else
+                {
+                    if (LastNote.isValid())
+                    {
+                        setCursor(Qt::ArrowCursor);
+                        setToolTip(LastNote.name());
+
+                        Cursor.backup();
+
+                        writeAltkeyNote(mappedPos);
+                        const OCSymbolLocation oldLocation = Cursor.location();
+                        XMLScore.Voice(oldLocation).insertChild(LastNote,oldLocation.Pointer);
+
+                        Paint(tsRedrawActiveStave);
+                        XMLScore.Voice(oldLocation).deleteChild(oldLocation.Pointer);
+
+                        Cursor.restore();
+                    }
+                    else
+                    {
+                        setCursor(Qt::ArrowCursor);
+                        setToolTip(QString());
                     }
                 }
             }
-            if (!Match)
-            {
-                this->setCursor(Qt::ArrowCursor);
-                HoverRubberband->hide();
-                this->setToolTip(QString());
-            }
         }
     }
-    if (MouseDown)
+    else
     {
-        if ((!Dragging) && (pnt==-1) && (MouseButton!=Qt::RightButton))
+        if (MouseArea==MouseOutside)
         {
-            SelectRubberband->setGeometry(this->rect());
-            SelectRubberband->setWindowGeometry(QRect(mapFromScene(Holdm),mapFromScene(m)).normalized());
+            if (!altModifier(event)) {
+                setCursor(Qt::SizeAllCursor);
+            }
+            else {
+                Paint(tsRedrawActiveStave);
+                setCursor(QCursor(OCSymbolsCollection::SymbolIcon(LastSymbol).pixmap(64,64)));
+            }
+            SelectRubberband->setGeometry(rect());
+            SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
             SelectRubberband->show();
-            this->setCursor(Qt::CrossCursor);
             HoverRubberband->hide();
         }
-        else
+        else if (MouseArea==MouseOnBar)
+        {
+            QRectF r(m_HoldMappedPos,mappedPos);
+            r.setTop(activeStaffTopScaled());
+            r.setHeight(scaled(ScoreStaffLinesHeight));
+            SelectRubberband->setGeometry(rect());
+            SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
+            SelectRubberband->show();
+            setCursor(Qt::SizeHorCursor);
+            HoverRubberband->hide();
+        }
+        else if (MouseArea==MouseOnSymbol)
         {
             Dragging=true;
-            this->setCursor(Qt::PointingHandCursor);
+            setCursor(Qt::PointingHandCursor);
             HoverRubberband->hide();
-            QPointF moved=m-Holdm;
-            if (toneon)
-            {
-                if (m != Holdm)
-                {
-                    if (Abs(moved.x()) < Abs(moved.y()))
-                    {
-                        d2pitch = CurrentSymbol->getVal("Pitch") - ((moved.y() * XMLScore.getVal("Size")) / 28);
-                    }
+            const QPointF moved = mappedPos-m_HoldMappedPos;
+
+            QList<XMLSimpleSymbolWrapper> oldVoice;
+            const XMLVoiceWrapper currentVoice = XMLScore.Voice(Cursor.location());
+            const OCPointerList oldPointers = Cursor.SelectedPointers();
+            for (const int& i : oldPointers) oldVoice.append(currentVoice.XMLSimpleSymbol(i).xml()->clone());
+            Cursor.backup();
+
+            writeMoveSymbol(moved,event->modifiers());
+            Paint(tsRedrawActiveStave);
+
+            Cursor.restore();
+            for (int i = 0; i < oldPointers.size(); i++) {
+                currentVoice.XMLSimpleSymbol(oldPointers[i]).copy(oldVoice[i].xml());
+            }
+
+            HoverRubberband->hide();
+            if (CurrentSymbol().IsPitchedNote() && (MouseButton == Qt::RightButton)){
+                if (qAbs<qreal>(moved.x()) >= qAbs<qreal>(moved.y())){
+                    CursorFrame->showAnimated(CurrentFrame().TranslateAccidental());
+                }
+                else {
+                    CursorFrame->showAnimated(CurrentFrame().TranslateTie());
                 }
             }
-            if (!(event->modifiers() & Qt::ControlModifier))
-            {
-                putFrame(moved,event->modifiers());
+            else {
+                CursorFrame->showAnimated(CurrentFrame().TranslateBounding());
             }
-        }
-    }
-    if (toneon)
-    {
-        if (d2pitch != prevpitch)
-        {
-            emit NoteOff(prevpitch);
-            emit NoteOn(d2pitch);
         }
     }
 }
 
 void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
 {
+    //qDebug() << "Release";
     if (m_Locked) return;
     Dragging=false;
-    this->setCursor(Qt::ArrowCursor);
+    setCursor(Qt::ArrowCursor);
     HoverRubberband->hide();
     if (MouseDown)
     {
-        QPointF m(mapToScene(event->pos()));
-        if (!(event->modifiers() & Qt::ControlModifier))
+        const QPointF mappedPos(mapToScene(event->pos()));
+        QPoint popupPoint=QCursor::pos();
+        if (MouseArea==MouseOnSymbol) popupPoint=mapToGlobal(QGraphicsView::mapFromScene(CurrentFrame().TranslateBounding().bottomRight()));
+        CursorFrame->hideAnimated();
+        if (mappedPos != m_HoldMappedPos)
         {
-            Frame->EraseFrame();
-        }
-        if (m != Holdm)
-        {
-            if (SelectRubberband->isVisible())
+            if ((MouseArea==MouseOutside) || (MouseArea==MouseOnBar))
             {
-                SelectRubberband->setWindowGeometry(QRect(mapFromScene(Holdm),mapFromScene(Holdm)).united(QRect(mapFromScene(m),mapFromScene(m))));
-                QList<int> Ptrs=Score.PointersInside(QRectF(mapToScene(SelectRubberband->windowGeometry().topLeft()),mapToScene(SelectRubberband->windowGeometry().bottomRight())).toRect());
-                if (Ptrs.count())
+                if (MouseArea==MouseOutside)
                 {
-                    Cursor.SetPos(Ptrs.first());
-                    foreach(int i, Ptrs)
-                    {
-                        Cursor.AddSel(i);  //???
-                    }
-                    emit SelectionChanged();
+                    SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
                 }
                 else
                 {
-                    SelectRubberband->hide();
+                    QRectF r(m_HoldMappedPos,mappedPos);
+                    r.setTop(activeStaffTopScaled());
+                    r.setHeight(scaled(ScoreStaffLinesHeight));
+                    SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
+                }
+                QRect r=SelectRubberband->windowGeometry();
+                popupPoint=mapToGlobal(r.bottomRight());
+                OCPointerList Ptrs;
+                if (MouseArea==MouseOnBar)
+                {
+                    r.setTop(0);
+                    r.setHeight(int(Scene->height()*Size()));
+                    Ptrs=Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
+                }
+                else
+                {
+                    Ptrs=Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
+                    if (Ptrs.empty())
+                    {
+                        const OCLocationList p1 = Score.locationsInside(mapToSceneRect(r));
+                        if (!p1.empty())
+                        {
+                            Ptrs.append(p1.matchingVoice(p1.first()).pointers());
+                            if (!Ptrs.empty())
+                            {
+                                setActiveVoiceLocation(p1.first());
+                                Paint(tsVoiceIndexChanged);
+                                emit StaffIndexChanged(Cursor.location().StaffId);
+                            }
+                        }
+                    }
+                }
+                if (!Ptrs.isEmpty())
+                {
+                    if (event->modifiers() == Qt::ShiftModifier) {
+                        Cursor.ExtendSel(Ptrs,VoiceLen());
+                    }
+                    else if (event->modifiers() == Qt::ControlModifier) {
+                        Cursor.AddSel(Ptrs,VoiceLen());
+                    }
+                    else if (altModifier(event))
+                    {
+                        if (LastSymbol.isValid())
+                        {
+                            writeAltKeySymbol(Ptrs);
+                            Paint(tsReformat);
+                            emit ScoreChanged();
+                        }
+                        else {
+                            Cursor.SetSel(Ptrs,VoiceLen());
+                        }
+                    }
+                    else {
+                        Cursor.SetSel(Ptrs,VoiceLen());
+                    }
+                }
+                else
+                {
+                    Cursor.SetZero(VoiceLen());
                 }
             }
-            else
+            else if (MouseArea==MouseOnSymbol)
             {
-                MakeBackup("Drag");
-                QPointF moved=m-Holdm;
-                QPoint qp=(moved*(float)XMLScore.getVal("Size")*SizeFactor(XMLScore.TemplateOrderStaff(m_ActiveTemplate,m_ActiveStaff)->attributeValue("Size"))).toPoint();
-                if (MouseButton!=Qt::RightButton)
+                emit BackMeUp("Drag");
+                writeMoveSymbol(mappedPos - m_HoldMappedPos, event->modifiers());
+            }
+            SelectRubberband->hide();
+        }
+        else
+        {
+            if ((MouseArea != MouseOnSymbol) && altModifier(event))
+            {
+                if (LastNote.isValid())
                 {
-                    this->setCursor(Qt::PointingHandCursor);
-                    HoverRubberband->hide();
-                    const QList<int>& ptrs=Cursor.Pointers();
-                    for (int lTemp = 0 ; lTemp < ptrs.count() ; lTemp++)
-                    {
-                        int Pnt = ptrs[lTemp];
-                        XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pnt);
-                        if (!XMLSymbol.IsAnyNote())
-                        {
-                            XMLSymbol.setAttribute("Left",qp.x() + XMLSymbol.getVal("Left"));
-                            if (event->modifiers()==Qt::ShiftModifier) qp.setY(IntDiv(qp.y() / 6,16) * 16*6);
-                            XMLSymbol.setAttribute("Top",-qp.y() + XMLSymbol.getVal("Top"));
-                        }
-                        else
-                        {
-                            if (Abs(moved.x()) > Abs(moved.y()))
-                            {
-                                XMLSymbol.setAttribute("Left",qp.x() + XMLSymbol.getVal("Left"));
-                            }
-                            else
-                            {
-                                int iTemp = (-qp.y() / 28) + XMLSymbol.getVal("Pitch");
-                                XMLSymbol.setAttribute("Pitch",Inside(iTemp, 1, 127, 12));
-                            }
-                        }
+                    writeAltkeyNote(mappedPos);
+                    emit RequestSymbol(LastNote,"Paste Note");
+
+                    Cursor.SetPos(Cursor.currentPointer()-1);
+                    Paint(tsReformat);
+                    emit ScoreChanged();
+                }
+            }
+            else if (MouseArea==MouseOnBar)
+            {
+                QRectF barX=Score.getBarlineX(MouseAreaIndex);
+                barX.setTop(activeStaffTopScaled());
+                barX.setHeight(scaled(ScoreStaffLinesHeight));
+                barX.setRight(Score.getBarlineX(MouseAreaIndex+1).left()+3);
+                popupPoint=mapToGlobal(QGraphicsView::mapFromScene(barX.bottomRight()));
+                const OCSymbolRange r(findPointerToBar(MouseAreaIndex).Pointer,findPointerToBar(MouseAreaIndex+1).Pointer-1);
+                if (r.End-r.Start > -1)
+                {
+                    if (event->modifiers()==Qt::ShiftModifier)  {
+                        Cursor.ExtendSel(r,VoiceLen());
+                    }
+                    else if (event->modifiers()==Qt::ControlModifier) {
+                        Cursor.AddSel(r,VoiceLen());
+                    }
+                    else {
+                        Cursor.SetRange(r,VoiceLen());
                     }
                 }
-                else if (MouseButton==Qt::RightButton)
+                else
                 {
-                    if (Abs(moved.x()) > Abs(moved.y()))
-                    {
-                        const QList<int>& ptrs=Cursor.Pointers();
-                        for (int lTemp = 0 ; lTemp < ptrs.count() ; lTemp++)
-                        {
-                            int Pnt = ptrs[lTemp];
-                            XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pnt);
-                            if (XMLSymbol.IsAnyNote()) XMLSymbol.setAttribute("AccidentalLeft",qp.x() + XMLSymbol.getVal("AccidentalLeft"));
-                        }
+                    Cursor.SetZero(VoiceLen());
+                }
+            }
+            else if (MouseArea == MouseOutside)
+            {
+                if (insideStaffId(mappedPos)==Cursor.location().StaffId)
+                {
+                    if (Score.nearestLocation(mappedPos.x(),Cursor.location()).Pointer == -1) {
+                        Cursor.SetZero(VoiceLen());
+                        if (FollowResize()==PageSizeUnlimited) scrollToBar(BarMap().barCount(Cursor.location())-1);
                     }
-                    else
-                    {
-                        const QList<int>& ptrs=Cursor.Pointers();
-                        for (int lTemp = 0 ; lTemp < ptrs.count() ; lTemp++)
-                        {
-                            int Pnt = ptrs[lTemp];
-                            qp.setY(moved.y());
-                            XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(Pnt);
-                            if (XMLSymbol.Compare("Hairpin")) XMLSymbol.setAttribute("Gap",Inside(-qp.y() + XMLSymbol.getVal("Gap"),-9,9,1));
-                            if (XMLSymbol.Compare("Slur")) XMLSymbol.setAttribute("Curve",Inside(-qp.y() + XMLSymbol.getVal("Curve"),-9,9,1));
-                        }
+                    else {
+                        Cursor.SetRange(0,VoiceLen(),VoiceLen());
                     }
+                }
+                else
+                {
+                    Cursor.SetZero(VoiceLen());
+                    if (FollowResize()==PageSizeUnlimited) scrollToBar(BarMap().barCount(Cursor.location())-1);
                 }
             }
         }
         Paint(tsRedrawActiveStave);
         emit Changed();
         emit SelectionChanged();
-        if (toneon) emit NoteOff(d2pitch);
-        toneon = false;
         MouseDown=false;
-        if (m == Holdm) if (MouseButton==Qt::RightButton) emit Popup(this->cursor().pos());
-    }
-}
-
-void ScoreViewXML::Delete(const int Staff, const int Voice, const int StartPointer, const int EndPointer)
-{
-    int Pnt=0;
-    if (EndPointer <= StartPointer)
-    {
-        Pnt = StartPointer;
-    }
-    else
-    {
-        Pnt = EndPointer;
-        if (Pnt > VoiceLen(Staff, Voice) - 1) Pnt = VoiceLen(Staff, Voice) - 1;
-    }
-    XMLScore.Clear1Voice(Staff, Voice, StartPointer, Pnt);
-    Cursor.SetPos(StartPointer);
-}
-
-void ScoreViewXML::Delete(const int StartPointer, const int EndPointer)
-{
-    Delete(m_ActiveStaff,m_ActiveVoice,StartPointer,EndPointer);
-}
-
-void ScoreViewXML::Delete(const int Staff, const int Voice, QList<int>& Pointers)
-{
-    qSort(Pointers);
-    if (Pointers.last() > VoiceLen(Staff, Voice) - 1) Pointers.removeLast();
-    XMLScore.Clear1Voice(Staff, Voice, Pointers);
-    Cursor.SetPos(Pointers.first());
-}
-
-void ScoreViewXML::Delete(QList<int>& Pointers)
-{
-    Delete(m_ActiveStaff,m_ActiveVoice,Pointers);
-}
-
-void ScoreViewXML::Delete()
-{
-    Delete(Cursor.Selected);
-}
-
-void ScoreViewXML::PasteClipBoardData(const int Staff, const int Voice, const int Pointer, QDomLiteElement* ClipBoardData)
-{
-    m_XMLLastPasted.copy(XMLScore.Paste1Voice(Staff, Voice, Pointer, ClipBoardData));
-}
-
-void ScoreViewXML::PasteClipBoardData(const int Pointer, QDomLiteElement* ClipBoardData)
-{
-    m_XMLLastPasted.copy(XMLScore.Paste1Voice(m_ActiveStaff, m_ActiveVoice, Pointer, ClipBoardData));
-}
-
-QDomLiteElement* ScoreViewXML::GetClipBoardData(const int Staff, const int Voice, const int StartPointer, const int EndPointer)
-{
-    QDomLiteElement* data=new QDomLiteElement("Voice");
-    int Pnt = EndPointer;
-    if (Pnt == VoiceLen(Staff, Voice) - 1) Pnt --;
-    if (Pnt - StartPointer >= 0)
-    {
-        for (int lTemp = StartPointer ; lTemp <= Pnt ; lTemp++)
+        if (mappedPos == m_HoldMappedPos)
         {
-            data->appendChild(XMLScore.SymbolClone(Staff,Voice,lTemp));
+            if (MouseButton==Qt::RightButton) emit Popup(popupPoint);
+            if (event->modifiers()  == Qt::ControlModifier) emit ListPopup(popupPoint);
+        }
+        else
+        {
+            if (Cursor.SelCount())
+            {
+                if (MouseArea == MouseOnBar)
+                {
+                    if (event->modifiers() == Qt::ShiftModifier) emit Popup(popupPoint);
+                    if (event->modifiers() == Qt::ControlModifier) emit PropertiesPopup(popupPoint);
+                }
+                if (MouseArea == MouseOutside)
+                {
+                    if (event->modifiers() == Qt::ShiftModifier) emit Popup(popupPoint);
+                    if (event->modifiers() == Qt::ControlModifier) emit PropertiesPopup(popupPoint);
+                }
+            }
         }
     }
-    return data;
 }
 
-QDomLiteElement* ScoreViewXML::GetClipBoardData(const int StartPointer, const int EndPointer)
+void ScoreViewXML::ensureVisible(const int iStaff)
 {
-    return GetClipBoardData(m_ActiveStaff,m_ActiveVoice,StartPointer,EndPointer);
-}
-
-QDomLiteElement* ScoreViewXML::GetClipBoardData(const int Staff,const int Voice, const QList<int>& Pointers)
-{
-    QDomLiteElement* data=new QDomLiteElement("Voice");
-    for (int lTemp = 0 ; lTemp < Pointers.count() ; lTemp++)
-    {
-        data->appendChild(XMLScore.SymbolClone(Staff,Voice,Pointers[lTemp]));
-    }
-    return data;
-}
-
-QDomLiteElement* ScoreViewXML::GetClipBoardData(const QList<int>& Pointers)
-{
-    return GetClipBoardData(m_ActiveStaff,m_ActiveVoice,Pointers);
-}
-
-QDomLiteElement* ScoreViewXML::GetClipBoardData()
-{
-    return GetClipBoardData(Cursor.Selected);
-}
-
-void ScoreViewXML::EnsureVisible(const int iStaff)
-{
-    int lTemp = StaffPos(StaffOrder(iStaff)) / XMLScore.getVal("Size");
-    this->verticalScrollBar()->setValue(lTemp-(this->height()/3));
+    const auto i = int(staffTopScaled(iStaff));
+    verticalScrollBar()->setValue(i-(height()/3));
     if (HoverRubberband->isVisible())
     {
         HoverRubberband->hide();
@@ -1193,443 +1737,244 @@ void ScoreViewXML::EnsureVisible(const int iStaff)
     }
 }
 
-void ScoreViewXML::EnsureVisible()
+void ScoreViewXML::ensureVisible()
 {
-    EnsureVisible(m_ActiveStaff);
+    ensureVisible(Cursor.location().StaffId);
 }
 
-const int ScoreViewXML::StartBar() const
+void ScoreViewXML::scrollToBar(const int Bar)
 {
-    return m_StartBar;
+    const int x = Score.getBarlineX(Bar).x()*zoomer->getZoom();
+    if (x > horizontalScrollBar()->maximum())
+    {
+        horizontalScrollBar()->setValue(horizontalScrollBar()->maximum());
+    }
+    else if (x < 0)
+    {
+        horizontalScrollBar()->setValue(0);
+    }
+    else
+    {
+        horizontalScrollBar()->setValue(x);
+    }
 }
 
-void ScoreViewXML::setStartBar(const int NewStartBar)
+int ScoreViewXML::BarsActuallyDisplayed() const
 {
-    m_StartBar = NewStartBar;
+    return Score.barsActuallyPrinted();
 }
 
-const int ScoreViewXML::Size() const
+void ScoreViewXML::play(const int PlayFromBar, const int Silence, const QString& Path)
 {
-    return XMLScore.getVal("Size");
-}
-
-void ScoreViewXML::setSize(const int NewSize)
-{
-    XMLScore.setAttribute("Size",NewSize);
-}
-
-const int ScoreViewXML::PointerBegin(const int Staff, const int Voice) const
-{
-    return BarMap().GetPointer(StartBar(),Staff,Voice);
-}
-
-const int ScoreViewXML::PointerBegin() const
-{
-    return PointerBegin(m_ActiveStaff, m_ActiveVoice);
-}
-
-const int ScoreViewXML::BarsActuallyDisplayed() const
-{
-    return Score.ActuallyPrinted();
-}
-
-const int ScoreViewXML::FindPointerToBar(const int Staff, const int Voice, const int BarToFind) const
-{
-    return Score.BarMap().GetPointer(BarToFind,Staff,Voice);
-}
-
-const int ScoreViewXML::FindPointerToBar(const int BarToFind) const
-{
-    return FindPointerToBar(m_ActiveStaff,m_ActiveVoice,BarToFind);
-}
-
-void ScoreViewXML::Play(const int PlayFromBar, const int Silence, const QString& Path, const int Staff)
-{
-    OCMIDIFile MFile;
-    Score.Play(PlayFromBar, XMLScore, Silence, MFile, Path, Staff);
+    Score.play(PlayFromBar, Silence, Path);
 }
 
 const QByteArray ScoreViewXML::MIDIPointer(const int PlayFromBar, const int Silence)
 {
-    OCMIDIFile MFile;
-    return Score.MIDIPointer(PlayFromBar, XMLScore, Silence, MFile);
+    return Score.MIDIPointer(PlayFromBar, Silence);
 }
 
-void ScoreViewXML::NextStaff(const int Direction)
+void ScoreViewXML::nextStaff(const int Direction)
 {
     SelectRubberband->hide();
-    setActiveStaff(KeepIn(m_ActiveStaff + Direction,0,XMLScore.NumOfStaffs()-1));
-    setActiveVoice(0);
-    Cursor.MaxSel(VoiceLen()-1);
+    const int newstaffId=boundRoll(0, Cursor.location().StaffId + Direction, XMLScore.NumOfStaffs()-1);
+    setActiveStaffId(newstaffId);
     Paint(tsVoiceIndexChanged);
-    emit ActiveStaffChange(m_ActiveStaff);
+    emit StaffIndexChanged(Cursor.location().StaffId);
     emit SelectionChanged();
-    EnsureVisible();
+    ensureVisible();
 }
 
-const int ScoreViewXML::FindCurrentMeter(const int Staff, const int Voice, const int Pointer) const
-{
-    int Bar=Score.BarMap().GetBar(Pointer, Staff, Voice);
-    return Score.BarMap().GetMeter(Bar, Staff, Voice);
+int ScoreViewXML::activeStaffPos() const { return ActiveTemplate.staffPosFromId(Cursor.location().StaffId); }
+
+double ScoreViewXML::scaled(const double v) const { return v/Size(); }
+
+double ScoreViewXML::staffTopScaled(int id) const {
+    return scaled(ActiveTemplate.staffTopFromId(id));
 }
 
-const int ScoreViewXML::KeepIn(const int num, const int Low, const int High) const
-{
-    int RetVal = num;
-    int Differ = (High - Low) + 1;
-    if (num < Low) RetVal = num + Differ;
-    if (num > High) RetVal = num - Differ;
-    return RetVal;
+double ScoreViewXML::activeStaffTopScaled() const {
+    return scaled(ActiveTemplate.staffTopFromId(ActiveStaffId()));
 }
 
-const int ScoreViewXML::BarNrOffset() const
+int ScoreViewXML::findCurrentMeter(const OCSymbolLocation& SymbolLocation) const
 {
-    return XMLScore.getVal("BarNrOffset");
+    OCBarSymbolLocation Bar=Score.BarMap().GetBar(SymbolLocation);
+    return Score.BarMap().GetMeter(Bar);
 }
 
-void ScoreViewXML::setBarNrOffset(const int NewBarNrOffset)
+const QVector<ulong> ScoreViewXML::tickList() const
 {
-    XMLScore.setAttribute("BarNrOffset", NewBarNrOffset);
-}
-
-const bool ScoreViewXML::HideBarNumbers() const
-{
-    return XMLScore.getVal("DontShowBN");
-}
-
-void ScoreViewXML::setHideBarNumbers(const bool NewHideBarNumbers)
-{
-    XMLScore.setAttribute("DontShowBN", NewHideBarNumbers);
-}
-
-const int ScoreViewXML::MasterStaff() const
-{
-    return XMLScore.getVal("MasterStave");
-}
-
-void ScoreViewXML::setMasterStaff(const int NewMasterStaff)
-{
-    XMLScore.setAttribute("MasterStave", NewMasterStaff);
-}
-
-const int ScoreViewXML::NoteSpace() const
-{
-    return XMLScore.getVal("NoteSpace");
-}
-
-void ScoreViewXML::setNoteSpace(const int NewNoteSpace)
-{
-    XMLScore.setAttribute("NoteSpace", NewNoteSpace);
-}
-
-void ScoreViewXML::SetSystemLength(const int NewSystemLength)
-{
-    m_SystemLength = NewSystemLength;
-}
-
-const int ScoreViewXML::SystemLength() const
-{
-    return m_SystemLength;
-}
-
-QRectF ScoreViewXML::SceneRect()
-{
-    return QRectF(0,0,(m_SystemLength / XMLScore.getVal("Size")) + 40,((StaffPos(m_ActiveTemplate->childCount() - 1) + 800) / XMLScore.getVal("Size")) + 30);
-}
-
-void ScoreViewXML::Mute(const int Staff, const bool Mute)
-{
-    Score.Mute(Staff, Mute);
-}
-
-void ScoreViewXML::Solo(const int Staff, const bool Solo)
-{
-    Score.Solo(Staff, Solo);
-}
-
-void ScoreViewXML::PasteXML(XMLSimpleSymbolWrapper& Symbol)
-{
-    if (Cursor.SelCount())
+    QVector<ulong> retval;
+    int StaffPos = ActiveTemplate.staffPosFromId(0);
+    ulong tickCount=0;
+    for (int i=0;i<Score.BarMap().barCount(OCVoiceLocation(StaffPos));i++)
     {
-        Delete();
+        retval.push_back(tickCount);
+        OCBarSymbolLocation Bar(i,StaffPos,0);
+        tickCount+=uint(Score.BarMap().GetMeter(Bar)*10);
     }
-    InsertXML(Cursor.GetPos(),Symbol);
-    Cursor.SetZero();
-    Cursor.SetPos(Cursor.GetPos()+1);
-    Cursor.MaxSel(VoiceLen() - 1);
-    if (Cursor.SelEnd() > FindPointerToBar(StartBar() + BarsActuallyDisplayed()))
+    retval.push_back(tickCount);
+    return retval;
+}
+
+const QRectF ScoreViewXML::systemRect() const
+{
+    const double w = scaled(m_SystemLength);
+    return QRectF(scaled(ScoreLeftMargin),0,w,scaled(ActiveTemplate.staffTop(ActiveTemplate.staffCount() - 1) + 800) + 30);
+}
+
+void ScoreViewXML::createSceneRect()
+{
+    QRectF r(systemRect());
+    r.setX(0);
+    r.setWidth(scaled(m_SystemLength + (ScoreLeftMargin * 2)));
+    setSceneRect(r);
+}
+
+void ScoreViewXML::pasteSymbol(XMLSimpleSymbolWrapper& Symbol)
+{
+    if (!Symbol.IsRestOrAnyNote())
     {
-        setStartBar(StartBar()+BarsActuallyDisplayed());
+        if (!Symbol.compare(LastSymbol)) LastSymbol.copy(Symbol.xml());
+    }
+    else if (!Symbol.IsAnyNote())
+    {
+        if (!Symbol.compare(LastNote)) LastNote.copy(Symbol.xml());
+    }
+    if (Cursor.SelCount() > 1) Delete();
+    insertSymbol(Cursor.currentPointer(),Symbol);
+    Cursor.SetPos(Cursor.currentPointer()+1,VoiceLen());
+    //Cursor.MaxSel(VoiceLen());
+    int nextBar = StartBar()+BarsActuallyDisplayed();
+    if (Cursor.SelEnd() > findPointerToBar(nextBar).Pointer)
+    {
+        if (Cursor.SelEnd() == VoiceLen()) nextBar--;
+        setStartBar(nextBar);
         emit BarChanged();
     }
 }
 
-void ScoreViewXML::InsertXML(XMLSimpleSymbolWrapper& Symbol)
+void ScoreViewXML::insertSymbol(const OCSymbolLocation &SymbolLocation, XMLSimpleSymbolWrapper &Symbol)
 {
-    InsertXML(VoiceLen()-1,Symbol);
+    if (SymbolLocation.Voice > 0) {
+        if (Symbol.IsRest() && Symbol.noteValue() == 7) Symbol.setVisible(false);
+    }
+    XMLScore.Voice(SymbolLocation).insertChild(Symbol,SymbolLocation.Pointer);
+    m_XMLLastPasted.clear();
+    m_XMLLastPasted.addChild(Symbol);
 }
 
-void ScoreViewXML::InsertXML(const int Pointer, XMLSimpleSymbolWrapper& Symbol)
+void ScoreViewXML::insertSymbol(const int Pointer, XMLSimpleSymbolWrapper &Symbol)
 {
-    InsertXML(m_ActiveStaff,m_ActiveVoice,Pointer,Symbol);
+    insertSymbol(OCSymbolLocation(Cursor.location(),Pointer),Symbol);
 }
 
-void ScoreViewXML::InsertXML(const int Staff, const int Voice, const int Pointer, XMLSimpleSymbolWrapper& Symbol)
+void ScoreViewXML::insertSymbol(XMLSimpleSymbolWrapper &Symbol)
 {
-    XMLScore.Voice(Staff,Voice)->insertChild(Symbol.getXML(),Pointer);
-    m_XMLLastPasted.clearChildren();
-    m_XMLLastPasted.appendClone(Symbol.getXML());
+    insertSymbol(VoiceLen(),Symbol);
 }
 
-void ScoreViewXML::AddStaff(const int NewNumber, const QString& Name)
-{
-    XMLScore.AddStaff(NewNumber,Name);
-    Score.AddStave(NewNumber);
-    if (NewNumber <= m_ActiveStaff) setActiveStaff(m_ActiveStaff);
-}
-
-void ScoreViewXML::AddVoice(const int iStaff)
-{
-    XMLScore.AddVoice(iStaff);
-    Score.AddTrack(iStaff);
-    setActiveVoice(VoiceCount(iStaff) - 1);
-    Cursor.SetZero();
-}
-
-void ScoreViewXML::AddVoice()
-{
-    AddVoice(m_ActiveStaff);
-}
-
-const int ScoreViewXML::VoiceCount(const int Staff)
+int ScoreViewXML::VoiceCount(const int Staff) const
 {
     return XMLScore.NumOfVoices(Staff);
 }
 
-const int ScoreViewXML::VoiceCount()
+int ScoreViewXML::VoiceCount() const
 {
-    return XMLScore.NumOfVoices(m_ActiveStaff);
+    return XMLScore.NumOfVoices(Cursor.location().StaffId);
 }
 
-const int ScoreViewXML::StaffCount()
+int ScoreViewXML::StaffCount() const
 {
     return XMLScore.NumOfStaffs();
 }
 
-void ScoreViewXML::DeleteVoice(const int iStaff, const int iVoice)
+void ScoreViewXML::SetXMLScore(XMLScoreWrapper &Doc)
 {
-    XMLScore.DeleteVoice(iStaff,iVoice);
-    Score.DeleteTrack(iStaff, iVoice);
-    setActiveVoice(0);
-    Cursor.SetZero();
+    XMLScore.shadowXML(Doc);
 }
 
-void ScoreViewXML::DeleteVoice(const int iVoice)
+ImportResult ScoreViewXML::Load(const QString &Path)
 {
-    DeleteVoice(m_ActiveStaff,iVoice);
+    const QString s = QFileInfo(Path).suffix();
+    if ((s == "mxl") || (s == "musicxml"))
+    {
+        if (!CMusicXMLReader::parseMXLFile(Path,XMLScore)) return NoImport;
+        ReloadXML();
+        setActiveStaffId(0);
+        return ImportMusicXML;
+    }
+    if (!XMLScore.Load(Path)) return NoImport;
+    ReloadXML();
+    setActiveStaffId(0);
+    return ImportNativeXML;
 }
 
-void ScoreViewXML::DeleteVoice()
-{
-    DeleteVoice(m_ActiveStaff,m_ActiveVoice);
-}
-
-void ScoreViewXML::DeleteStaff(const int iStaff)
-{
-    XMLScore.DeleteStaff(iStaff);
-    Score.DeleteStave(iStaff);
-    setActiveStaff(0);
-    setActiveVoice(0);
-    Cursor.SetZero();
-}
-
-void ScoreViewXML::DeleteStaff()
-{
-    DeleteStaff(m_ActiveStaff);
-}
-
-void ScoreViewXML::Load(const QString& Path)
-{
-    if (!XMLScore.Load(Path)) return;
-    OCSymbolsCollection::ParseFileVersion(XMLScore);
-
-    setActiveTemplate(0);
-    Score.MakeStaves(XMLScore);
-    setActiveStaff(0);
-    setActiveVoice(0);
-    //MakeBackup("");
-}
-
-const bool ScoreViewXML::Save(const QString& Path)
+bool ScoreViewXML::Save(const QString &Path)
 {
     return XMLScore.Save(Path);
 }
 
-const int ScoreViewXML::StaffOrder(const int Staff) const
-{
-    return XMLScore.StaffOrder(m_ActiveTemplate,Staff);
+void ScoreViewXML::serialize(QDomLiteElement *xml) const {
+    XMLScore.serialize(xml);
 }
 
-const int ScoreViewXML::ActiveStaff() const
-{
-    return m_ActiveStaff;
+void ScoreViewXML::unserialize(const QDomLiteElement *xml) {
+    XMLScore.unserialize(xml);
+    ReloadXML();
 }
 
-void ScoreViewXML::setActiveStaff(const int NewActiveStaff)
+XMLSimpleSymbolWrapper ScoreViewXML::GetSymbol(const OCSymbolLocation &SymbolLocation) const
 {
-    if (m_ActiveStaff != NewActiveStaff)
-    {
-        m_ActiveStaff = NewActiveStaff;
-        setActiveVoice(0);
-    }
+    return XMLScore.Symbol(SymbolLocation);
 }
 
-const int ScoreViewXML::ActiveVoice() const
+XMLSimpleSymbolWrapper ScoreViewXML::GetSymbol(const int Pointer) const
 {
-    return m_ActiveVoice;
+    return GetSymbol(OCSymbolLocation(Cursor.location(),Pointer));
 }
 
-void ScoreViewXML::setActiveVoice(const int NewActiveVoice)
+XMLSimpleSymbolWrapper ScoreViewXML::CurrentSymbol() const
 {
-    if (m_ActiveVoice != NewActiveVoice)
-    {
-        m_ActiveVoice = NewActiveVoice;
-    }
+    const XMLVoiceWrapper& v=XMLScore.Voice(Cursor.location());
+    const int i=Cursor.currentPointer();
+    if ((i >= v.symbolCount()) || (i < 0)) return XMLSimpleSymbolWrapper();
+    return GetSymbol(i);
 }
 
-const bool ScoreViewXML::FollowResize() const
-{
-    return m_FollowResize;
-}
-
-void ScoreViewXML::setFollowResize(const bool NewFollowResize)
-{
-    m_FollowResize = NewFollowResize;
-    if (m_FollowResize)
-    {
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    }
-    else
-    {
-        setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    }
-
-}
-
-OCProperties* ScoreViewXML::GetProperties(const int Pointer, const int Staff, const int Voice)
-{
-    //return Score.GetProperties(XMLScore, Pointer, Staff, Voice);
-    XMLSimpleSymbolWrapper s(XMLScore.Voice(Staff,Voice),Pointer);
-    OCProperties* p = OCSymbolsCollection::GetProperties(s);
-    if (p->Exist("Common"))
-    {
-        p->GetItem("Common")->Hidden=(Voice>0);
-    }
-    return p;
-}
-
-OCProperties* ScoreViewXML::GetProperties(const int Pointer)
-{
-    return GetProperties(Pointer,m_ActiveStaff,m_ActiveVoice);
-}
-
-OCProperties* ScoreViewXML::GetProperties()
-{
-    return GetProperties(Cursor.GetPos());
-}
-
-XMLSimpleSymbolWrapper ScoreViewXML::GetSymbol(const int Pointer, const int Staff, const int Voice)
-{
-    return XMLSimpleSymbolWrapper(XMLScore.Voice(Staff,Voice),Pointer);
-}
-
-XMLSimpleSymbolWrapper ScoreViewXML::GetSymbol(const int Pointer)
-{
-    return GetSymbol(Pointer, m_ActiveStaff, m_ActiveVoice);
-}
-
-XMLSimpleSymbolWrapper ScoreViewXML::GetSymbol()
-{
-    return GetSymbol(Cursor.GetPos());
-}
-
-void ScoreViewXML::ChangeProperty(const int Pointer, const int Staff, const int Voice, const QString& Name, const QVariant& Value)
-{
-    XMLSimpleSymbolWrapper s(XMLScore.Voice(Staff,Voice),Pointer);
-    if (OCSymbolsCollection::PropetyExists(s.name(),Name))
-    {
-        s.setAttribute(Name,Value);
-    }
-}
-
-void ScoreViewXML::ChangeProperty(const QList<int>& Pointers, const QString& Name, const QVariant& Value)
-{
-    foreach (int i, Pointers) ChangeProperty(i, Name, Value);
-}
-
-void ScoreViewXML::ChangeProperty(const int Pointer, const QString& Name, const QVariant& Value)
-{
-    ChangeProperty(Pointer,m_ActiveStaff,m_ActiveVoice,Name,Value);
-}
-
-void ScoreViewXML::ChangeProperties(const int Pointer, const int Staff, const int Voice, const QStringList& Names, const QVariant& Value)
-{
-    XMLSimpleSymbolWrapper s(XMLScore.Voice(Staff,Voice),Pointer);
-    foreach (QString n,Names)
-    {
-        if (OCSymbolsCollection::PropetyExists(s.name(),n))
-        {
-            s.setAttribute(n,Value);
-        }
-    }
-}
-
-void ScoreViewXML::ChangeProperties(const int Pointer, const QStringList& Names, const QVariant& Value)
-{
-    ChangeProperties(Pointer,m_ActiveStaff,m_ActiveVoice,Names,Value);
-}
-
-void ScoreViewXML::setEndBar(const int NewEndBar)
-{
-    m_EndBar = NewEndBar;
-}
-
-const int ScoreViewXML::EndBar() const
-{
-    return m_EndBar;
-}
-
-const OCBarMap& ScoreViewXML::BarMap() const
+const OCBarMap &ScoreViewXML::BarMap() const
 {
     return Score.BarMap();//Score.FillBarsArray(XMLScore);
 }
 
-const int ScoreViewXML::VoiceLen(const int Staff, const int Voice)
+int ScoreViewXML::VoiceLen(const OCVoiceLocation &VoiceLocation) const
 {
-    return XMLScore.VoiceLength(Staff, Voice);
+    return XMLScore.Voice(VoiceLocation).symbolCount();
 }
 
-const int ScoreViewXML::VoiceLen()
+int ScoreViewXML::VoiceLen() const
 {
-    return XMLScore.VoiceLength(m_ActiveStaff,m_ActiveVoice);
+    return XMLScore.Voice(Cursor.location()).symbolCount();
 }
 
-const int ScoreViewXML::EndOfVoiceBar(const int Staff, const int Voice) const
+int ScoreViewXML::EndOfVoiceBar(const OCVoiceLocation &VoiceLocation) const
 {
-    return BarMap().EndOfVoiceBar(Staff, Voice);
+    return BarMap().EndOfVoiceBar(VoiceLocation);
 }
 
-const int ScoreViewXML::EndOfVoiceBar() const
+int ScoreViewXML::EndOfVoiceBar() const
 {
-    return EndOfVoiceBar(m_ActiveStaff, m_ActiveVoice);
+    return EndOfVoiceBar(Cursor.location());
 }
 
-const OCMIDIVars ScoreViewXML::GetCurrentMIDI() const
+void ScoreViewXML::SetXML(XMLScoreWrapper &NewXML)
 {
-    return CurrentMIDI;
+    XMLScore.setXML(NewXML);
+    ReloadXML();
 }
 
-void ScoreViewXML::SetXML(XMLScoreWrapper& NewXML)
+void ScoreViewXML::SetXML(QDomLiteDocument *NewXML)
 {
     XMLScore.setXML(NewXML);
     ReloadXML();
@@ -1637,84 +1982,190 @@ void ScoreViewXML::SetXML(XMLScoreWrapper& NewXML)
 
 void ScoreViewXML::ReloadXML()
 {
-    setActiveTemplate(0);
-    Score.MakeStaves(XMLScore);
+    const OCVoiceLocation l=ActiveVoiceLocation();
+    setActiveTemplate();
+    setActiveOptions();
+    Score.assignXML(XMLScore);
+    if (l.StaffId > StaffCount()-1) setActiveStaffId(StaffCount()-1);
+    if (l.Voice > VoiceCount()-1) setActiveVoice(VoiceCount()-1);
+    Cursor.MaxSel(VoiceLen());
 }
 
-const QString ScoreViewXML::StaffName(int Staff)
+const QString ScoreViewXML::StaffName(const int Staff) const
 {
     return XMLScore.StaffName(Staff);
 }
 
-QDomLiteElement* ScoreViewXML::ActiveTemplate()
+const OCSelectionList ScoreViewXML::SelectionList() const
 {
-    return m_ActiveTemplate;
-}
-
-void ScoreViewXML::setActiveTemplate(const int Template)
-{
-    m_ActiveTemplate=XMLScore.Template(Template);
-}
-
-void ScoreViewXML::setActiveTemplate(QDomLiteElement* Template)
-{
-    m_ActiveTemplate=Template;
-}
-
-const QList<QPair<int,int> > ScoreViewXML::SelectionList()
-{
-    QList<QPair<int,int> > RetVal;
-    RetVal.append(qMakePair(Cursor.SelStart(),Cursor.SelEnd()));
+    OCSelectionList RetVal;
+    RetVal.append(Cursor.Range());
     return RetVal;
 }
 
-const QList<QPair<int,int> > ScoreViewXML::SelectionList(const int Bar1, const int Bar2, const int Staff1, const int Staff2)
+const OCSelectionList ScoreViewXML::SelectionList(const int Bar1, const int Bar2, const int Staff1, const int Staff2) const
 {
-    QList<QPair<int,int> > RetVal;
+    OCSelectionList RetVal;
     for (int i=Staff1;i<=Staff2;i++)
     {
-        int Staff=MarkToStaff(i);
-        int Voice=MarkToVoice(i);
-        int p1=FindPointerToBar(Staff,Voice,Bar1);
-        if (p1==VoiceLen(Staff,Voice)) p1--;
-        int p2=FindPointerToBar(Staff,Voice,Bar2+1)-1;
-        if (p2==VoiceLen(Staff,Voice)) p2--;
-        RetVal.append(qMakePair(p1,p2));
+        OCVoiceLocation v=MarkToVoiceLocation(i);
+        int p1=findPointerToBar(v,Bar1).Pointer;
+        if (p1 >= VoiceLen(v)) p1 = VoiceLen(v)-1;
+        int p2=findPointerToBar(v,Bar2+1).Pointer-1;
+        if (p2 >= VoiceLen(v)) p2 = VoiceLen(v)-1;
+        RetVal.append(OCSymbolRange(p1,p2));
     }
     return RetVal;
 }
 
-const int ScoreViewXML::MarkToVoice(const int Mark)
+int ScoreViewXML::MarkToVoice(const int Mark) const
 {
     int s=0;
     int Staff=0;
     forever
     {
-        if (Mark<s+VoiceCount(Staff))
-        {
-            return Mark-s;
-        }
+        if (Mark < s+VoiceCount(Staff)) return Mark-s;
         s+=VoiceCount(Staff);
         Staff++;
     }
 }
 
-const int ScoreViewXML::MarkToStaff(const int Mark)
+int ScoreViewXML::MarkToStaff(const int Mark) const
 {
     int s=0;
     int Staff=0;
     forever
     {
-        if (Mark<s+VoiceCount(Staff))
-        {
-            return Staff;
-        }
+        if (Mark < s+VoiceCount(Staff)) return Staff;
         s+=VoiceCount(Staff);
         Staff++;
     }
 }
 
-const QList<SymbolSearchLocation> ScoreViewXML::Search(const QString& SearchTerm, const int Staff, const int Voice)
+const OCVoiceLocation ScoreViewXML::MarkToVoiceLocation(const int Mark) const
 {
-    return Score.Search(XMLScore,SearchTerm,Staff,Voice);
+    return OCVoiceLocation(MarkToStaff(Mark),MarkToVoice(Mark));
+}
+
+int ScoreViewXML::VoiceLocationToMark(const OCVoiceLocation &v) const
+{
+    int t=0;
+    for (int i=0;i<v.StaffId;i++) t+=VoiceCount(i);
+    for (int j=0;j<v.Voice;j++) t++;
+    return t;
+}
+
+bool ScoreViewXML::navigationVisible() const
+{
+    return m_NavigationVisible;
+}
+
+const OCBarSymbolLocationList ScoreViewXML::search(const QString& SearchTerm, const int Staff, const int Voice)
+{
+    return Score.search(SearchTerm,Staff,Voice);
+}
+
+void ScoreViewXML::setNavigationVisible(const bool newShowNavigation)
+{
+    m_NavigationVisible=newShowNavigation;
+}
+
+void ScoreViewXML::setActiveTemplate()
+{
+    ActiveTemplate=XMLScore.Template;
+}
+
+void ScoreViewXML::setActiveTemplate(const XMLTemplateWrapper &XMLTemplate)
+{
+    ActiveTemplate=XMLTemplate;
+}
+
+void ScoreViewXML::setActiveOptions()
+{
+    ActiveOptions=XMLScore.ScoreOptions;
+}
+
+void ScoreViewXML::setActiveOptions(const XMLScoreOptionsWrapper &XMLOptions)
+{
+    ActiveOptions=XMLOptions;
+}
+
+void ScoreViewXML::setFollowResize(const PageMode NewFollowResize)
+{
+    ActiveOptions.setFollowResize(NewFollowResize);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+}
+
+void ScoreViewXML::setActiveStaffId(const int id)
+{
+    if (Cursor.location().StaffId != id)
+    {
+        OCVoiceLocation v(id,0);
+        Cursor.SetZero(OCSymbolLocation(v,VoiceLen(v)));
+    }
+}
+
+void ScoreViewXML::setActiveVoice(int NewActiveVoice)
+{
+    if (Cursor.location().Voice != NewActiveVoice)
+    {
+        OCVoiceLocation v(Cursor.location().StaffId,NewActiveVoice);
+        Cursor.SetZero(OCSymbolLocation(v,VoiceLen(v)));
+    }
+}
+
+void ScoreViewXML::setActiveVoiceLocation(const OCVoiceLocation &v)
+{
+    if (ActiveStaffId() != v.StaffId) setActiveStaffId(v.StaffId);
+    if (ActiveVoice() != v.Voice) setActiveVoice(v.Voice);
+}
+
+void ScoreViewXML::setActiveBarLocation(const OCBarLocation &b)
+{
+    setActiveVoiceLocation(b);
+    if (FollowResize() != PageSizeUnlimited)
+    {
+        if (StartBar() != b.Bar) setStartBar(b.Bar);
+    }
+}
+
+void ScoreViewXML::setBarNrOffset(const int NewBarNrOffset)
+{
+    ActiveOptions.setBarNumberOffset(NewBarNrOffset);
+}
+
+void ScoreViewXML::setMasterStaff(const int NewMasterStaff)
+{
+    ActiveOptions.setMasterStaff(NewMasterStaff);
+}
+
+void ScoreViewXML::setNoteSpace(const int NewNoteSpace)
+{
+    ActiveOptions.setNoteSpace(NewNoteSpace);
+}
+
+void ScoreViewXML::setStartBar(const int NewStartBar)
+{
+    m_StartBar = NewStartBar;
+}
+
+void ScoreViewXML::setEndBar(const int NewEndBar)
+{
+    m_EndBar = NewEndBar;
+}
+
+void ScoreViewXML::setSize(const double NewSize)
+{
+    ActiveOptions.setSize(NewSize);
+}
+
+void ScoreViewXML::setLocked(const bool NewLocked)
+{
+    m_Locked=NewLocked;
+    this->setMouseTracking(!NewLocked);
+}
+
+void ScoreViewXML::setHideBarNumbers(const bool NewHideBarNumbers)
+{
+    ActiveOptions.setHideBarNumbers(NewHideBarNumbers);
 }

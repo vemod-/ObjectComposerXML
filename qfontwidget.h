@@ -12,16 +12,18 @@ class QFontWidget : public QGroupBox
     Q_OBJECT
 
 public:
-    explicit QFontWidget(QWidget *parent = 0);
+    explicit QFontWidget(QWidget *parent = nullptr);
     ~QFontWidget();
-    void Fill(const QFont& Font, const QString& Text="Sample Text", const bool Locked=false, const Qt::Alignment Align=Qt::AlignCenter, const float Scale=1.0);
-    const QFont Font();
-    const QString Text();
+    void fill(const QFont& Font, const QString& Text="Sample Text", const bool Locked=false, const Qt::Alignment Align=Qt::AlignCenter, const double Scale=1.0);
+    const QFont font();
+    const QString text();
 private:
     Ui::QFontWidget *ui;
-    float m_Scale;
+    double m_Scale=1;
 private slots:
-    void UpdateLineEdit();
+    void updateLineEdit();
+signals:
+    void Changed();
 };
 
 #endif // QFONTWIDGET_H

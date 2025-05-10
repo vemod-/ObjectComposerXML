@@ -16,10 +16,10 @@ void QHoverButton::init()
     animation->addAnimation(a1);
     animation->addAnimation(a2);
     animation->addAnimation(a3);
-    connect(animation,SIGNAL(finished()),this,SLOT(timeFinish()));
+    connect(animation,&QAbstractAnimation::finished,this,&QHoverButton::timeFinish);
     setVisible(false);
-    MouseEvents* e=new MouseEvents();
-    connect(e,SIGNAL(MouseLeave(QEvent*)),this,SLOT(MouseLeave(QEvent*)));
+    auto e=new MouseEvents();
+    connect(e,&MouseEvents::MouseLeft,this,&QHoverButton::MouseLeave);
     this->installEventFilter(e);
     this->setCursor(Qt::PointingHandCursor);
     this->ShowAnimation=NoAnimation;
@@ -29,7 +29,7 @@ void QHoverButton::init()
     this->setMouseTracking(true);
 }
 
-QHoverButton::QHoverButton(QWidget *parent, QIcon icon, QSize size, AnimationDirection ShowAnimation, AnimationDirection HideAnimation) : QToolButton(parent)
+QHoverButton::QHoverButton(QWidget *parent, const QIcon& icon, const QSize& size, AnimationDirection ShowAnimation, AnimationDirection HideAnimation) : QToolButton(parent)
 {
     init();
     this->setFixedSize(size);

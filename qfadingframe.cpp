@@ -5,9 +5,9 @@ QFadingFrame::QFadingFrame(QWidget *parent) :
 {
     timeLine=new QTimeLine(800,this);
     timeLine->setFrameRange(0,100);
-    connect(timeLine,SIGNAL(frameChanged(int)),this,SLOT(processing(int)));
-    connect(timeLine,SIGNAL(finished()),this,SLOT(finished()));
-    backPic=0;
+    connect(timeLine,&QTimeLine::frameChanged,this,&QFadingFrame::processing);
+    connect(timeLine,&QTimeLine::finished,this,&QFadingFrame::finished);
+    backPic=nullptr;
     state=FadingFinished;
 }
 
@@ -62,12 +62,13 @@ void QFadingFrame::processing(int count)
     this->setVisible(true);
     if (state==FadingOut)
     {
-        backPic->setOpacity((float)count*0.01);
+        backPic->setOpacity(count*0.01);
     }
     else
     {
-        backPic->setOpacity(1.0-((float)count*0.01));
+        backPic->setOpacity(1.0-(count*0.01));
     }
+    backPic->repaint();
 }
 
 void QFadingFrame::finished()

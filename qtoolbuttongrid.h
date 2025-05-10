@@ -1,13 +1,14 @@
 #ifndef QTOOLBUTTONGRID_H
 #define QTOOLBUTTONGRID_H
 
-#include "mainwindow.h"
+//#include "mainwindow.h"
 #include <QWidget>
-#include <QFrame>
+//#include <QFrame>
 #include <QGridLayout>
 #include <QToolButton>
-#include <QTreeWidget>
-#include <QTreeWidgetItem>
+//#include <QTreeWidget>
+//#include <QTreeWidgetItem>
+#include "qmactreewidget.h"
 #include "CommonClasses.h"
 
 #define ButtonGridSize 32
@@ -16,10 +17,10 @@ class QToolButtonGrid : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QToolButtonGrid(QWidget *parent = 0);
+    explicit QToolButtonGrid(QWidget *parent = nullptr);
     ~QToolButtonGrid();
-    const bool IsSelected(const QString& Name);
-    const bool IsSelected(const int Index);
+    bool IsSelected(const QString& Name);
+    bool IsSelected(const int Index);
     void SetSelected(const QString& Name, const bool Selected);
     void SetSelected(const int Index, const bool Selected);
     void AddToTree(const QString& Name, QMacTreeWidget* tw);
@@ -77,15 +78,15 @@ class CPropertiesToolGrid : public QToolButtonGrid
 {
     Q_OBJECT
 public:
-    CPropertiesToolGrid(QWidget* parent=0);
+    CPropertiesToolGrid(QWidget* parent=nullptr);
     ~CPropertiesToolGrid();
     //void AddButton(QString Name, QString Tooltip, QIcon Icon, QString ClassName, OCRefreshMode RefreshMode, bool CustomDialog=false, QString PropertyName="", QVariant PropertyValue="",QString PropertyName1="", QString PresetName1="",QString PropertyName2="", QString PresetName2="", QString ModifierName="");
     //void AddButton(QString Name, QString Tooltip, QString Text, QFont Font, QString ClassName, OCRefreshMode RefreshMode, bool CustomDialog=false, QString PropertyName="", QVariant PropertyValue="",QString PropertyName1="", QString PresetName1="",QString PropertyName2="", QString PresetName2="", QString ModifierName="");
-    void AddButton(const QString& SymbolName);
+    void AddButton(const QString& SymbolName, const QString& Filter);
     void AddModifierButton(const QString& Name, const QString& Tooltip, const QIcon& Icon);
     void AddModifierButton(const QString& Name, const QString& Tooltip, const QString& Text, const QFont& Font);
 signals:
-    void PasteXML(XMLSimpleSymbolWrapper& Symbol, QString UndoText, OCRefreshMode RefreshMode);
+    void PasteXML(XMLSimpleSymbolWrapper& Symbol, QString UndoText);
 private:
     QList<OCToolButtonProps*> ButtonProps;
 private slots:

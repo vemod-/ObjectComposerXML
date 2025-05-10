@@ -1,10 +1,10 @@
 #ifndef CEDITSYSTEM_H
 #define CEDITSYSTEM_H
 
-#include "CommonClasses.h"
 #include <QDialog>
 #include <QDomLite>
 #include <QListWidget>
+#include "ocxmlwrappers.h"
 
 namespace Ui {
     class CEditSystem;
@@ -15,10 +15,10 @@ class CEditSystem : public QDialog
     Q_OBJECT
 
 public:
-    explicit CEditSystem(QWidget *parent = 0);
+    explicit CEditSystem(QWidget *parent = nullptr);
     ~CEditSystem();
-    void Fill(QDomLiteElement* LayoutTemplate,QDomLiteElement* SystemTemplate);
-    void GetTemplate(QDomLiteElement *LayoutTemplate, QDomLiteElement *SystemTemplate);
+    void Fill(const XMLTemplateWrapper& LayoutTemplate, const XMLTemplateWrapper& SystemTemplate, const XMLScoreWrapper& XMLScore);
+    void GetTemplate(const XMLTemplateWrapper& LayoutTemplate, XMLTemplateWrapper& SystemTemplate);
 private:
     Ui::CEditSystem *ui;
 private slots:

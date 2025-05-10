@@ -12,9 +12,9 @@ class CMeasureControl : public QGroupBox
     Q_OBJECT
 
 public:
-    explicit CMeasureControl(QWidget *parent = 0);
+    explicit CMeasureControl(QWidget *parent = nullptr);
     ~CMeasureControl();
-    const int Millimeters();
+    int Millimeters();
     void setMillimeters(const int MM);
 private:
     Ui::CMeasureControl *ui;

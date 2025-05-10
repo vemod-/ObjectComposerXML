@@ -1,14 +1,22 @@
 #include "ceditwidget.h"
 #include "ui_ceditwidget.h"
-#include "CommonClasses.h"
 #include "ocsymbolscollection.h"
-#include <QTextStream>
+//#include <QTextStream>
 
 CEditWidget::CEditWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::CEditWidget)
 {
     ui->setupUi(this);
+    connect(ui->TempoSpin,qOverload<int>(&QSpinBox::valueChanged),this,&CEditWidget::Changed);
+    connect(ui->Spin,qOverload<int>(&QSpinBox::valueChanged),this,&CEditWidget::Changed);
+    connect(ui->ValueSpin,qOverload<int>(&QSpinBox::valueChanged),this,&CEditWidget::Changed);
+    connect(ui->TimeUpper,qOverload<int>(&QSpinBox::valueChanged),this,&CEditWidget::Changed);
+    connect(ui->Combo,qOverload<int>(&QComboBox::currentIndexChanged),this,&CEditWidget::Changed);
+    connect(ui->TimeType,qOverload<int>(&QComboBox::currentIndexChanged),this,&CEditWidget::Changed);
+    connect(ui->TimeLower,qOverload<int>(&QComboBox::currentIndexChanged),this,&CEditWidget::Changed);
+    connect(ui->Edit,&QLineEdit::textChanged,this,&CEditWidget::Changed);
+    connect(ui->FontBox,&QFontWidget::Changed,this,&CEditWidget::Changed);
 }
 
 CEditWidget::~CEditWidget()
@@ -24,21 +32,34 @@ void CEditWidget::NoteButtonSelected(int Button)
         ui->DotTripletButtons->setEnabled("Triplet",false);
         ui->DotTripletButtons->setSelected("Dotted",false);
         ui->DotTripletButtons->setEnabled("Dotted",false);
+        ui->DotTripletButtons->setSelected("Doubledotted",false);
+        ui->DotTripletButtons->setEnabled("Doubledotted",false);
     }
     else if (Button==5)
     {
         ui->DotTripletButtons->setSelected("Dotted",false);
         ui->DotTripletButtons->setEnabled("Dotted",false);
+        ui->DotTripletButtons->setSelected("Doubledotted",false);
+        ui->DotTripletButtons->setEnabled("Doubledotted",false);
         ui->DotTripletButtons->setEnabled("Triplet",true);
+    }
+    else if (Button==4)
+    {
+        ui->DotTripletButtons->setEnabled("Triplet",true);
+        ui->DotTripletButtons->setEnabled("Dotted",true);
+        ui->DotTripletButtons->setSelected("Doubledotted",false);
+        ui->DotTripletButtons->setEnabled("Doubledotted",false);
     }
     else
     {
         ui->DotTripletButtons->setEnabled("Dotted",true);
+        ui->DotTripletButtons->setEnabled("Doubledotted",true);
         ui->DotTripletButtons->setEnabled("Triplet",true);
     }
+    emit Changed();
 }
 
-void CEditWidget::PutNoteval(int Noteval, bool Dotted, bool Triplet)
+void CEditWidget::PutNoteval(int Noteval, int Dotted, bool Triplet)
 {
     ui->NoteButtons->setSelectMode(QMacButtons::SelectOne);
     ui->NoteButtons->addButton("Whole","Whole Note",QIcon(":/Notes/Notes/0.png"));
@@ -51,19 +72,21 @@ void CEditWidget::PutNoteval(int Noteval, bool Dotted, bool Triplet)
 
     ui->DotTripletButtons->setSelectMode(QMacButtons::SelectOneOrNone);
     ui->DotTripletButtons->addButton("Dotted","Dotted",".");
+    ui->DotTripletButtons->addButton("Doubledotted","Doubledotted","..");
     ui->DotTripletButtons->addButton("Triplet","Triplet","3");
-    connect(ui->NoteButtons,SIGNAL(selected(int)),this,SLOT(NoteButtonSelected(int)));
+    connect(ui->NoteButtons,qOverload<int>(&QMacButtons::selected),this,&CEditWidget::NoteButtonSelected);
     ui->NoteButtons->setSelected(Noteval,true);
     ui->DotTripletButtons->setSelected("Triplet",Triplet);
-    ui->DotTripletButtons->setSelected("Dotted",Dotted);
+    ui->DotTripletButtons->setSelected("Dotted",Dotted==1);
+    ui->DotTripletButtons->setSelected("Doubledotted",Dotted==2);
     SetVisible(ui->Notevalue);
 }
 
 
-void CEditWidget::GetNoteval(int &Noteval, bool& Dotted, bool& Triplet)
+void CEditWidget::GetNoteval(int &Noteval, int& Dotted, bool& Triplet)
 {
     Noteval=ui->NoteButtons->value();
-    Dotted=ui->DotTripletButtons->isSelected("Dotted");
+    Dotted=int(ui->DotTripletButtons->isSelected("Dotted")) + (int(ui->DotTripletButtons->isSelected("Doubledotted"))*2);
     Triplet=ui->DotTripletButtons->isSelected("Triplet");
 }
 
@@ -77,7 +100,7 @@ void CEditWidget::GetKey(int &Key)
     Key=GetCombo()-6;
 }
 
-void CEditWidget::PutSpin(QString Caption, int Value, int Min, int Max)
+void CEditWidget::PutSpin(const QString& Caption, int Value, int Min, int Max)
 {
     ui->SpinLabel->setText(Caption);
     ui->Spin->setMinimum(Min);
@@ -91,7 +114,7 @@ int CEditWidget::GetSpin()
     return ui->Spin->value();
 }
 
-void CEditWidget::PutCombo(QString Caption, int Value, QStringList List)
+void CEditWidget::PutCombo(const QString& Caption, int Value, const QStringList& List)
 {
     ui->ComboLabel->setText(Caption);
     SetVisible(ui->CombogroupBox);
@@ -105,20 +128,10 @@ int CEditWidget::GetCombo()
     return ui->Combo->currentIndex();
 }
 
-void CEditWidget::PutChannel(int Channel)
-{
-    PutSpin("Channel:",Channel,1,16);
-}
-
-void CEditWidget::GetChannel(int &Channel)
-{
-    Channel=GetSpin();
-}
-
-void CEditWidget::PutAccidentals(int *Acc)
+void CEditWidget::PutAccidentals(const int *Acc)
 {
     SetVisible(ui->Pianoframe);
-    for (int i=0; i<12; i++)
+    for (uint i=0; i<12; i++)
     {
         ui->Accidentals->Keys[i]=Acc[i];
     }
@@ -127,7 +140,7 @@ void CEditWidget::PutAccidentals(int *Acc)
 
 void CEditWidget::GetAccidentals(int *Acc)
 {
-    for (int i=0; i<12; i++)
+    for (uint i=0; i<12; i++)
     {
         Acc[i]=ui->Accidentals->Keys[i];
     }
@@ -140,7 +153,7 @@ void CEditWidget::PutTime(int Type, int Upper, int Lower)
     ui->TimeUpper->setMaximum(99);
     ui->TimeUpper->setValue(Upper);
     ui->TimeType->addItems(CTime::TimeList);
-    connect(ui->TimeType,SIGNAL(currentIndexChanged(int)),this,SLOT(SetTimeElements(int)));
+    connect(ui->TimeType,qOverload<int>(&QComboBox::currentIndexChanged),this,&CEditWidget::SetTimeElements);
     ui->TimeType->setCurrentIndex(Type);
     QStringList lw;
     lw << "1" << "2" << "4" << "8" << "16" << "32" << "64";
@@ -187,41 +200,7 @@ void CEditWidget::GetTempo(int &Tempo, int& Noteval, bool& Dotted)
     Tempo=ui->TempoSpin->value();
 }
 
-void CEditWidget::PutRepeats(int Repeats)
-{
-    PutSpin("Repeats:",Repeats,1,99);
-}
-
-void CEditWidget::GetRepeats(int &Repeats)
-{
-    Repeats=GetSpin();
-}
-
-void CEditWidget::PutStemDirection(int StemDirection)
-{
-    QStringList ListArr;
-    ListArr << "Up" << "Auto" << "Down";
-    PutCombo("Stem Direction:",StemDirection+1,ListArr);
-}
-
-void CEditWidget::GetStemDirection(int &StemDirection)
-{
-    StemDirection=GetCombo()-1;
-}
-
-void CEditWidget::PutSlanting(int Slanting)
-{
-    QStringList ListArr;
-    ListArr << "Off" << "On";
-    PutCombo("Beam Slanting:",Slanting,ListArr);
-}
-
-void CEditWidget::GetSlanting(int &Slanting)
-{
-    Slanting=GetCombo();
-}
-
-void CEditWidget::PutSysEx(QString Sysex)
+void CEditWidget::PutSysEx(const QString& Sysex)
 {
     ui->EditLabel->setText("SysEx string (Including F0 and F7:");
     SetVisible(ui->EditgroupBox);
@@ -245,51 +224,42 @@ void CEditWidget::GetSysEx(QDomLiteElement* data)
     data->setAttribute("SysExString",syx);
 }
 
-void CEditWidget::PutFont(QFont Font)
+void CEditWidget::PutFont(const QFont& Font)
 {
-    ui->FontBox->Fill(Font,"Sample Text",true);
+    ui->FontBox->fill(Font,"Sample Text",true);
     SetVisible(ui->TextFrame);
+    //SetVisible(ui->FontBox);
 }
 
 void CEditWidget::GetFont(QFont &Font)
 {
-    Font=ui->FontBox->Font();
+    Font=ui->FontBox->font();
 }
 
-void CEditWidget::PutText(QString Text, QFont Font)
+void CEditWidget::PutText(const QString& Text, const QFont& Font)
 {
-    ui->FontBox->Fill(Font,Text);
+    ui->FontBox->fill(Font,Text);
     SetVisible(ui->TextFrame);
+    //SetVisible(ui->FontBox);
 }
 
-void CEditWidget::PutText(QDomLiteElement* data)
+void CEditWidget::PutText(const XMLTextElementWrapper& data)
 {
-    XMLTextWrapper XMLText(data);
-    ui->FontBox->Fill(XMLText.getFont(),XMLText.getText());
-    //SetVisible(ui->TextFrame);
+    ui->FontBox->fill(data.font(),data.text());
+    SetVisible(ui->TextFrame);
+    //SetVisible(ui->FontBox);
 }
 
 void CEditWidget::GetText(QString &Text, QFont &Font)
 {
-    Text=ui->FontBox->Text();
-    Font=ui->FontBox->Font();
+    Text=ui->FontBox->text();
+    Font=ui->FontBox->font();
 }
 
-void CEditWidget::GetText(QDomLiteElement* data)
+void CEditWidget::GetText(XMLTextElementWrapper& data)
 {
-    XMLTextWrapper XMLText(data);
-    XMLText.setText(ui->FontBox->Text());
-    XMLText.setFont(ui->FontBox->Font());
-}
-
-void CEditWidget::PutTranspose(int Transpose)
-{
-    PutSpin("Transpose:",Transpose,-48,48);
-}
-
-void CEditWidget::GetTranspose(int &Transpose)
-{
-    Transpose=GetSpin();
+    data.setText(ui->FontBox->text());
+    data.setFont(ui->FontBox->font());
 }
 
 void CEditWidget::PutController(int Controller, int Value)
@@ -298,6 +268,7 @@ void CEditWidget::PutController(int Controller, int Value)
     ui->ControllerCombo->clear();
     ui->ControllerCombo->addItems(CController::ControllerList);
     ui->ControllerCombo->setCurrentIndex(Controller);
+    ui->ControllerLabel->setText("Controller");
     ui->ValueSpin->setMaximum(127);
     ui->ValueSpin->setMinimum(0);
     ui->ValueSpin->setValue(Value);
@@ -305,8 +276,9 @@ void CEditWidget::PutController(int Controller, int Value)
 
 void CEditWidget::PutController(QDomLiteElement* data)
 {
-    ui->ControllerCombo->setCurrentIndex(data->attributeValue("Controller"));
-    ui->ValueSpin->setValue(data->attributeValue("Value"));
+    ui->ControllerLabel->setText("Controller");
+    ui->ControllerCombo->setCurrentIndex(data->attributeValueInt("Controller"));
+    ui->ValueSpin->setValue(data->attributeValueInt("Value"));
 }
 
 void CEditWidget::GetController(int &Controller, int &Value)
@@ -324,6 +296,40 @@ void CEditWidget::GetController(QDomLiteElement* data)
     data->setAttribute("Value",Value);
 }
 
+void CEditWidget::PutPortamento(int Controller, int Value)
+{
+    SetVisible(ui->Controller);
+    ui->ControllerCombo->clear();
+    ui->ControllerCombo->addItems(CPortamento::PortamentoList);
+    ui->ControllerCombo->setCurrentIndex(Controller);
+    ui->ControllerLabel->setText("Portamento");
+    ui->ValueSpin->setMaximum(127);
+    ui->ValueSpin->setMinimum(0);
+    ui->ValueSpin->setValue(Value);
+}
+
+void CEditWidget::PutPortamento(QDomLiteElement* data)
+{
+    ui->ControllerLabel->setText("Portamento");
+    ui->ControllerCombo->setCurrentIndex(data->attributeValueInt("Portamento"));
+    ui->ValueSpin->setValue(data->attributeValueInt("Time"));
+}
+
+void CEditWidget::GetPortamento(int &Controller, int &Value)
+{
+    Controller=ui->ControllerCombo->currentIndex();
+    Value=ui->ValueSpin->value();
+}
+
+void CEditWidget::GetPortamento(QDomLiteElement* data)
+{
+    int Controller;
+    int Value;
+    GetController(Controller,Value);
+    data->setAttribute("Portamento",Controller);
+    data->setAttribute("Time",Value);
+}
+
 void CEditWidget::SetVisible(QWidget *w)
 {
     QList<QWidget*> wl;
@@ -337,9 +343,9 @@ void CEditWidget::SetVisible(QWidget *w)
     wl.append(ui->Controller);
     wl.append(ui->TextFrame);
 
-    for (int i=0;i<wl.count();i++)
+    for (QWidget* e : wl)//(int i=0;i<wl.size();i++)
     {
-        if (wl[i] != w) wl[i]->setVisible(false);
+        if (e != w) e->setVisible(false);
     }
     w->setVisible(true);
 

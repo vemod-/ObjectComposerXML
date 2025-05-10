@@ -63,7 +63,7 @@ class CSidebarTree : public QMacTreeWidget
     Q_OBJECT
 
 public:
-    explicit CSidebarTree(QWidget *parent = 0);
+    explicit CSidebarTree(QWidget *parent = nullptr);
     ~CSidebarTree();
     QTreeWidgetItem* createProjectItem(const int index, const QString& ProjectName, const int FileCount);
     QTreeWidgetItem* createOpenDocumentItem(const QFileInfo& fi, const int index, const int DocCount);
@@ -88,7 +88,8 @@ private slots:
     void itemMoved();
     void dragEnter();
     void SelectItem(QTreeWidgetItem* item, int col);
-    void MouseRelease(QMouseEvent *event);
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
 #endif // CSIDEBARTREE_H

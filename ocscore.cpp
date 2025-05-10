@@ -1,1488 +1,1010 @@
 #include "ocscore.h"
+#include "ocsymbolscollection.h"
 
-void CTrack::plMTr(OCBarList& BarList, QDomLiteElement* XMLVoice, QDomLiteElement* XMLTemplate, const QColor TC, OCSymbolArray& MTObj, OCDraw& ScreenObj, XMLScoreWrapper& XMLScore)
+CVoice::~CVoice() {}
+
+void CVoice::plotMasterStuff(OCPageBarList& BarList, const QColor& VoiceColor, OCDraw& ScreenObj, const XMLScoreWrapper& XMLScore)
 {
-    OCCounter CountIt;
-    OCPrintVarsType dcurrent = fibset;
-    float BarX = BarList.BarX()*ScreenObj.XFactor;
-    float XFysic = BarX;
-    int py = fibset.FilePointer;
+    OCPrintCounter CountIt;
+    getPageStartVars(CountIt);
+    double BarX = ScreenObj.spaceX(BarList.barX());
+    int py = CountIt.FilePointer;
     forever
     {
-        ScreenObj.col = TC;
-        XFysic = BarX;
-        CountIt.reset();
-        forever
+        ScreenObj.col = VoiceColor;
+        double XFysic = BarX;
+        //CountIt.reset();
+        while (py < symbolCount())
         {
-            XMLSymbolWrapper Symbol(XMLVoice, py, BarList.GetMeter(CountIt.BarCounter));
             ScreenObj.setcol(py);
-            if (Symbol.IsEndOfVoice()) break;
-            else if (Symbol.IsRestOrValuedNote())
-            {
-                int Ticks=Symbol.ticks();
-                CountIt.Flip(Ticks);
-                XFysic = (BarList.CalcX(CountIt.BarCounter, CountIt.Counter)*ScreenObj.XFactor) + BarX;
-                if (XFysic > (BarList.SystemLength()*ScreenObj.XFactor)) break;
-                CountIt.Flip1(Ticks);
-            }
-            else if (Symbol.IsCompoundNote())
-            {
-            }
-            else if (Symbol.Compare("Tuplet"))
-            {
-                CountIt.Tuplets(py, XMLVoice);
-            }
-            else
-            {
-                OCSymbolsCollection::PlotMTrack(XFysic, Symbol, XMLScoreWrapper::TemplateStaff(XMLTemplate, StaveNum)->attributeValue("Height"), dcurrent, TrackNum, MTObj, py, XMLScore, ScreenObj);
-            }
-            py++;
-            ScreenObj.col = TC;
-            if (CountIt.NewBar(BarList.GetMeter(CountIt.BarCounter) * BarList.GetMultiPause(CountIt.BarCounter))) break;
-        }
-        if (CountIt.BarCounter >= BarList.BarsToPrint()-1) break;
-        CountIt.BarFlip();
-        BarX = XFysic + ((begofbar+endofbar)*ScreenObj.XFactor);
-        if (XFysic > (BarList.SystemLength()*ScreenObj.XFactor)) break;
-        BarX += BarList.BegSpace(CountIt.BarCounter, true, true, true)*ScreenObj.XFactor;
-    }
-}
-
-void CTrack::PlBrLine(const int xs, const int Bracket, const int Tuborg, const int stavedistance, OCDraw& ScreenObj)
-{
-    ScreenObj.DM(xs, ScoreStaffHeight);
-    if ((Bracket == 1) || (Tuborg > 0))
-    {
-        ScreenObj.DL(0, -(ScoreStaffHeight+(12*stavedistance))*ScreenObj.XFactor);
-    }
-    else
-    {
-        ScreenObj.DL(0, -ScoreStaffLinesHeight);
-    }
-}
-
-void CTrack::getsetting(OCPrintVarsType &tempsetting)
-{
-    tempsetting = fibset;
-}
-
-void CTrack::putsetting(OCPrintVarsType &tempsetting)
-{
-    fibset = tempsetting;
-}
-
-void CTrack::PlfirstClef(OCBarList& BarList, OCDraw& ScreenObj)
-{
-    //if (ChangeClef) return;
-    if (BarList.BarMap.ClefChange(BarList.StartBar(), StaveNum, TrackNum)) return;
-    ScreenObj.DM(24*ScreenObj.XFactor, 888);
-    CClef::PlClef(fibset.CurrentClef.val,0,ScreenObj);
-}
-
-void CTrack::PlfirstAcc(OCBarList& BarList, OCDraw& ScreenObj)
-{
-    //if (changefortegn) return;
-    if (BarList.BarMap.KeyChange(BarList.StartBar(), StaveNum, TrackNum)) return;
-    float BarX = begofbar + BarList.BegSpace(0, false, true, false);
-    CKey::plotKey(fibset.CurrentKey.val,QPointF((BarX-216)*ScreenObj.XFactor,0),fibset.CurrentClef.val,ScreenObj);
-}
-
-void CTrack::FormatBar(const int CurrentBar, const int ActualBar, OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement *XMLTemplate)
-{
-    int Pnt=BarList.BarMap.GetPointer(ActualBar+BarList.StartBar(),StaveNum,TrackNum);//FiFcPnt;
-    OCPrintVarsType dummy(fibset);
-    QDomLiteElement* XMLVoice = XMLScore.Voice(StaveNum, TrackNum);
-    /*
-    if (CNoteCompare(XMLVoice->childElement(Pnt)).IsEndOfVoice())
-    {
-        if (CurrentBar == 0)
-        {
-            if (BarList.GetKeyInBegOfBar(0) < CKey::NumOfAccidentals(dummy.CurrentKey.val))
-            {
-                //if (!BarList.BarMap.KeyChange(BarList.StartBar(), StaveNum, TrackNum)) BarList.SetKeyInBegOfBar(0, BarList.GetKeyInBegOfBar(0) + CKey::NumOfAccidentals(dummy.CurrentKey.val));
-            }
-        }
-        //return;
-    }
-    */
-    OCCounter CountIt;
-    forever
-    {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, BarList.GetMeter(CurrentBar));
-        if (Symbol.IsRestOrValuedNote())
-        {
-            int Ticks=Symbol.ticks();
-            CountIt.Flip(Ticks);
-            BarList.SetMinimum(CurrentBar, CountIt.Rounded, CountIt.Counter - CountIt.Rounded);
-            dummy.Decrement(Ticks);
-            CountIt.Flip1(Ticks);
-        }
-        else if (Symbol.IsEndOfVoice())
-        {
-            break;
-        }
-        else
-        {
-            OCSymbolsCollection::DrawFactor(Symbol, &CountIt, XMLTemplate, BarList, StaveNum, TrackNum, CurrentBar, Pnt, XMLScore);
-        }
-        Pnt++;
-        if (CountIt.NewBar(BarList.GetMeter(CurrentBar)))
-        {
-            break;
-        }
-    }
-    if (CurrentBar == 0)
-    {
-        if (BarList.GetKeyInBegOfBar(0) < CKey::NumOfAccidentals(dummy.CurrentKey.val))
-        {
-            if (!BarList.BarMap.KeyChange(BarList.StartBar(), StaveNum, TrackNum)) BarList.SetKeyInBegOfBar(0, BarList.GetKeyInBegOfBar(0) + CKey::NumOfAccidentals(dummy.CurrentKey.val));
-        }
-    }
-}
-
-CTrack::CTrack()
-{
-    TrackNum=0;
-    StaveNum=0;
-}
-
-void CTrack::PlTrack(OCBarList &BarList, XMLScoreWrapper &XMLScore, OCSymbolArray &SymbolList, OCNoteList &NoteList, OCDraw& ScreenObj, OCPrintStaffVarsType &sCurrent, const QColor TrackColor)
-{
-    float XFysic=0;
-    float BarX=0;
-    int NoteCount=0;
-    QColor SignCol(activestaffcolor);
-    QDomLiteElement* XMLVoice = XMLScore.Voice(StaveNum, TrackNum);
-    int TriolStart=0;
-    ScreenObj.col = TrackColor;
-    OCCounter CountIt;
-    OCSignList SignsToPrint;
-    OCPrintVarsType dcurrent = fibset;
-    dcurrent.FilePointer = fibset.FilePointer;
-    int StartPointer = dcurrent.FilePointer;
-    if (dcurrent.FilePointer == 0) dcurrent.Meter = BarList.BarMap.GetMeter(0,StaveNum,TrackNum);//BarList.GetMeter(-1);
-    BarX = BarList.BarX()*ScreenObj.XFactor;
-    forever
-    {
-        CountIt.reset();
-        XFysic = BarX;
-        int TriolVal = 0;
-        ScreenObj.setcol(QColor(unselectablecolor));
-        if (CountIt.BarCounter == 0)
-        {
-            if (dcurrent.SlurUp.RemainingTicks) NoteList.PlotSlur(0, dcurrent.SlurUp.RemainingTicks, 1, dcurrent.SlurUp.val, dcurrent.SlurUp.Pos, dcurrent.SlurUp.Size, true, ScreenObj);
-            if (dcurrent.SlurDown.RemainingTicks) NoteList.PlotSlur(0, dcurrent.SlurDown.RemainingTicks, -1, dcurrent.SlurDown.val, dcurrent.SlurDown.Pos, dcurrent.SlurDown.Size, true, ScreenObj);
-            if (dcurrent.crescendo.RemainingTicks) NoteList.PlotHairPin(0, dcurrent.crescendo.RemainingTicks, 0, dcurrent.crescendo.Pos, dcurrent.crescendo.Size, true, ScreenObj);
-            if (dcurrent.diminuendo.RemainingTicks) NoteList.PlotHairPin(0, dcurrent.diminuendo.RemainingTicks, 1, dcurrent.diminuendo.Pos, dcurrent.diminuendo.Size, true, ScreenObj);
-        }
-        ScreenObj.col = TrackColor;
-        forever
-        {
-            XMLSymbolWrapper Symbol(XMLVoice, dcurrent.FilePointer, dcurrent.Meter);
-            ScreenObj.setcol(dcurrent.FilePointer);
-            SignCol = ScreenObj.col;
+            const XMLSymbolWrapper& Symbol=XMLSymbol(py, BarList.meter(CountIt.barCount()));
             if (Symbol.IsRestOrValuedNote())
             {
-                int Ticks=Symbol.ticks();
-                ScreenObj.col = TrackColor;
-                CountIt.Flip(Ticks);
-                NoteList.plot(NoteCount, dcurrent.Meter, dcurrent.FilePointer, BarList, dcurrent.TieWrap, TriolVal, TrackColor, SymbolList, ScreenObj);
-                if (Symbol.getVal("Triplet"))
-                {
-                    if (TriolVal == 0) TriolStart = NoteCount;
-                    TriolVal += Ticks;
-                }
-                else
-                {
-                    if (TriolVal > 0) TriolVal += Ticks;
-                }
-                switch (TriolVal)
-                {
-                case 3:
-                case 6:
-                case 12:
-                case 24:
-                case 48:
-                case 96:
-                    ScreenObj.setcol(QColor(unselectablecolor));
-                    NoteList.PlotTuplet(TriolStart, TriolVal - Ticks, 3, QPointF(0,0), 0, ScreenObj);
-                    ScreenObj.col=TrackColor;
-                    TriolVal = 0;
-                }
-                NoteList.plotsigns(NoteCount, SignsToPrint, SymbolList, ScreenObj);
-                NoteCount ++;
-                CountIt.Flip1(Ticks);
+                CountIt.flip(Symbol.ticks());
+                XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.TickCounter)) + BarX;
+                if (XFysic > ScreenObj.spaceX(BarList.systemLength())) break;
+                CountIt.DecrementFlip();
+                //CountIt.flip1(Ticks);
             }
-            else if (Symbol.IsCompoundNote())
-            {}
-            else if (Symbol.IsEndOfVoice())
+            else if (Symbol.IsTuplet())
             {
-                ScreenObj.DM(XFysic, ScoreStaffHeight);
-                ScreenObj.DJ(0, -96 * 4);
-                ScreenObj.DM(XFysic + ScreenObj.ScreenSize * 2, ScoreStaffHeight);
-                ScreenObj.DJ(0, -96 * 4);
+                CountIt.OCCounter::tuplets(py,*this);
+            }
+            else
+            {
+                OCSymbolsCollection::fib(Symbol,CountIt);
+                const OCSymbolLocation& l(OCSymbolLocation(VoiceLocation,py));
+                FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::PlotMTrack(XFysic, Symbol, XMLScore.Template.staff(VoiceLocation.StaffId).height(), CountIt, XMLScore, ScreenObj)),l);
+            }
+            py++;
+            ScreenObj.col = VoiceColor;
+            if (CountIt.newBar(BarList.multiMeter(CountIt.barCount()))) break;
+        }
+        if (CountIt.barCount() >= BarList.barsToPrint()-1) break;
+        CountIt.barFlip();
+        BarX = XFysic + ScreenObj.spaceX((BarLeftMargin+BarRightMargin));
+        if (XFysic > ScreenObj.spaceX(BarList.systemLength())) break;
+        BarX += ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, true, true));
+    }
+}
+
+void CVoice::getPageStartVars(OCPrintVarsType &voiceVars) { voiceVars = OCPrintVarsType(pageStartVars); }
+
+void CVoice::setPageStartVars(const OCPrintVarsType &voiceVars) { pageStartVars = OCPrintVarsType(voiceVars); }
+
+const QRectF CVoice::plBarLine(const double xs, const XMLTemplateStaffWrapper& templateStaff, OCDraw& ScreenObj)
+{
+    const QRectF r = ScreenObj.boundingRect(ScreenObj.line(xs, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+    if ((templateStaff.squareBracket() == SBBegin) || (templateStaff.curlyBracket() > CBNone))
+    {
+        ScreenObj.line(0, -(ScreenObj.spaceX(ScoreStaffHeight)-ScoreStaffLinesHeight+(ScreenObj.spaceX(12*templateStaff.height()))));
+    }
+    return r;
+}
+
+void CVoice::plfirstClef(OCPageBarList& BarList, OCDraw& ScreenObj)
+{
+    if (BarList.BarMap.ClefChange(OCBarLocation(VoiceLocation,BarList.startBar()))) return;
+    ScreenObj.moveTo(ScreenObj.spaceX(24), 888);
+    CClef::PlClef(pageStartVars.clef(),0,ScreenObj);
+}
+
+void CVoice::plfirstKey(OCPageBarList& BarList, OCDraw& ScreenObj)
+{
+    if (BarList.BarMap.KeyChange(OCBarLocation(VoiceLocation,BarList.startBar()))) return;
+    const double BarX = BarLeftMargin + BarList.paddingLeft(0, false, true, false);
+    CKey::plotKey(pageStartVars.key(),QPointF(ScreenObj.spaceX(BarX-216),0),pageStartVars.clef(),ScreenObj);
+}
+
+void CVoice::formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate)
+{
+    int py=BarList.BarMap.GetPointer(OCBarLocation(VoiceLocation,b.barNumber())).Pointer;
+    //OCPrintVarsType dummy = OCPrintVarsType(pageStartVars);
+    OCPrintCounter CountIt(b.currentBar);
+    getPageStartVars(CountIt);
+    while (py < symbolCount())
+    {
+        const XMLSymbolWrapper& Symbol=XMLSymbol(py, BarList.meter(b.currentBar));
+        if (Symbol.IsRestOrValuedNote())
+        {
+            CountIt.flip(Symbol.ticks());
+            BarList.setMinimum(b.currentBar, CountIt.CurrentTicksRounded, CountIt.TickCounter - CountIt.CurrentTicksRounded);
+            CountIt.DecrementFlip();
+            //CountIt.flip1(Ticks);
+        }
+        else if (Symbol.IsTuplet())
+        {
+            CountIt.OCCounter::tuplets(py, XMLScore.Voice(VoiceLocation));
+        }
+        else
+        {
+            OCSymbolsCollection::DrawFactor(Symbol, CountIt, XMLTemplate, BarList, XMLScore);
+        }
+        py++;
+        if (CountIt.newBar(BarList.meter(b.currentBar))) break;
+    }
+    if (b.currentBar == 0)
+    {
+        if (BarList.keyInBegOfBar(0) < int(CKey::NumOfAccidentals(CountIt.key())))
+        {
+            if (!BarList.BarMap.KeyChange(OCBarLocation(VoiceLocation,BarList.startBar()))) BarList.setKeyInBegOfBar(0, BarList.keyInBegOfBar(0) + int(CKey::NumOfAccidentals(CountIt.key())));
+        }
+    }
+}
+
+void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OCNoteList &NoteList, OCDraw& ScreenObj, const XMLTemplateStaffWrapper &XMLTemplateStaff, const QColor& VoiceColor)
+{
+    QColor SignCol(activestaffcolor);
+    ScreenObj.col = VoiceColor;
+    OCPrintCounter CountIt;
+    getPageStartVars(CountIt);
+    OCPrintSignList SignsToPrint;
+    if (CountIt.FilePointer == 0) CountIt.Meter = BarList.BarMap.GetMeter(OCBarLocation(VoiceLocation,0));
+    double BarX = ScreenObj.spaceX(BarList.barX());
+    ScreenObj.setcol(QColor(unselectablecolor));
+    for (const OCDurSignType& s : std::as_const(CountIt.DurSigns)) OCSymbolsCollection::plotRemaining(s, NoteList, ScreenObj);
+    forever
+    {
+        //CountIt.reset();
+        double XFysic = BarX;
+        ScreenObj.col = VoiceColor;
+        forever
+        {
+            ScreenObj.setcol(CountIt.FilePointer);
+            SignCol = ScreenObj.col;
+            if (CountIt.FilePointer >= symbolCount())
+            {
+                const QRectF r=ScreenObj.boundingRect(ScreenObj.line(XFysic, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+                BarList.setFrame(CountIt.barCount()+1,r);
+                ScreenObj.line(XFysic + ScreenObj.ScreenSize * 2, ScoreStaffHeight,0, -ScoreStaffLinesHeight);
+                ScreenObj.col = VoiceColor;
+                NoteList.PlotBeams(VoiceColor, ScreenObj);
                 return;
             }
+            const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+            if (Symbol.IsRestOrValuedNote())
+            {
+                ScreenObj.col = VoiceColor;
+                CountIt.flip(Symbol.ticks());
+                NoteList.plot(CountIt.RhythmObjectIndex, CountIt, VoiceLocation, BarList, VoiceColor, FrameList, ScreenObj);
+                if (CountIt.tripletFlip(Symbol))
+                {
+                    ScreenObj.setcol(QColor(unselectablecolor));
+                    OCNoteList::PlotTuplet(NoteList.CreateList(CountIt.TripletStart, CountIt.TripletCount - CountIt.CurrentTicks), 3, QPointF(0,0), 0, ScreenObj);
+                    ScreenObj.col = VoiceColor;
+                    CountIt.TripletCount = 0;
+                }
+                NoteList.plotsigns(CountIt.RhythmObjectIndex, SignsToPrint, FrameList, ScreenObj);
+                CountIt.DecrementFlip();
+                //CountIt.flip1(Ticks);
+            }
             else
             {
-                OCSymbolsCollection::plot(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, XMLScore, StartPointer, SymbolList, StaveNum, TrackNum, NoteList, NoteCount, dcurrent, sCurrent, dcurrent.FilePointer, ScreenObj);
+                if (Symbol.IsTuplet()) CountIt.OCCounter::tuplets(CountIt.FilePointer, XMLScore.Voice(VoiceLocation));
+                const OCBarSymbolLocation l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
+                FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::plot(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, XMLScore, NoteList, CountIt, XMLTemplateStaff, ScreenObj)),l);
+                OCSymbolsCollection::appendSign(Symbol,SignsToPrint,SignCol,CountIt,OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
+                OCSymbolsCollection::fib(Symbol,CountIt);
             }
-            ScreenObj.col = TrackColor;
-            SignCol = TrackColor;
-            dcurrent.FilePointer++;
-            XFysic = (BarList.CalcX(CountIt.BarCounter, CountIt.Counter)*ScreenObj.XFactor) + BarX;
-            if (CountIt.NewBar(dcurrent.Meter)) break;
+            ScreenObj.col = VoiceColor;
+            SignCol = VoiceColor;
+            CountIt.FilePointer++;
+            XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.TickCounter)) + BarX;
+            if (CountIt.newBar(CountIt.Meter)) break;
         }
-        //'If BarList.GetMultiPause(CountIt.BarCounter) > 0 Then dcurrent.FilePointer = dcurrent.FilePointer + BarList.GetMultiPauseNumOfEvents(CountIt.BarCounter) - 1
-        if (CountIt.BarCounter >= BarList.BarsToPrint()-1) break;
-        CountIt.BarFlip();
-        BarX = XFysic + ((begofbar+endofbar)*ScreenObj.XFactor);
-        if (XFysic > BarList.SystemLength()*ScreenObj.XFactor) break;
-        PlBrLine(BarX - ((begofbar + 48)*ScreenObj.XFactor), sCurrent.Square, sCurrent.Curly, sCurrent.Height, ScreenObj);
-        BarX += (BarList.BegSpace(CountIt.BarCounter, true, true, true)*ScreenObj.XFactor);
+        if (CountIt.barCount() >= BarList.barsToPrint() - 1) break;
+        CountIt.barFlip();
+        BarX = XFysic + ScreenObj.spaceX(BarLeftMargin+BarRightMargin);
+        if (XFysic > ScreenObj.spaceX(BarList.systemLength())) break;
+        BarList.setFrame(CountIt.barCount(), plBarLine(BarX - ScreenObj.spaceX(BarLeftMargin + 48), XMLTemplateStaff, ScreenObj));
+        BarX += ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, true, true));
     }
-    PlBrLine(BarList.SystemLength()*ScreenObj.XFactor, sCurrent.Square, sCurrent.Curly, sCurrent.Height, ScreenObj);
-    int py = dcurrent.FilePointer;
-    ScreenObj.setcol(QColor(unselectablecolor));
+    BarList.setFrame(CountIt.barCount()+1,plBarLine(ScreenObj.spaceX(BarList.systemLength()), XMLTemplateStaff, ScreenObj));
+    //int py = voiceVars.FilePointer;
     forever
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, dcurrent.Meter);
-        if (Symbol.Compare("Time"))
+        if (CountIt.FilePointer >= symbolCount())
         {
-            OCSymbolsCollection::fib(Symbol,TrackNum,dcurrent);
-            CTime::PlTime(Symbol, BarList.EndSpace(false,false,true)*ScreenObj.XFactor,ScreenObj,Qt::AlignLeft); //BarX-108
-        }
-        else if (Symbol.Compare("Clef"))
-        {
-            OCSymbolsCollection::fib(Symbol,TrackNum,dcurrent);
-            ScreenObj.DM(BarList.EndSpace(true,true,true)*ScreenObj.XFactor, 888, Symbol);
-            CClef::PlClef(Symbol.getVal("Clef") + 1, 0, ScreenObj);
-        }
-        else if (Symbol.Compare("Key"))
-        {
-            OCSymbolsCollection::fib(Symbol,TrackNum,dcurrent);
-            CKey::plotKey(dcurrent.CurrentKey.val, Symbol.move(BarList.EndSpace(true, false, true)*ScreenObj.XFactor,0),dcurrent.CurrentClef.val,ScreenObj);
-        }
-        else if (Symbol.Compare("Repeat"))
-        {
-            if (Symbol.getVal("RepeatType") == 0)
-            {
-                OCSymbolsCollection::fib(Symbol,TrackNum,dcurrent);
-                OCSymbolsCollection::plot(Symbol, (BarList.SystemLength() + (15 * 12))*ScreenObj.XFactor, BarList, CountIt, SignsToPrint, unselectablecolor, XMLScore, StartPointer, SymbolList, StaveNum, TrackNum, NoteList, NoteCount, dcurrent, sCurrent, 0, ScreenObj);
-            }
-        }
-        else if (Symbol.IsEndOfVoice())
-        {
-            PlBrLine((BarList.SystemLength()-(LineHalfThickNess*6))*ScreenObj.XFactor, sCurrent.Square, sCurrent.Curly, sCurrent.Height, ScreenObj);
+            BarList.setFrame(CountIt.barCount()+1,plBarLine(ScreenObj.spaceX(BarList.systemLength()-(LineHalfThickNess*6)), XMLTemplateStaff, ScreenObj));
             break;
         }
-        else if (Symbol.IsRestOrValuedNote())
-        {
-            break;
-        }
-        py++;
+        ScreenObj.setcol(CountIt.FilePointer);
+        const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote()) break;
+        const OCBarSymbolLocation& l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
+        FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::plotSystemEnd(Symbol, 0, BarList, CountIt, SignsToPrint, unselectablecolor, XMLScore, NoteList, CountIt, XMLTemplateStaff, ScreenObj)),l);
+        OCSymbolsCollection::fib(Symbol,CountIt);
+        ScreenObj.col = VoiceColor;
+        CountIt.FilePointer++;
     }
-    ScreenObj.col = TrackColor;
+    ScreenObj.col = VoiceColor;
+    NoteList.PlotBeams(VoiceColor, ScreenObj);
 }
 
-CTrack::~CTrack()
+int CVoice::fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, const double XFysic, OCDraw& ScreenObj)
 {
-}
-
-const int CTrack::FillChunk(int& py, OCCounter& CountIt, OCNoteList& NoteList, OCPrintVarsArray dcurrent, const int NumOfTracks, QDomLiteElement* XMLVoice, OCStaffAccidentals& lfortegn, OCBarList& BarList, const int XFysic, QList<int> &LastTiedNotes, OCDraw& ScreenObj)
-{
-    CountIt.killed=false;
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
     int currentlen = 0;
-    forever
+    while (CountIt.valid(symbolCount()))
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, dcurrent[TrackNum].Meter);
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote())
         {
-            int Ticks=Symbol.ticks();
-            CountIt.Flip(Ticks);
-            NoteList.Append(XFysic, Symbol, py, XMLVoice, TrackNum, dcurrent[TrackNum], CountIt, lfortegn, BarList, LastTiedNotes, ScreenObj);
-            CountIt.Flip1(Ticks);
-            currentlen = CountIt.Rounded;
-            py++;
+            CountIt.flip(Symbol.ticks());
+            NoteList.Append(XFysic, Symbol, VoiceLocation, *this, CountIt, StaffAccidentals, BarList, ScreenObj);
+            //if (voiceVarsArray.size() > 1) s->forceUpDown(VoiceLocation.Voice);
+            currentlen = CountIt.DecrementFlip();
+            //CountIt.flip1(Ticks);
+            //currentlen = CountIt.CurrentTicksRounded;
+            CountIt.FilePointer++;
             break;
         }
-        else if (Symbol.IsEndOfVoice())
-        {
-            CountIt.killed = true;
-            break;
-        }
-        else
-        {
-            FillBetweenNotes(py, XMLVoice, NumOfTracks, CountIt, dcurrent, lfortegn);
-        }
+        fillBetweenNotes(voiceVarsArray, StaffAccidentals);
     }
     return currentlen;
 }
 
-void CTrack::FillBetweenNotes(int &py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray dcurrent, OCStaffAccidentals& lfortegn)
+void CVoice::fillBetweenNotes(OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals)
 {
-    forever
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    while (CountIt.FilePointer < symbolCount())
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, dcurrent[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
+        const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote()) return;
+        if (Symbol.IsTuplet())
         {
-            return;
-        }
-        else if (Symbol.IsCompoundNote())
-        {}
-        else if (Symbol.IsEndOfVoice())
-        {
-            return;
-        }
-        else if (Symbol.Compare("Tuplet"))
-        {
-            CountIt.Tuplets(py, XMLVoice);
+            CountIt.tuplets(*this);
         }
         else
         {
-            OCSymbolsCollection::fib(Symbol,TrackNum,dcurrent[TrackNum]);
-            if (TrackNum == 0)
-            {
-                if (OCSymbolsCollection::IsCommon(Symbol))
-                {
-                    for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
-                    {
-                        OCSymbolsCollection::fib(Symbol,iTemp,dcurrent[iTemp]);
-                        if (Symbol.Compare("Key")) lfortegn.RdAcc(dcurrent[iTemp].CurrentKey.val);
-                    }
-                }
-            }
+            OCSymbolsCollection::fibCommon(Symbol,voiceVarsArray,VoiceLocation);
+            if (Symbol.Compare("Key")) StaffAccidentals.SetKeyAccidentals(CountIt.key());
         }
-        py++;
+        CountIt.FilePointer++;
     }
 }
 
-const int CTrack::FiBChunk(int& Pnt, QDomLiteElement* XMLVoice, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks, QList<int> &LastTiedNotes)
+int CVoice::findBarChunk(OCStaffCounterPrint& voiceVarsArray)
 {
-    CountIt.killed=false;
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
     int currentlen = 0;
-    forever
+    while (CountIt.valid(symbolCount()))
     {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, fibset[TrackNum].Meter);
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote())
         {
-            if (Symbol.IsTiedNote())
-            {
-                LastTiedNotes.append(Symbol.getVal("Pitch"));
-            }
-            fibset[TrackNum].TieWrap.EraseTie();
-            int Ticks=Symbol.ticks();
-            CountIt.Flip(Ticks);
-            //TupletFactor = CountIt.factor;
-            CountIt.Flip1(Ticks);
-            currentlen = CountIt.Rounded;
-            Pnt++;
-            if (Symbol.IsTiedNote())
-            {
-                fibset[TrackNum].TieWrap.Add(Symbol.getVal("Pitch"));
-            }
-            fibset[TrackNum].TieWrap.EraseTies = true;
+            if (Symbol.IsTiedNote()) CountIt.Ties.append(Symbol.pitch());
+            CountIt.TieWrap.eraseTie();
+            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            CountIt.FilePointer++;
+            if (Symbol.IsTiedNote()) CountIt.TieWrap.append(Symbol.pitch());
+            CountIt.TieWrap.EraseTies = true;
             break;
         }
-        if (Symbol.IsEndOfVoice())
-        {
-            CountIt.killed = true;
-            break;
-        }
-        else
-        {
-            FiBBetweenNotes(Pnt, XMLVoice, NumOfTracks, CountIt, fibset, LastTiedNotes);
-        }
+        findBarBetweenNotes(voiceVarsArray);
     }
     return currentlen;
 }
 
-void CTrack::FiBBetweenNotes(int &py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset, QList<int> &LastTiedNotes)
+void CVoice::findBarBetweenNotes(OCStaffCounterPrint& voiceVarsArray)
 {
-    forever
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    while (CountIt.FilePointer < symbolCount())
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, fibset[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            return;
-        }
+        const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote()) return;
         if (Symbol.IsCompoundNote())
         {
-            if (Symbol.IsTiedNote())
-            {
-                LastTiedNotes.append(Symbol.getVal("Pitch"));
-            }
-            fibset[TrackNum].TieWrap.EraseTie();
-            if (Symbol.IsTiedNote())
-            {
-                fibset[TrackNum].TieWrap.Add(Symbol.getVal("Pitch"));
-            }
+            if (Symbol.IsTiedNote()) CountIt.Ties.append(Symbol.pitch());
+            CountIt.TieWrap.eraseTie();
+            if (Symbol.IsTiedNote()) CountIt.TieWrap.append(Symbol.pitch());
         }
-        if (Symbol.IsEndOfVoice())
+        else if (Symbol.IsTuplet())
         {
-            return;
-        }
-        if (Symbol.Compare("Tuplet"))
-        {
-            CountIt.Tuplets(py, XMLVoice);
+            CountIt.tuplets(*this);
         }
         else
         {
-            OCSymbolsCollection::fib(Symbol,TrackNum,fibset[TrackNum]);
-            if (TrackNum == 0)
-            {
-                if (OCSymbolsCollection::IsCommon(Symbol))
-                {
-                    for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
-                    {
-                        OCSymbolsCollection::fib(Symbol,iTemp,fibset[iTemp]);
-                    }
-                }
-            }
+            OCSymbolsCollection::fibCommon(Symbol,voiceVarsArray,VoiceLocation);
         }
-        py++;
+        CountIt.FilePointer++;
     }
 }
 
-const QList<SymbolSearchLocation> CTrack::SearchBetweenNotes(int &py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset, QString SearchTerm)
+int CVoice::searchChunk(OCBarSymbolLocationList& l, OCStaffCounterPrint& voiceVarsArray, const QString& SearchTerm)
 {
-    QList<SymbolSearchLocation> l;
-    forever
-    {
-        XMLSymbolWrapper Symbol(XMLVoice, py, fibset[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            return l;
-        }
-        if (Symbol.IsEndOfVoice())
-        {
-            return l;
-        }
-        if (Symbol.Compare(SearchTerm))
-        {
-            SymbolSearchLocation s;
-            s.Bar=CountIt.BarCounter;
-            s.Staff=StaveNum;
-            s.Voice=TrackNum;
-            s.Pointer=py;
-            l.append(s);
-        }
-        if (Symbol.IsCompoundNote())
-        {
-        }
-        if (Symbol.Compare("Tuplet"))
-        {
-            CountIt.Tuplets(py, XMLVoice);
-        }
-        else
-        {
-            OCSymbolsCollection::fib(Symbol,TrackNum,fibset[TrackNum]);
-            if (TrackNum == 0)
-            {
-                if (OCSymbolsCollection::IsCommon(Symbol))
-                {
-                    for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
-                    {
-                        OCSymbolsCollection::fib(Symbol,iTemp,fibset[iTemp]);
-                    }
-                }
-            }
-        }
-        py++;
-    }
-    return l;
-}
-
-void CTrack::FakePlotBetweenNotes(int &py, QDomLiteElement* XMLVoice, const int NumOfTracks, OCCounter& CountIt, OCPrintVarsArray fibset)
-{
-    forever
-    {
-        XMLSymbolWrapper Symbol(XMLVoice, py, fibset[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            return;
-        }
-        if (Symbol.IsCompoundNote())
-        {
-        }
-        if (Symbol.IsEndOfVoice())
-        {
-            return;
-        }
-        if (Symbol.Compare("Tuplet"))
-        {
-            CountIt.Tuplets(py, XMLVoice);
-        }
-        else
-        {
-            OCSymbolsCollection::fib(Symbol,TrackNum,fibset[TrackNum]);
-            if (TrackNum == 0)
-            {
-                if (OCSymbolsCollection::IsCommon(Symbol))
-                {
-                    for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
-                    {
-                        OCSymbolsCollection::fib(Symbol,iTemp,fibset[iTemp]);
-                    }
-                }
-            }
-        }
-        py++;
-    }
-}
-
-const int CTrack::FiBPlayChunk(int &Pnt, QDomLiteElement* XMLStaff, OCCounter& CountIt, OCPlayVarsArray pcurrent, const int NumOfTracks, OCSignList& SignsToPlay, int& AccelCounter, OCMIDIFile& MFile, const int TrackOffset)
-{
-    QDomLiteElement* XMLVoice = XMLScoreWrapper::Voice(XMLStaff, TrackNum);
-    CountIt.killed=false;
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
     int currentlen = 0;
-    forever
+    while (CountIt.valid(symbolCount()))
     {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, pcurrent[TrackNum].PlayMeter);
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote())
         {
-            int Ticks=Symbol.ticks();
-            if (Symbol.getVal("Inaudible"))
+            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            if (Symbol.Compare(SearchTerm)) l.append(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
+            CountIt.FilePointer++;
+            break;
+        }
+        l.append (searchBetweenNotes(voiceVarsArray, SearchTerm));
+    }
+    return currentlen;
+}
+
+const OCBarSymbolLocationList CVoice::searchBetweenNotes(OCStaffCounterPrint& voiceVarsArray, const QString& SearchTerm)
+{
+    OCBarSymbolLocationList l;
+    OCPrintCounter& CountIt=voiceVarsArray[VoiceLocation.Voice];
+    forever
+    {
+        if (CountIt.FilePointer >= symbolCount()) return l;
+        const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote()) return l;
+        if (Symbol.Compare(SearchTerm)) l.append(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
+        if (Symbol.IsTuplet())
+        {
+            CountIt.tuplets(*this);
+        }
+        else
+        {
+            OCSymbolsCollection::fibCommon(Symbol,voiceVarsArray,VoiceLocation);
+        }
+        CountIt.FilePointer++;
+    }
+}
+
+int CVoice::FakePlotChunk(OCStaffCounterPrint& voiceVarsArray)
+{
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
+    int currentlen = 0;
+    while (CountIt.valid(symbolCount()))
+    {
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote())
+        {
+            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            CountIt.FilePointer++;
+            break;
+        }
+        fakePlotBetweenNotes(voiceVarsArray);
+    }
+    return currentlen;
+}
+
+void CVoice::fakePlotBetweenNotes(OCStaffCounterPrint& voiceVarsArray)
+{
+    OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    while (CountIt.FilePointer < symbolCount())
+    {
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
+        if (Symbol.IsRestOrValuedNote()) return;
+        if (Symbol.IsTuplet())
+        {
+            CountIt.tuplets(*this);
+        }
+        else
+        {
+            OCSymbolsCollection::fibCommon(Symbol,voiceVarsArray,VoiceLocation);
+        }
+        CountIt.FilePointer++;
+    }
+}
+
+int CVoice::findBarPlayChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, OCMIDIFile& MFile, const int TrackOffset)
+{
+    OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
+    int currentlen = 0;
+    while (CountIt.valid(symbolCount()))
+    {
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.Pointer, CountIt.PlayMeter);
+        if (Symbol.IsRestOrValuedNote())
+        {
+            CountIt.playFlip(Symbol.ticks());
+            if (Symbol.isAudible())
             {
-                CountIt.PlayFlip(Ticks);
-                CountIt.Flip1(Ticks);
-            }
-            else
-            {
-                CountIt.PlayFlip(Ticks);
-                SignsToPlay.PlayAfterNote(Symbol, pcurrent[TrackNum]);
-                SignsToPlay.Decrement(Ticks);
-                if (pcurrent[TrackNum].Accel != 0)
+                SignsToPlay.PlayAfterNote(Symbol, CountIt);
+                SignsToPlay.decrement(CountIt.CurrentTicks);
+                if (CountIt.Accel != 0)
                 {
-                    AccelCounter += Ticks;
+                    CountIt.AccelCounter += CountIt.CurrentTicks;
                 }
                 else
                 {
-                    AccelCounter = 0;
+                    CountIt.AccelCounter = 0;
                 }
-                CountIt.Flip1(Ticks);
             }
-            currentlen = CountIt.Rounded;
-            Pnt++;
+            currentlen = CountIt.flip1();
+            CountIt.Pointer++;
             break;
         }
-        else if (Symbol.IsEndOfVoice())
-        {
-            CountIt.killed = true;
-            break;
-        }
-        else
-        {
-            FiBPlayBetweenNotes(Pnt, XMLStaff, NumOfTracks, CountIt, pcurrent, MFile, SignsToPlay, TrackOffset);
-        }
+        findBarPlayBetweenNotes(XMLStaff, voiceVarsArray, MFile, SignsToPlay, TrackOffset);
     }
     return currentlen;
 }
 
-void CTrack::FiBPlayBetweenNotes(int &py, QDomLiteElement* XMLStaff, const int NumOfTracks, OCCounter& CountIt, OCPlayVarsArray pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay, const int TrackOffset)
+void CVoice::findBarPlayBetweenNotes(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay, const int TrackOffset)
 {
-    QDomLiteElement* XMLVoice = XMLScoreWrapper::Voice(XMLStaff, TrackNum);
-    forever
+    OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    while (CountIt.Pointer < symbolCount())
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, pcurrent[TrackNum].PlayMeter);
-        if (Symbol.IsRestOrValuedNote())
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.Pointer, CountIt.PlayMeter);
+        if (Symbol.IsRestOrValuedNote()) return;
+        if (Symbol.IsTuplet())
         {
-            return;
-        }
-        else if (Symbol.IsCompoundNote())
-        {}
-        else if (Symbol.IsEndOfVoice())
-        {
-            break;
-        }
-        else if (Symbol.Compare("Tuplet"))
-        {
-            if (!Symbol.getVal("Inaudible"))
-            {
-                CountIt.Tuplets(py, XMLVoice);
-            }
+            if (Symbol.isAudible()) CountIt.tuplets(*this);
         }
         else
         {
-            if (!Symbol.getVal("Inaudible")) OCSymbolsCollection::fibPlay(Symbol,MFile,CountIt,py,XMLVoice,SignsToPlay,pcurrent[TrackNum]);
-            if (TrackNum == 0)
+            if (Symbol.isAudible()) OCSymbolsCollection::fibPlay(Symbol,MFile,CountIt,CountIt.Pointer,*this,SignsToPlay,CountIt);
+            if (VoiceLocation.Voice == 0)
             {
-                if (NumOfTracks > 1)
+                if (voiceVarsArray.size() > 1)
                 {
-                    if (OCSymbolsCollection::IsCommon(Symbol))
+                    if (Symbol.isCommon())
                     {
-                        for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
+                        for (int i = 1; i < voiceVarsArray.size(); i++)
                         {
-                            MFile.SetTrackNumber(TrackOffset + iTemp);
-                            MFile.SetTime(pcurrent[iTemp].Currenttime);
-                            QDomLiteElement* XMLVoice1=XMLScoreWrapper::Voice(XMLStaff, iTemp);
-                            if (!Symbol.getVal("Inaudible")) OCSymbolsCollection::fibPlay(Symbol,MFile,CountIt,py,XMLVoice1,SignsToPlay,pcurrent[iTemp]);
-                        }
-                        MFile.SetTrackNumber(TrackOffset);
-                    }
-                }
-            }
-        }
-        py++;
-    }
-}
-
-void CTrack::PlayBetweenNotes(int &py, QDomLiteElement* XMLStaff, const int NumOfTracks, OCCounter& CountIt, OCPlayVarsArray pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay, const int MIDITrackNumber)
-{
-    QDomLiteElement* XMLVoice = XMLScoreWrapper::Voice(XMLStaff, TrackNum);
-
-    forever
-    {
-        XMLSymbolWrapper Symbol(XMLVoice, py, pcurrent[TrackNum].PlayMeter);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            return;
-        }
-        if (Symbol.IsCompoundNote())
-        {
-            return;
-        }
-        if (Symbol.IsEndOfVoice())
-        {
-            return;
-        }
-        if (Symbol.Compare("Tuplet"))
-        {
-            if (!Symbol.getVal("Inaudible"))
-            {
-                CountIt.Tuplets(py, XMLVoice);
-            }
-        }
-        else
-        {
-            if (!Symbol.getVal("Inaudible"))
-            {
-                OCSymbolsCollection::Play(Symbol,MFile,CountIt,py,XMLVoice,SignsToPlay,pcurrent[TrackNum]);
-            }
-            if (TrackNum == 0)
-            {
-                if (NumOfTracks > 1)
-                {
-                    if (OCSymbolsCollection::IsCommon(Symbol))
-                    {
-                        for (int iTemp = 1; iTemp < NumOfTracks; iTemp++)
-                        {
-                            if (!Symbol.getVal("Inaudible"))
+                            if (Symbol.isAudible())
                             {
-                                MFile.SetTrackNumber(MIDITrackNumber + iTemp);
-                                MFile.SetTime(pcurrent[iTemp].Currenttime);
-                                OCSymbolsCollection::Play(Symbol,MFile,CountIt,py,XMLScoreWrapper::Voice(XMLStaff, iTemp),SignsToPlay,pcurrent[iTemp]);
+                                MFile.setTrackNumber(TrackOffset + i,voiceVarsArray[i].CurrentDelta);
+                                OCSymbolsCollection::fibPlay(Symbol,MFile,CountIt,CountIt.Pointer,XMLScoreWrapper::Voice(XMLStaff,i),SignsToPlay,voiceVarsArray[i]);
                             }
                         }
-                        MFile.SetTrackNumber(MIDITrackNumber);
-                        MFile.SetTime(pcurrent[0].Currenttime);
+                        MFile.setTrackNumber(TrackOffset,voiceVarsArray[TrackOffset].CurrentDelta);
                     }
                 }
             }
         }
-        py++;
+        CountIt.Pointer++;
     }
 }
 
-const int CTrack::CalcNoteTime(XMLSymbolWrapper& Symbol, const int Rounded, OCPlayBackVarsType &pcurrent, OCSignList& SignsToPlay) const
+void CVoice::playBetweenNotes(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay, const int MIDITrackNumber)
 {
-    int RetVal;
-    if (Symbol.IsNoteType(false,true))
+    OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    while (CountIt.Pointer < symbolCount())
     {
-        RetVal = Rounded;
+        const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.Pointer, CountIt.PlayMeter);
+        if (Symbol.IsRestOrAnyNote()) return;
+        if (Symbol.IsTuplet())
+        {
+            if (Symbol.isAudible()) CountIt.tuplets(*this);
+        }
+        else
+        {
+            if (Symbol.isAudible()) OCSymbolsCollection::Play(Symbol,MFile,CountIt,CountIt.Pointer,*this,SignsToPlay,CountIt);
+            if (VoiceLocation.Voice == 0)
+            {
+                if (voiceVarsArray.size() > 1)
+                {
+                    if (Symbol.isCommon())
+                    {
+                        for (int i = 1; i < voiceVarsArray.size(); i++)
+                        {
+                            if (Symbol.isAudible())
+                            {
+                                MFile.setTrackNumber(MIDITrackNumber + i,voiceVarsArray[i].CurrentDelta);
+                                OCSymbolsCollection::Play(Symbol,MFile,CountIt,CountIt.Pointer,XMLScoreWrapper::Voice(XMLStaff,i),SignsToPlay,voiceVarsArray[i]);
+                            }
+                        }
+                        MFile.setTrackNumber(MIDITrackNumber,voiceVarsArray[0].CurrentDelta);
+                    }
+                }
+            }
+        }
+        CountIt.Pointer++;
     }
-    else if (SignsToPlay.Exist("Length"))
+}
+
+int CVoice::calcNoteTime(const XMLSymbolWrapper& Symbol, const int Rounded, OCPlayBackVarsType &voiceVars, OCPlaySignList& SignsToPlay) const
+{
+    if (Symbol.IsSingleTiedNote()) return Rounded;
+    int RetVal;
+    if (SignsToPlay.exist("Length"))
     {
-        RetVal = (Rounded * SignsToPlay.Value("Length", "Legato").toInt()) / 100;
+        RetVal = (Rounded * SignsToPlay.value("Length", "Legato")) / 100;
     }
     else
     {
-        QVariant v=SignsToPlay.Value("Legato");
-        if (v != false)
-        {
-            RetVal=(Rounded * v.toInt()) / 100;
-        }
-        else
-        {
-            RetVal = (Rounded * pcurrent.currentlen) / 100;
-        }
+        const int v = SignsToPlay.value("Legato");
+        RetVal = (v > 0) ? (Rounded * v) / 100 : (Rounded * voiceVars.currentlen) / 100;
     }
-    if (SignsToPlay.Exist("Slur"))
+    if (SignsToPlay.exist("Slur"))
     {
         RetVal = Rounded;
-        if (SignsToPlay.Exist("Length"))
+        if (SignsToPlay.value("Length","PerformanceType") > 2)
         {
-            if (SignsToPlay.Value("PerformanceType").toInt()>2)
-            {
-                RetVal = (Rounded * SignsToPlay.Value("Length", "Legato").toInt()) / 100;
-            }
+            RetVal = (Rounded * SignsToPlay.value("Length", "Legato")) / 100;
         }
-        //'End If
-    }
-//'    If SignsToPlay.exist("Fermata") Then
-//'        CalcNoteTime = CalcNoteTime + SignsToPlay.Value("Fermata", "Duration")
-//'    End If
-    return RetVal;
-}
-
-const int CTrack::CalcVoicedTime(const int NoteTime, const int Rounded, OCPlayBackVarsType &pcurrent, OCSignList& SignsToPlay) const
-{
-    int RetVal = pcurrent.Currenttime + NoteTime;
-    //'pcurrent.ArtX1 = 0
-    pcurrent.Currenttime += Rounded; //'+ pcurrent.Fermata
-    if (SignsToPlay.Exist("Fermata"))
-    {
-        pcurrent.Currenttime += SignsToPlay.Value("Fermata", "Duration").toInt();
-    }
-    //'pcurrent.Fermata = 0
-    //'If pcurrent.BueCount% Then CalcVoicedTime = pcurrent.Currenttime&
-    if (SignsToPlay.Exist("Slur"))
-    {
-        //'If SignsToPlay.Value("Slur", "Ticks") > 0 Then
-        //RetVal = pcurrent.Currenttime;
-        //'End If
     }
     return RetVal;
 }
 
-void CTrack::PlayNotesOff(CNotesToPlay& NotesToPlay, const int VoicedTime, OCMIDIFile& MFile, OCPlayBackVarsType &pcurrent, bool& EndTimeSet)
+void CVoice::playNotesOff(CNotesToPlay& NotesToPlay, int DeltaTime, OCMIDIFile& MFile, OCPlayBackVarsType &currentVars, bool Pedal)
 {
-    for (int iTemp = 0; iTemp < NotesToPlay.Count(); iTemp++)
+    if (!Pedal)
     {
-        switch (NotesToPlay.State(iTemp))
+        for (int i = 0; i < NotesToPlay.size(); i++)
         {
-        case tSPlayEnd:
-        case tSPlayStartEnd:
-            if (!EndTimeSet)
+            if (NotesToPlay.playEnd(i))
             {
-                MFile.SetTime(VoicedTime);
-                pcurrent.Currenttime = pcurrent.Currenttime - VoicedTime;
+                //qDebug() << "Note off 0" << NotesToPlay.pitch(i);
+                MFile.appendNoteOffEvent(currentVars.MIDI.Channel, NotesToPlay.pitch(i), NotesToPlay.velocity(i,currentVars.Currentdynam),DeltaTime);
+                currentVars.CurrentDelta -= DeltaTime;
+                DeltaTime = 0;
+                NotesToPlay.invalidate(i);
             }
-            int Data2 = 0;
-            if (!NotesToPlay.Inaudible(iTemp)) Data2 = pcurrent.Currentdynam;
-            MFile.Append(0x80 + pcurrent.MIDI.Channel, NotesToPlay.Pitch(iTemp), Data2);
-            EndTimeSet = true;
-            NotesToPlay.ChangeState(iTemp, 0);// 'PlayOn%(ThisVelocity) = 0
         }
+        NotesToPlay.cleanUp();
     }
-    NotesToPlay.CleanUp();
-    if (EndTimeSet)
+    else
     {
-        MFile.SetTime(pcurrent.Currenttime);
-        EndTimeSet = false;
+        for (int i = 0; i < NotesToPlay.size(); i++)
+        {
+            if (NotesToPlay.playEnd(i))
+            {
+                //qDebug() << "Pedal 0" << NotesToPlay.pitch(i);
+                currentVars.PedalNotes.append(NotesToPlay.pitch(i));
+                NotesToPlay.invalidate(i);
+            }
+        }
     }
 }
 
-void CTrack::PlayPortamentoNotes(const int ThisPitch, CNotesToPlay& NotesToPlay, OCPlayBackVarsType &pcurrent, OCMIDIFile& MFile)
+void CVoice::playPortamentoNotes(const int ThisPitch, CNotesToPlay& NotesToPlay, OCPlayBackVarsType &currentVars, OCMIDIFile& MFile)
 {
-    if (NotesToPlay.Count() == 1)
+    if (NotesToPlay.isMono())
     {
-        if (NotesToPlay.State(0) == tSPlayPortamento)
+        if (NotesToPlay.playPortamento(0))
         {
-            if (NotesToPlay.Pitch(0) != ThisPitch)
+            if (NotesToPlay.monoPitch() != ThisPitch)
             {
-                if (!pcurrent.PortamentoOn)
+                if (!currentVars.PortamentoOn)
                 {
-                    int Data2=0;
-                    if (!NotesToPlay.Inaudible(0)) Data2 = pcurrent.Currentdynam;
-                    MFile.Append(0x80 + pcurrent.MIDI.Channel, NotesToPlay.Pitch(0), Data2);
-                    MFile.SetTime(0);
-                    pcurrent.Currenttime = 0;
-                    NotesToPlay.ChangeState(0, 0);// 'PlayOn%(0) = 0
+                    //qDebug() << "Note off 1" << NotesToPlay.monoPitch();
+                    MFile.appendNoteOffEvent(currentVars.MIDI.Channel, NotesToPlay.monoPitch(), NotesToPlay.velocity(0,currentVars.Currentdynam));
+                    currentVars.CurrentDelta = 0;
+                    NotesToPlay.invalidate(0);
                 }
                 else
                 {
-                    MFile.PlayController(0x54, NotesToPlay.Pitch(0), pcurrent.MIDI.Channel);
-                    MFile.SetTime(0);
-                    pcurrent.Currenttime = 0;
-                    NotesToPlay.ChangeState(0, 0);//'PlayOn%(ThisVelocity) = 0
-                    NotesToPlay.PortIt = NotesToPlay.Pitch(0);
+                    //qDebug() << "Portamento 1" << NotesToPlay.monoPitch() << ThisPitch;
+                    MFile.appendPortamentoEvent(currentVars.MIDI.Channel, NotesToPlay.monoPitch());
+                    currentVars.CurrentDelta = 0;
+                    NotesToPlay.invalidate(0);
+                    NotesToPlay.PortIt = NotesToPlay.monoPitch();
                 }
             }
             else
             {
-                NotesToPlay.ChangeState(0, tSPlayStart);
+                NotesToPlay.changeState(0, tSPlayStart);
             }
         }
-        NotesToPlay.CleanUp();
+        NotesToPlay.cleanUp();
     }
 }
 
-void CTrack::PlayPortamentoCleanUp(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType &pcurrent)
+void CVoice::playExprClear(OCPlayBackVarsType &voiceVars, OCMIDIFile& MFile, OCPlaySignList& SignsToPlay)
 {
-    if (NotesToPlay.PortIt)
+    if (voiceVars.changeexp) // 'Or (currentVars.ExpressionOn And currentVars.cresc > 0) Then
     {
-        int Data2=0;
-        if (!NotesToPlay.Inaudible(0)) Data2 = pcurrent.Currentdynam;
-        MFile.Append(0x80 + pcurrent.MIDI.Channel, NotesToPlay.PortIt, Data2);
-        NotesToPlay.PortIt = 0;
-    }
-}
-/*
-'Private Sub PlayGlissCleanUp(pcurrent As OCPlayBackVarsType, MFile As OCMIDIFile, GlissWas As Boolean)
-'    With MFile
-'        If pcurrent.PortamentoOn = True And pcurrent.Gliss = 0 And GlissWas = True Then
-'            MFile.PlayController &H5, &H10, pcurrent.Channel
-'            MFile.Time = 0
-'            pcurrent.Currenttime& = 0
-'            GlissWas = False
-'        End If
-'    End With
-'End Sub
-*/
-void CTrack::PlayExprClear(OCPlayBackVarsType &pcurrent, OCMIDIFile& MFile, OCSignList& SignsToPlay)
-{
-    if (pcurrent.changeexp) // 'Or (pcurrent.ExpressionOn And pcurrent.cresc > 0) Then
-    {
-        pcurrent.changeexp--;
-        if (!pcurrent.changeexp)
+        voiceVars.changeexp--;
+        if (!voiceVars.changeexp)
         {
-            MFile.PlayExpression(pcurrent.exprbegin, pcurrent.MIDI.Channel);
-            MFile.SetTime(0);
+            MFile.appendExpressionEvent(voiceVars.MIDI.Channel, voiceVars.exprbegin);
+            voiceVars.CurrentDelta = 0;
         }
     }
-    if (pcurrent.ExpressionOn)
+    if (voiceVars.ExpressionOn)
     {
-        if (SignsToPlay.Exist("Hairpin") || SignsToPlay.Exist("DynamicChange"))
+        if (SignsToPlay.exist("Hairpin") || SignsToPlay.exist("DynamicChange"))
         {
-            MFile.PlayExpression(pcurrent.exprbegin, pcurrent.MIDI.Channel);
-            MFile.SetTime(0);
-            pcurrent.changeexp = 0;
+            MFile.appendExpressionEvent(voiceVars.MIDI.Channel, voiceVars.exprbegin);
+            voiceVars.CurrentDelta = 0;
+            voiceVars.changeexp = 0;
         }
     }
 }
 
-const int CTrack::PlayChunk(int &Pnt, QDomLiteElement* XMLStaff, OCCounter& CountIt, OCPlayVarsArray pcurrent, const int NumOfTracks, OCSignList& SignsToPlay, CNotesToPlay& NotesToPlay, int& VoicedTime, OCMIDIFile& MFile, int MIDITrackNumber)
+int CVoice::playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, int MIDITrackNumber)
 {
-    bool EndTimeSet=false;
-    QDomLiteElement* XMLVoice = XMLScoreWrapper::Voice(XMLStaff, TrackNum);
-
-    //MFile.SetTime(TrackTime);
-    MFile.SetTime(pcurrent[TrackNum].Currenttime);
-
-    CountIt.killed=false;
+    OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
+    CountIt.unfinish();
     int currentlen = 0;
-    forever
+    while (CountIt.valid(symbolCount()))
     {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, pcurrent[TrackNum].PlayMeter);
+        const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.Pointer, CountIt.PlayMeter);
+        //qDebug() << py << Symbol.name() << Symbol.ticks();
         if (Symbol.IsRestOrValuedNote())
         {
-            int Ticks=Symbol.ticks();
             if (Symbol.IsAnyNote())
             {
-                int ThisPitch = Inside(Symbol.getVal("Pitch") + pcurrent[TrackNum].MIDI.Octave + pcurrent[TrackNum].MIDI.Transpose, 1, 127, 12);
-                PlayPortamentoNotes(ThisPitch, NotesToPlay, pcurrent[TrackNum], MFile);
-                if (!NotesToPlay.PitchExists(ThisPitch))
+                const int ThisPitch = CountIt.MIDI.pitch(Symbol.pitch());
+                playPortamentoNotes(ThisPitch, NotesToPlay, CountIt, MFile);
+                if (!NotesToPlay.containsPitch(ThisPitch))
                 {
-                    NotesToPlay.Append(ThisPitch, Symbol.getVal("Inaudible"));
-                    if (Symbol.IsNoteType(false,true))
-                    {
-                        NotesToPlay.ChangeState(NotesToPlay.Count()-1, tSPlayStart);
-                    }
+                    NotesToPlay.append(ThisPitch, !Symbol.isAudible());
+                    if (Symbol.IsSingleTiedNote()) NotesToPlay.changeState(NotesToPlay.size()-1, tSPlayStart);
                 }
                 else
                 {
-                    if (Symbol.IsNoteType(true))
+                    if (Symbol.IsSingleNote())
                     {
-                        NotesToPlay.ChangeState(NotesToPlay.FindIndex(ThisPitch), tSPlayEnd);
+                        NotesToPlay.changeState(NotesToPlay.findIndex(ThisPitch), tSPlayEnd);
                     }
-                    else if (Symbol.IsNoteType(false,true))
+                    else if (Symbol.IsSingleTiedNote())
                     {
-                        NotesToPlay.ChangeState(NotesToPlay.FindIndex(ThisPitch), tSPlayNone);
+                        NotesToPlay.changeState(NotesToPlay.findIndex(ThisPitch), tSPlayNone);
                     }
                 }
-                NotesToPlay.Sort();
-                ThisPitch = NotesToPlay.Pitch(NotesToPlay.Count()-1);
-                int NoteOffPitch = ThisPitch;
-                int NoteOnPitch = NoteOffPitch;
-                int ThisVelocity = pcurrent[TrackNum].Currentdynam + (int)(pcurrent[TrackNum].crescendo) + (5 - (int)(((CountIt.Counter / 10) * 8) / pcurrent[TrackNum].PlayMeter));
-                PlayExprClear(pcurrent[TrackNum], MFile, SignsToPlay);
-                SignsToPlay.PlayBeforeNote(Symbol, ThisVelocity, NoteOnPitch, NoteOffPitch, MFile, pcurrent[TrackNum]);
-                ThisVelocity = Inside(ThisVelocity, 0, 127, 1);
+                NotesToPlay.sort();
+                int NoteOnPitch = NotesToPlay.pitch(NotesToPlay.size()-1);
+                int NoteOffPitch = NoteOnPitch;
+                int ThisVelocity = CountIt.Currentdynam + int(CountIt.crescendo) + (5 - int(((CountIt.TickCounter / 10) * 8) / CountIt.PlayMeter));
+                playExprClear(CountIt, MFile, SignsToPlay);
+                SignsToPlay.PlayBeforeNote(Symbol, ThisVelocity, NoteOnPitch, NoteOffPitch, CountIt);
+                ThisVelocity = qBound<int>(0, ThisVelocity, 127);
 
-                PlayNotesOn(NotesToPlay, MFile, pcurrent[TrackNum], ThisVelocity, VoicedTime, NoteOnPitch);
+                int VorschlagCount = 0;
+                for (const int& p : std::as_const(CountIt.VorschlagNotes)) {
+                    MFile.appendNoteOnEvent(CountIt.MIDI.Channel, p, ThisVelocity);
+                    CountIt.CurrentDelta = 0;
+                    MFile.appendNoteOffEvent(CountIt.MIDI.Channel, p, ThisVelocity, vorschlagLength);
+                    VorschlagCount += vorschlagLength;
+                }
 
-                if (NotesToPlay.Count() ==1)
+                playNotesOn(NotesToPlay, MFile, CountIt, ThisVelocity, CountIt.VoicedTime, NoteOnPitch);
+
+                if (NotesToPlay.isMono())
                 {
-                    if ((pcurrent[TrackNum].PortamentoOn) && (SignsToPlay.Exist("Trill"))) // 'pcurrent(TrackNum).Trill <> 0 Then
+                    /*
+                    if ((currentVars.PortamentoOn) && (SignsToPlay.exist("Trill")))
                     {
-                        MFile.PlayController(0x54, NoteOnPitch, pcurrent[TrackNum].MIDI.Channel);
+                        qDebug() << "Portamento 2" << NoteOnPitch;
+                        MFile.appendPortamentoEvent(currentVars.MIDI.Channel, NoteOnPitch);
+                        currentVars.CurrentDelta = 0;
                     }
-                    PlayPortamentoCleanUp(NotesToPlay, MFile, pcurrent[TrackNum]);
-                }
-
-                CountIt.PlayFlip(Ticks);
-                int NoteTime = CalcNoteTime(Symbol, CountIt.Rounded, pcurrent[TrackNum], SignsToPlay);
-                VoicedTime = CalcVoicedTime(NoteTime, CountIt.Rounded, pcurrent[TrackNum], SignsToPlay);
-
-                PlayDuringNote(SignsToPlay, Symbol, VoicedTime, NoteOnPitch, EndTimeSet, MFile, pcurrent[TrackNum], NoteTime);
-
-                if ((NotesToPlay.Count() == 1) && (NotesToPlay.State(0) != tSPlayStartEnd) && (NotesToPlay.State(0) != tSPlayEnd))
-                {
-                    NotesToPlay.ChangeState(0, tSPlayPortamento);
-                }
-                if (pcurrent[TrackNum].changeexp)
-                {
-                    if (Symbol.IsNoteType(false,true))
+                    */
+                    if (NotesToPlay.PortIt)
                     {
-                        pcurrent[TrackNum].changeexp++;
+                        //qDebug() << "Note off 2" << NotesToPlay.PortIt;
+                        MFile.appendNoteOffEvent(CountIt.MIDI.Channel, NotesToPlay.PortIt, NotesToPlay.velocity(0,CountIt.Currentdynam));
+                        CountIt.CurrentDelta = 0;
+                        NotesToPlay.PortIt = 0;
                     }
                 }
 
-                PlayNotesOff(NotesToPlay, VoicedTime, MFile, pcurrent[TrackNum], EndTimeSet);
+                CountIt.playFlip(Symbol.ticks());
+                const int NoteTime = calcNoteTime(Symbol, CountIt.CurrentTicksRounded, CountIt, SignsToPlay) - VorschlagCount;
+                CountIt.VoicedTime = CountIt.CurrentDelta + NoteTime;
+                CountIt.CurrentDelta += (CountIt.CurrentTicksRounded - VorschlagCount) + SignsToPlay.value("Fermata", "Duration");
+                CountIt.VorschlagNotes.clear();
 
-                //SignsToPlay.PlayCheckTempoChange(MFile, NoteOnPitch, express, changeexp, VoicedTime, pcurrent[TrackNum], MFile.GetTime());
-                SignsToPlay.PlayCheckTempoChange(MFile, NoteOnPitch, VoicedTime, pcurrent[TrackNum], pcurrent[TrackNum].Currenttime);
+                playDuringNote(SignsToPlay, Symbol, CountIt.VoicedTime, NoteOnPitch, MFile, CountIt, NoteTime);
 
-                SignsToPlay.Decrement(Ticks);
+                if (NotesToPlay.isMono())
+                {
+                    if (NotesToPlay.monoPitch() != NoteOffPitch) NotesToPlay.setMonoPitch(NoteOffPitch);
+                    if (!NotesToPlay.playEnd(0)) NotesToPlay.changeState(0, tSPlayPortamento);
+                }
+
+                if (CountIt.changeexp) if (Symbol.IsSingleTiedNote()) CountIt.changeexp++;
+
+                playNotesOff(NotesToPlay, CountIt.VoicedTime, MFile, CountIt, SignsToPlay.exist("Pedal"));
+                playDuringPause(SignsToPlay,NoteOnPitch,MFile,CountIt);
+                SignsToPlay.decrement(CountIt.CurrentTicks);
             }
             else
             {
                 //'It's a Pause
-                CountIt.PlayFlip(Ticks);
-                int NoteTime = CountIt.Rounded; // '+ pcurrent(TrackNum).Fermata
-                if (SignsToPlay.Exist("Fermata")) NoteTime += SignsToPlay.Value("Fermata", "Duration").toInt();
-                //VoicedTime = pcurrent[TrackNum].Currenttime + NoteTime;
-                pcurrent[TrackNum].Currenttime += NoteTime;
-                //                                      NoteOnPitch
-                //SignsToPlay.PlayCheckTempoChange(MFile, 0, express, changeexp, VoicedTime, pcurrent[TrackNum], VoicedTime);
-                SignsToPlay.PlayCheckTempoChange(MFile, 0, VoicedTime, pcurrent[TrackNum], pcurrent[TrackNum].Currenttime);
-                //pcurrent[TrackNum].Currenttime = VoicedTime;
-                SignsToPlay.Decrement(Ticks);
+                CountIt.playFlip(Symbol.ticks());
+                CountIt.CurrentDelta += CountIt.CurrentTicksRounded + SignsToPlay.value("Fermata", "Duration");
+                playDuringPause(SignsToPlay,0,MFile,CountIt);
+                SignsToPlay.decrement(CountIt.CurrentTicks);
             }
-            CountIt.Flip1(Ticks);
-            currentlen = CountIt.Rounded;
-            Pnt++;
-            //TrackTime = pcurrent[TrackNum].Currenttime;
-            return currentlen;
+            currentlen = CountIt.flip1();
+            CountIt.Pointer++;
+            break;
         }
-        else if (Symbol.IsCompoundNote())
+        if (Symbol.IsCompoundNote())
         {
-            int ThisPitch = Inside(Symbol.getVal("Pitch") + pcurrent[TrackNum].MIDI.Octave + pcurrent[TrackNum].MIDI.Transpose, 1, 127, 12);
-            if (!NotesToPlay.PitchExists(ThisPitch))
+            const int ThisPitch = CountIt.MIDI.pitch(Symbol.pitch());
+            if (!NotesToPlay.containsPitch(ThisPitch))
             {
-                NotesToPlay.Append(ThisPitch, Symbol.getVal("Inaudible"));
-                if (Symbol.IsNoteType(false,false,false,true))
+                NotesToPlay.append(ThisPitch, !Symbol.isAudible());
+                if (Symbol.IsTiedCompoundNote())
                 {
-                    NotesToPlay.ChangeState(NotesToPlay.Count()-1, tSPlayStart);
+                    NotesToPlay.changeState(NotesToPlay.size() - 1, tSPlayStart);
                 }
             }
             else
             {
-                if (Symbol.IsNoteType(false,false,true))
+                if (Symbol.IsSingleCompoundNote())
                 {
-                    NotesToPlay.ChangeState(NotesToPlay.FindIndex(ThisPitch), tSPlayEnd);
+                    NotesToPlay.changeState(NotesToPlay.findIndex(ThisPitch), tSPlayEnd);
                 }
-                else if (Symbol.IsNoteType(false,false,false,true))
+                else if (Symbol.IsTiedCompoundNote())
                 {
-                    NotesToPlay.ChangeState(NotesToPlay.FindIndex(ThisPitch), tSPlayNone);
+                    NotesToPlay.changeState(NotesToPlay.findIndex(ThisPitch), tSPlayNone);
                 }
             }
-            Pnt++;
+            CountIt.Pointer++;
         }
-        else if (Symbol.IsEndOfVoice())
-        {
-            CountIt.killed = true;
-            return currentlen;
-        }
-        else
-        {
-            PlayBetweenNotes(Pnt, XMLStaff, NumOfTracks, CountIt, pcurrent, MFile, SignsToPlay, MIDITrackNumber);
-        }
-    }
-    //TrackTime = pcurrent[TrackNum].Currenttime;
-    return currentlen;
-}
-
-void CTrack::PlayNotesOn(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType &pcurrent, const int ThisVelocity, const int VoicedTime, const int NoteOnPitch)
-{
-    int Data2=ThisVelocity;
-    if (VoicedTime != 0)
-    {
-        Data2 = Inside(ThisVelocity - IntDiv(10 * Sgn(NotesToPlay.PortIt), VoicedTime), 0, 127, 1); //Used to be 1000???? Data 2 always 0
-    }
-    for (int iTemp=0;iTemp<NotesToPlay.Count();iTemp++)
-    {
-        int Pitch = NotesToPlay.Pitch(iTemp);
-        if (iTemp==NotesToPlay.Count()-1) Pitch=NoteOnPitch; ////????
-        switch (NotesToPlay.State(iTemp))
-        {
-        case tSPlayStart:
-        case tSPlayStartEnd:
-            int Data=Data2;
-            if (NotesToPlay.Inaudible(iTemp)) Data = 0;
-            MFile.Append(0x90 + pcurrent.MIDI.Channel, Pitch, Data);
-            MFile.SetTime(0);
-            //VoicedTime = 0;
-            pcurrent.Currenttime = 0;
-        }
-    }
-    /*
-    Dim iTemp As Integer
-    Dim Pitch As Integer
-    Dim Data2 As Integer
-    If NotesToPlay.Antal > 0 Then
-        For iTemp = 0 To NotesToPlay.Antal - 1
-            Pitch = NotesToPlay.Pitch(iTemp)
-            GoSub NoteOn
-        Next
-    End If
-    iTemp = NotesToPlay.Antal
-    Pitch = NoteOnPitch
-    GoSub NoteOn
-Exit Sub
-
-NoteOn:
-    With MFile
-        Select Case NotesToPlay.State(iTemp)
-            Case tSPlayStart, tSPlayStartEnd
-                '.Message = &H90 + pcurrent.Channel
-                '.Data1 = pitch
-                If VoicedTime = 0 Then
-                    Data2 = ThisVelocity
-                Else
-                    Data2 = Inside(ThisVelocity - ((1000 * Sgn(NotesToPlay.PortIt%)) \ VoicedTime), 0, 127, 1)
-                End If
-                If NotesToPlay.Inaudible(iTemp) = True Then
-                    Data2 = 0
-                End If
-                '.Action = MIDIFILE_INSERT_MESSAGE
-                .Append &H90 + pcurrent.Channel, Pitch, Data2
-                .Time = 0
-                VoicedTime = 0
-                pcurrent.Currenttime = 0
-        End Select
-    End With
-    Return
-    */
-}
-
-void CTrack::PlayDuringNote(OCSignList& SignsToPlay, XMLSymbolWrapper& XMLNote, const int VoicedTime, int& NoteOnPitch, bool &EndTimeSet, OCMIDIFile& MFile, OCPlayBackVarsType &pcurrent, const int NoteTime)
-{
-    int UnvoicedTime = MFile.GetTime();// ' - NoteTime
-    pcurrent.currentcresc = pcurrent.exprbegin;
-    pcurrent.express = pcurrent.exprbegin;
-    if (SignsToPlay.Count())
-    {
-        SignsToPlay.PlayDuringNote(MFile, NoteOnPitch, UnvoicedTime, NoteTime, pcurrent);
-
-        SignsToPlay.PlayAfterNote(XMLNote, pcurrent);
-        pcurrent.Currenttime = pcurrent.Currenttime - VoicedTime;
-        MFile.SetTime(UnvoicedTime);
-        if (XMLNote.IsNoteType(false,true))
-        {
-            pcurrent.Currenttime += UnvoicedTime;
-        }
-        EndTimeSet = true;
-    }
-}
-
-const int CTrack::SearchChunk(int &Pnt, QDomLiteElement* XMLVoice, QList<SymbolSearchLocation>& l, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks, const QString& SearchTerm)
-{
-    CountIt.killed=false;
-    int currentlen = 0;
-    forever
-    {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, fibset[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            int Ticks=Symbol.ticks();
-            CountIt.Flip(Ticks);
-            //TupletFactor = CountIt.factor;
-            CountIt.Flip1(Ticks);
-            currentlen = CountIt.Rounded;
-            if (Symbol.Compare(SearchTerm))
-            {
-                SymbolSearchLocation s;
-                s.Bar=CountIt.BarCounter;
-                s.Voice=TrackNum;
-                s.Staff=StaveNum;
-                s.Pointer=Pnt;
-                l.append(s);
-            }
-            Pnt++;
-            return currentlen;
-        }
-        else if (Symbol.IsEndOfVoice())
-        {
-            //IsEnded = true;
-            CountIt.killed = true;
-            return currentlen;
+        else if (Symbol.IsAnyVorschlag()) {
+            CountIt.VorschlagNotes.append(Symbol.pitch());
+            CountIt.Pointer++;
         }
         else
         {
-            l.append (SearchBetweenNotes(Pnt, XMLVoice, NumOfTracks, CountIt, fibset, SearchTerm));
+            playBetweenNotes(XMLStaff, voiceVarsArray, MFile, SignsToPlay, MIDITrackNumber);
         }
     }
     return currentlen;
 }
 
-const int CTrack::FakePlotChunk(int &Pnt, QDomLiteElement* XMLVoice, OCCounter& CountIt, OCPrintVarsArray fibset, const int NumOfTracks)
+void CVoice::playNotesOn(CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, OCPlayBackVarsType &voiceVars, const int ThisVelocity, const int VoicedTime, const int NoteOnPitch)
 {
-    CountIt.killed=false;
-    int currentlen = 0;
-    forever
+    const int Data2 = (VoicedTime == 0) ? ThisVelocity : qBound<int>(0, ThisVelocity - IntDiv(10 * Sgn<int>(NotesToPlay.PortIt), VoicedTime), 127); //Used to be 1000???? Data 2 always 0
+    for (int i=0;i<NotesToPlay.size();i++)
     {
-        XMLSymbolWrapper Symbol(XMLVoice, Pnt, fibset[TrackNum].Meter);
-        if (Symbol.IsRestOrValuedNote())
+        const int Pitch = (i == NotesToPlay.size() - 1) ? NoteOnPitch : NotesToPlay.pitch(i);
+        if (NotesToPlay.playStart(i))
         {
-            int Ticks=Symbol.ticks();
-            CountIt.Flip(Ticks);
-            //TupletFactor = CountIt.factor;
-            CountIt.Flip1(Ticks);
-            currentlen = CountIt.Rounded;
-            Pnt++;
-            return currentlen;
-        }
-        else if (Symbol.IsEndOfVoice())
-        {
-            //IsEnded = true;
-            CountIt.killed = true;
-            return currentlen;
-        }
-        else
-        {
-            FakePlotBetweenNotes(Pnt, XMLVoice, NumOfTracks, CountIt, fibset);
+            //qDebug() << "Note On" << Pitch;
+            MFile.appendNoteOnEvent(voiceVars.MIDI.Channel, Pitch, NotesToPlay.velocity(i,Data2));
+            voiceVars.CurrentDelta = 0;
         }
     }
-    return currentlen;
 }
 
-const int CTrack::GetFirstChannel(QDomLiteElement* XMLVoice)
+void CVoice::playDuringNote(OCPlaySignList& SignsToPlay, const XMLSymbolWrapper& XMLNote, int& VoicedTime, int& NoteOnPitch, OCMIDIFile& MFile, OCPlayBackVarsType &voiceVars, const int NoteTime)
 {
-    int py=0;
+    voiceVars.currentcresc = voiceVars.exprbegin;
+    voiceVars.express = voiceVars.exprbegin;
+    if (SignsToPlay.size())
+    {
+        const int RemainingTime = SignsToPlay.PlayDuringNote(MFile, NoteOnPitch, VoicedTime-NoteTime, NoteTime, voiceVars);
+        SignsToPlay.PlayAfterNote(XMLNote, voiceVars);
+        voiceVars.CurrentDelta -= VoicedTime-RemainingTime;
+        VoicedTime = RemainingTime;
+    }
+}
+
+void CVoice::playDuringPause(OCPlaySignList& SignsToPlay, int NoteOnPitch, OCMIDIFile& MFile, OCPlayBackVarsType &voiceVars)
+{
+    if (SignsToPlay.size()) voiceVars.CurrentDelta = SignsToPlay.PlayDuringNote(MFile, NoteOnPitch, 0, voiceVars.CurrentDelta, voiceVars);
+}
+
+CVoice::CVoice(QDomLiteElement *e, const int staff, const int index) : XMLVoiceWrapper(e)
+{
+    VoiceLocation.StaffId=staff;
+    VoiceLocation.Voice=index;
+}
+
+int CVoice::getFirstChannel()
+{
+    int py = 0;
     forever
     {
-        XMLSymbolWrapper Symbol(XMLVoice, py, 0);
-        if (Symbol.IsRestOrValuedNote())
-        {
-            return 0;
-        }
-        if (Symbol.IsEndOfVoice())
-        {
-            return 0;
-        }
-        else if (Symbol.Compare("Channel"))
-        {
-            return Symbol.getVal("Channel") - 1;
-        }
+        if (py >= symbolCount()) return 0;
+        const XMLSymbolWrapper& Symbol = XMLSymbol(py, 0);
+        if (Symbol.IsRestOrValuedNote()) return 0;
+        if (Symbol.Compare("Channel")) return Symbol.getIntVal("Channel") - 1;
         py++;
     }
 }
 
-CStaff::CStaff()
+CStaff::~CStaff() {}
+
+void CStaff::formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate)
 {
-    CTrack* T=new CTrack;
-    T->TrackNum=0;
-    T->StaveNum=0;
-    Track.append(T);
-    Solo=false;
-    Mute=false;
-    StaveNum=0;
-    //CurrentMeter = 96;
+    for (CVoice& T : Voices) T.formatBar(b, BarList, XMLScore, XMLTemplate);
 }
 
-CStaff::~CStaff()
+void CStaff::plotMasterStuff(OCPageBarList& BarList, const QColor& VoiceColor, OCDraw& ScreenObj, const XMLScoreWrapper& XMLScore)
 {
-    qDeleteAll(Track);
-    Track.clear();
+    Voices.first().plotMasterStuff(BarList, VoiceColor, ScreenObj, XMLScore);
 }
 
-const int CStaff::NumOfTracks() const
+void CStaff::plotStaff(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, CStaff& MasterStaff, OCDraw& ScreenObj)
 {
-    return Track.count();
-}
-/*
-const int CStaff::BeginMeter(const int mTrack) const
-{
-    return Track[mTrack]->fibset.Meter;
-}
-*/
-void CStaff::AddTrack()
-{
-    CTrack* T=new CTrack;
-    T->TrackNum=Track.count();
-    T->StaveNum=this->StaveNum;
-    Track.append(T);
-}
-
-void CStaff::FormatBar(const int CurrentBar, const int ActualBar, OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement *XMLTemplate)
-{
-    for (int iTemp=0; iTemp<NumOfTracks(); iTemp++)
-    {
-        Track[iTemp]->FormatBar(CurrentBar, ActualBar, BarList, XMLScore, XMLTemplate);
-    }
-}
-
-void CStaff::plMTr(OCBarList& BarList, QDomLiteElement* XMLStaff, QDomLiteElement* XMLTemplate, const QColor TC, OCSymbolArray& MTObj, OCDraw& ScreenObj, XMLScoreWrapper& XMLScore)
-{
-    Track[0]->plMTr(BarList, XMLScoreWrapper::Voice(XMLStaff, 0), XMLTemplate, TC, MTObj, ScreenObj, XMLScore);
-}
-
-void CStaff::DeleteTrack(const int TrackNumber)
-{
-    delete Track[TrackNumber];
-    Track.removeAt(TrackNumber);
-}
-
-void CStaff::PlStaff(OCBarList& BarList, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, OCSymbolArray& SymbolList, const QColor color, QList<CStaff*> &Staffs, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj)
-{
-    int MS = XMLScore.getVal("MasterStaff");
-    SymbolList.clear();
-    OCNoteListArray NoteLists=new OCNoteList[Track.count()];
-    QDomLiteElement* TemplateStaff = XMLScore.TemplateStaff(XMLTemplate, StavePlacement);
-    OCPrintStaffVarsType sCurrent(TemplateStaff);
+    for (int i = 0; i < voiceCount(); i++) FrameList(i).clear();
+    const int StaffPos=XMLTemplate.staffPosFromId(StaffLocation.StaffId);
+    const XMLTemplateStaffWrapper& XMLTemplateStaff(XMLTemplate.staff(StaffPos));
+    OCVoiceLocation ActiveVoice;
+    if (ScreenObj.ColorOn) ActiveVoice = OCVoiceLocation(ScreenObj.Cursor->location());
     ScreenObj.col = color;
-    ScreenObj.XFactor=SizeFactor(TemplateStaff->attributeValue("Size"));
-    ScreenObj.ScreenSize=XMLScore.getVal("Size")*ScreenObj.XFactor;
-    PlLines(BarList.SystemLength(), XMLScore, XMLTemplate, BarList.StartBar(), StavePlacement, ScreenObj);
+    ScreenObj.setSpaceX(XMLTemplateStaff.size());
+    double holdSize = ScreenObj.ScreenSize;
+    ScreenObj.ScreenSize = ScreenObj.spaceX(ScreenObj.ScreenSize);
+    //qDebug() << Options.xml()->toString();
+    //qDebug() << "Templatestaff size" << XMLTemplateStaff.size() << "Screenobj size" << ScreenObj.ScreenSize << "Options size" << Options.size() << "XMLScore size" << XMLScore.Score.size() << "XMLScore template size" << XMLScore.Template.size();
+    BarList.setFrame(0, plotLinesAndBrackets(BarList.systemLength(), XMLTemplate, Options, BarList.startBar(), StaffPos, ScreenObj));
     ScreenObj.setcol(QColor(unselectablecolor));
-    Track[0]->PlfirstAcc(BarList, ScreenObj);
-    Track[0]->PlfirstClef(BarList, ScreenObj);
+    Voices.first().plfirstKey(BarList, ScreenObj);
+    Voices.first().plfirstClef(BarList, ScreenObj);
     ScreenObj.col=color;
-    if (StavePlacement == 0)
+    if (StaffPos == 0)
     {
         QColor MTColor = color;
-        if ((StaveNum != MS) && ScreenObj.ColorOn) MTColor = inactivestaffcolor;
-        Staffs[MS]->plMTr(BarList, XMLScore.Staff(MS), XMLTemplate, MTColor, SymbolList, ScreenObj, XMLScore);
+        if ((!StaffLocation.matches(Options.masterStaff())) && ScreenObj.ColorOn) MTColor = inactivestaffcolor;
+        MasterStaff.plotMasterStuff(BarList, MTColor, ScreenObj, XMLScore);
     }
-    FillNoteLists(NoteLists, BarList, XMLScore.Staff(StaveNum), ScreenObj);
-    for (int iTemp = 0; iTemp<Track.count(); iTemp++)
+    OCNoteListArray NoteLists = fillNoteLists(BarList, ScreenObj);
+    for (int i = 0; i < voiceCount(); i++)
     {
-        if ((StaveNum == ActiveStave) && (iTemp == ActiveTrack))
-        {}
-        else
+        if (!ActiveVoice.matches(StaffLocation.StaffId,i))
         {
-            QColor col = color;
-            if (ScreenObj.ColorOn) col = inactivestaffcolor;
-            NoteLists[iTemp].SearchForBeams();
-            OCSymbolArray FakeList;
-            Track[iTemp]->PlTrack(BarList, XMLScore, FakeList, NoteLists[iTemp], ScreenObj, sCurrent, col);
-            NoteLists[iTemp].PlotBeams(col, ScreenObj);
+            const QColor col = ScreenObj.ColorOn ? inactivestaffcolor : color;
+            Voices[i].plVoice(BarList, XMLScore, NoteLists[i], ScreenObj, XMLTemplateStaff, col);
         }
     }
-    if (StaveNum == ActiveStave)
+    if (StaffLocation.matches(ActiveVoice.StaffId))
     {
-        QColor col = color;
-        NoteLists[ActiveTrack].SearchForBeams();
-        Track[ActiveTrack]->PlTrack(BarList, XMLScore, SymbolList, NoteLists[ActiveTrack], ScreenObj, sCurrent, col);
-        NoteLists[ActiveTrack].PlotBeams(col, ScreenObj);
+        Voices[ActiveVoice.Voice].plVoice(BarList, XMLScore, NoteLists[ActiveVoice.Voice], ScreenObj, XMLTemplateStaff, color);
     }
-    delete [] NoteLists;
+    ScreenObj.ScreenSize = holdSize;
 }
 
-void CStaff::PlLines(const int SystemLength, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const int StartBar, const int StavePlacement, OCDraw& ScreenObj)
+const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const int StartBar, const int StaffPos, OCDraw& ScreenObj)
 {
-    QDomLiteElement* TemplateStaff = XMLScore.TemplateStaff(XMLTemplate, StavePlacement);
-    ScreenObj.DM(0,-ScoreStaffHeight/ScreenObj.XFactor);
-    ScreenObj.DI();
-    int syslen=SystemLength*ScreenObj.XFactor;
-    ScreenObj.DM(syslen, ScoreStaffHeight);
-    ScreenObj.DL(-syslen, 0);
-    ScreenObj.DR(0, -96);
-    ScreenObj.DL(syslen, 0);
-    ScreenObj.DR(0, -96);
-    ScreenObj.DL(-syslen, 0);
-    ScreenObj.DR(0, -96);
-    ScreenObj.DL(syslen, 0);
-    ScreenObj.DR(0, -96);
-    ScreenObj.DL(-syslen, 0);
+    const XMLTemplateStaffWrapper& TemplateStaff(XMLTemplate.staff(StaffPos));
+    ScreenObj.moveTo(0,-ScoreStaffHeight/ScreenObj.XFactor);
+    ScreenObj.initCurrent();
+    const double syslen = ScreenObj.spaceX(SystemLength);
+    ScreenObj.moveTo(syslen, ScoreStaffHeight);
+    ScreenObj.line(-syslen, 0);
+    ScreenObj.move(0, -96);
+    ScreenObj.line(syslen, 0);
+    ScreenObj.move(0, -96);
+    ScreenObj.line(-syslen, 0);
+    ScreenObj.move(0, -96);
+    ScreenObj.line(syslen, 0);
+    ScreenObj.move(0, -96);
+    ScreenObj.line(-syslen, 0);
 
-    int Height = TemplateStaff->attributeValue("Height");
-    int iTemp1 = (ScoreStaffHeight + (Height*12))*ScreenObj.XFactor;
-    if (StavePlacement == XMLTemplate->childCount()-1) iTemp1 = ScoreStaffLinesHeight;
-    ScreenObj.DM(0, ScoreStaffHeight);
-    ScreenObj.DL(0, -iTemp1);
-    ScreenObj.DR(-24*ScreenObj.XFactor, 0);
-    ScreenObj.PlRect(-24*ScreenObj.XFactor,iTemp1);
+    const double Height = (StaffPos == XMLTemplate.staffCount()-1) ? ScoreStaffLinesHeight : ScreenObj.spaceX(ScoreStaffHeight + (TemplateStaff.height()*12));
+    //if (StaffPos == XMLTemplate.staffCount()-1) Height = ScoreStaffLinesHeight;
+    const QRectF r=ScreenObj.boundingRect(ScreenObj.line(0, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+    ScreenObj.line(0, -(Height-ScoreStaffLinesHeight));
+    ScreenObj.move(ScreenObj.spaceX(-24), 0);
+    ScreenObj.PlRect(ScreenObj.spaceX(-24),Height);
 
-    if ((StavePlacement == 0) && (StartBar > 0))
+    if ((StaffPos == 0) && (StartBar > 0))
     {
-        if (!XMLScore.getVal("DontShowBN"))
+        if (!Options.hideBarNumbers())
         {
-            ScreenObj.DM(0, ScoreStaffHeight + (216*ScreenObj.XFactor));
+            ScreenObj.moveTo(0, ScoreStaffHeight + ScreenObj.spaceX(216));
             ScreenObj.setcol(QColor(unselectablecolor));
-            ScreenObj.plLet(QString::number(1 + StartBar + (int)XMLScore.getVal("BarNrOffset")).trimmed(), 0, "Times New Roman", false, false, 140*ScreenObj.XFactor);
+            ScreenObj.plLet(QString::number(1 + StartBar + Options.barNumberOffset()).trimmed(), 0, "Times New Roman", false, false, ScreenObj.spaceX(140));
             ScreenObj.resetcol();
         }
     }
 
-    if (TemplateStaff->attributeValue("SquareBracket") == SBEnd)
+    if (TemplateStaff.squareBracket() == SBEnd)
     {
-        ScreenObj.DM(-108*ScreenObj.XFactor, ScoreStaffHeight);
-        ScreenObj.PlSquare2(ScoreStaffLinesHeight,60*ScreenObj.XFactor,24*ScreenObj.XFactor);
+        ScreenObj.moveTo(ScreenObj.spaceX(-108), ScoreStaffHeight);
+        ScreenObj.PlSquare2(ScoreStaffLinesHeight,ScreenObj.spaceX(60),ScreenObj.spaceX(24));
     }
-    else if (TemplateStaff->attributeValue("SquareBracket") == SBBegin)
+    else if (TemplateStaff.squareBracket() == SBBegin)
     {
-        ScreenObj.DM(-108*ScreenObj.XFactor,ScoreStaffHeight);
-        if (StavePlacement > 0)
+        ScreenObj.moveTo(ScreenObj.spaceX(-108),ScoreStaffHeight);
+        if (StaffPos > 0)
         {
-            if (XMLScore.TemplateStaff(XMLTemplate, StavePlacement - 1)->attributeValue("SquareBracket") != SBBegin)
+            if (XMLTemplate.staff(StaffPos - 1).squareBracket() != SBBegin)
             {
-                ScreenObj.PlSquare1(iTemp1,60*ScreenObj.XFactor,24*ScreenObj.XFactor);
+                ScreenObj.PlSquare1(Height,ScreenObj.spaceX(60),ScreenObj.spaceX(24));
             }
             else
             {
-                ScreenObj.PlSquare1(iTemp1,0,24*ScreenObj.XFactor);
+                ScreenObj.PlSquare1(Height,0,ScreenObj.spaceX(24));
             }
         }
         else
         {
-            ScreenObj.PlSquare1(iTemp1,60*ScreenObj.XFactor,24*ScreenObj.XFactor);
+            ScreenObj.PlSquare1(Height,ScreenObj.spaceX(60),ScreenObj.spaceX(24));
         }
     }
-
-    if (TemplateStaff->attributeValue("CurlyBracket")>CBNone)
+    if (TemplateStaff.curlyBracket() > CBNone)
     {
-        ScreenObj.DM(-108*ScreenObj.XFactor, ScoreStaffHeight);
-        if (TemplateStaff->attributeValue("SquareBracket")==SBNone) ScreenObj.DR(48*ScreenObj.XFactor,0);
-        ScreenObj.PlCurly(iTemp1+(ScoreStaffLinesHeight*ScreenObj.XFactor),12*8*ScreenObj.XFactor,24*ScreenObj.XFactor);
+        ScreenObj.moveTo(ScreenObj.spaceX(-108), ScoreStaffHeight);
+        if (TemplateStaff.squareBracket()==SBNone) ScreenObj.move(ScreenObj.spaceX(48),0);
+        ScreenObj.PlCurly(Height+(ScreenObj.spaceX(ScoreStaffLinesHeight)),ScreenObj.spaceX(12*8),ScreenObj.spaceX(48));
     }
+    return r;
 }
 
-void CStaff::FillNoteLists(OCNoteListArray NoteLists, OCBarList& BarList, QDomLiteElement* XMLStaff, OCDraw& ScreenObj)
+OCNoteListArray CStaff::fillNoteLists(OCPageBarList& BarList, OCDraw& ScreenObj)
 {
-    OCPointerArray py=new int[NumOfTracks()];
-    OCPrintVarsArray dcurrent=new OCPrintVarsType[NumOfTracks()];
-    OCStaffAccidentals lfortegn;
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0; iTemp<NumOfTracks(); iTemp++)
-    {
-        Track[iTemp]->getsetting(dcurrent[iTemp]);
-        py[iTemp] = dcurrent[iTemp].FilePointer;
-    }
-    lfortegn.RdAcc(dcurrent[StaffCount.FirstValidVoice()].CurrentKey.val);
-    float BarX = BarList.BarX()*ScreenObj.XFactor;
-    float XFysic = BarX;
+    OCNoteListArray NoteLists(voiceCount());
+    OCStaffAccidentals StaffAccidentals;
+    OCStaffCounterPrint PrintCounters(voiceCount());
+    for (int i = 0; i < voiceCount(); i++) Voices[i].getPageStartVars(PrintCounters[i]);
+    StaffAccidentals.SetKeyAccidentals(PrintCounters.key());
+    double BarX = ScreenObj.spaceX(BarList.barX());
+    double XFysic = BarX;
     forever
     {
-        lfortegn.ResetCluster();
-        lfortegn.ClearIgnore();
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-        {
-            if (StaffCount.Ready(iTemp))
-            {
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->FillChunk(py[iTemp], StaffCount.VoiceCounter(), NoteLists[iTemp], dcurrent, NumOfTracks(), XMLScoreWrapper::Voice(XMLStaff, iTemp), lfortegn, BarList, XFysic, LastTiedNotes, ScreenObj);
-                if (NumOfTracks() > 1) NoteLists[iTemp].SetVoiceUpDown(iTemp);
-                StaffCount.SetNewLen(Rounded, iTemp);
+        StaffAccidentals.Clear();
+        for (int i = 0 ; i < voiceCount() ; i++) {
+            if (PrintCounters[i].isReady()) {
+                PrintCounters[i].setLen(Voices[i].fillChunk(NoteLists[i], PrintCounters, StaffAccidentals, BarList, XFysic, ScreenObj));
             }
         }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        lfortegn.CheckFortegn(dcurrent[0].J);
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        if (PrintCounters.isFinished()) break;
+        StaffAccidentals.ProcessAccidentals(PrintCounters[0].Scale);
+        for (int i = 0 ; i < voiceCount() ; i++)
         {
-            if (StaffCount.WasReady(iTemp))
+            if (PrintCounters[i].Ready)
             {
-                if (!StaffCount.Killed(iTemp)) NoteLists[iTemp].SetHasFortegn(lfortegn);
+                if (!PrintCounters[i].isFinished()) {
+                    NoteLists[i].ApplyAccidentals(StaffAccidentals);
+                }
             }
         }
-        CheckChordCollision(NoteLists, StaffCount);
-        StaffCount.Flip();
-        XFysic = (BarList.CalcX(StaffCount.BarCounter, StaffCount.Beat)*ScreenObj.XFactor) + BarX;
-        if (StaffCount.NewBar(dcurrent[StaffCount.FirstValidVoice()].Meter))
+        checkChordCollision(NoteLists, PrintCounters);
+        PrintCounters.flip();
+        XFysic = ScreenObj.spaceX(BarList.calcX(PrintCounters.BarCounter, PrintCounters.Beat)) + BarX;
+        if (PrintCounters.newBar())
         {
-            lfortegn.RdAcc(dcurrent[StaffCount.FirstValidVoice()].CurrentKey.val);
-            StaffCount.BarFlip();
-            if (StaffCount.BarCounter > BarList.BarsToPrint() - 1) break;
-            BarX = XFysic + ((begofbar+endofbar)*ScreenObj.XFactor);
-            if (XFysic > (BarList.SystemLength()*ScreenObj.XFactor)) break;
-            BarX += BarList.BegSpace(StaffCount.BarCounter, true, true, true)*ScreenObj.XFactor;
+            //PrintCounters.barFlip();
+            if (PrintCounters.BarCounter > BarList.barsToPrint() - 1) break;
+            StaffAccidentals.SetKeyAccidentals(PrintCounters.key());
+            BarX = XFysic + (ScreenObj.spaceX(BarLeftMargin+BarRightMargin));
+            if (XFysic > ScreenObj.spaceX(BarList.systemLength())) break;
+            BarX += ScreenObj.spaceX(BarList.paddingLeft(PrintCounters.BarCounter, true, true, true));
             XFysic = BarX;
         }
     }
-    delete [] py;
-    delete [] dcurrent;
+    for (OCNoteList& l : NoteLists) l.CreateBeamLists();
+    return NoteLists;
 }
 
-void CStaff::Findall(const int BarToFind, QDomLiteElement* XMLStaff)
+void CStaff::findall(const int BarToFind)
 {
-    OCPointerArray py=new int[NumOfTracks()];
-    OCPrintVarsArray dcurrent=new OCPrintVarsType[NumOfTracks()];
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0; iTemp<NumOfTracks(); iTemp++)
+    OCStaffCounterPrint PrintCounters(voiceCount());
+    while (PrintCounters.BarCounter < BarToFind)
     {
-        py[iTemp]=0;
-    }
-    while (StaffCount.BarCounter < BarToFind)
-    {
-        LastTiedNotes.clear();
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        for (int i = 0; i < voiceCount(); i++)
         {
-            if (StaffCount.Ready(iTemp))
+            PrintCounters[i].Ties.clear();
+            if (PrintCounters[i].isReady())
             {
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->FiBChunk(py[iTemp], XMLScoreWrapper::Voice(XMLStaff, iTemp), StaffCount.VoiceCounter(), dcurrent, NumOfTracks(), LastTiedNotes);
-                StaffCount.SetNewLen(Rounded, iTemp);
+                PrintCounters[i].setLen(Voices[i].findBarChunk(PrintCounters));
             }
         }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        StaffCount.Flip();
-        for (int iTemp = 0 ; iTemp < NumOfTracks(); iTemp++)
+        if (PrintCounters.isFinished()) break;
+        //PrintCounters.flip();
+        PrintCounters.decrementFlip();
+        if (PrintCounters.newBar())
         {
-            if (!StaffCount.Killed(iTemp)) dcurrent[iTemp].Decrement(StaffCount.Min / StaffCount.TupletFactor(iTemp));//Track[iTemp]->TupletFactor);
-        }
-        if (StaffCount.NewBar(dcurrent[StaffCount.FirstValidVoice()].Meter))
-        {
-            if (StaffCount.BarCounter < BarToFind - 1)
-            {
-                StaffCount.BarFlip();
-            }
-            else
-            {
-                break;
-            }
+            //PrintCounters.barFlip();
+            if (PrintCounters.BarCounter >= BarToFind) break;
         }
     }
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        dcurrent[iTemp].FilePointer = py[iTemp];
-        Track[iTemp]->putsetting(dcurrent[iTemp]);
-    }
-    delete [] py;
-    delete [] dcurrent;
+    for (int i = 0; i < voiceCount(); i++) Voices[i].setPageStartVars(PrintCounters[i]);
 }
 
-bool CStaff::ChordCollision(OCNoteList& NoteList1, OCNoteList& NoteList2) const
+bool CStaff::chordCollision(OCNoteList& NoteList1, OCNoteList& NoteList2) const
 {
-    QList<int> LineNums1;
-    QList<int> LineNums2;
-    NoteList1.FillLineNumsArray(LineNums1);
-    NoteList2.FillLineNumsArray(LineNums2);
-    for (int iTemp1 = 0 ; iTemp1< LineNums1.count() ; iTemp1++)
+    const OCIntList LineNums1=NoteList1.FillLineNumsArray();
+    const OCIntList LineNums2=NoteList2.FillLineNumsArray();
+    for (const int& i : LineNums1)
     {
-        for (int iTemp2 = 0 ; iTemp2 < LineNums2.count() ; iTemp2++)
+        for (const int& j : LineNums2)
         {
-            if ((LineNums1[iTemp1] + 1 >= LineNums2[iTemp2]) && (LineNums1[iTemp1] - 1 <= LineNums2[iTemp2])) return true;
+            if ((i + 1 >= j) && (i - 1 <= j)) return true;
         }
     }
     return false;
 }
 
-void CStaff::CheckChordCollision(OCNoteListArray NoteLists, CStaffCounter& StaffCount)
+void CStaff::checkChordCollision(OCNoteListArray& NoteLists, OCStaffCounterPrint& StaffCount)
 {
     int AccMoved=0;
-    if (NumOfTracks() < 2) return;
-    OCPointerArray times=new int[NumOfTracks()];
-    OCPointerArray times1=new int[NumOfTracks()];
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+    if (voiceCount() < 2) return;
+    OCIntList times(voiceCount(),0);
+    OCIntList times1(voiceCount(),0);
+    for (int i = 0 ; i < voiceCount() ; i++)
     {
-        times[iTemp]=0;
-        times1[iTemp]=0;
-        if (StaffCount.WasReady(iTemp))
+        if (StaffCount[i].Ready)
         {
-            if (!StaffCount.Killed(iTemp))
+            if (!StaffCount[i].isFinished())
             {
-                for (int iTemp1 = 1 ; iTemp1 < iTemp; iTemp1++)
+                for (int j = i+1 ; j < voiceCount(); j++)
                 {
-                    if (StaffCount.WasReady(iTemp1))
+                    if (StaffCount[j].Ready)
                     {
-                        if (!StaffCount.Killed(iTemp1))
+                        if (!StaffCount[j].isFinished())
                         {
-                            if (ChordCollision(NoteLists[iTemp1], NoteLists[iTemp]))
+                            if (chordCollision(NoteLists[j], NoteLists[i]))
                             {
-                                times[iTemp] ++;
-                                times1[iTemp1] ++;
+                                times[i] ++;
+                                times1[j] ++;
                             }
                         }
                     }
@@ -1490,53 +1012,53 @@ void CStaff::CheckChordCollision(OCNoteListArray NoteLists, CStaffCounter& Staff
             }
         }
     }
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+    for (int i = 0 ; i < voiceCount() ; i++)
     {
-        if (times[iTemp] > 0)
+        if (times[i] > 0)
         {
-            NoteLists[iTemp].MoveChord(times[iTemp]);
-            NoteLists[iTemp].Moveaccidental(times[iTemp], 0);
+            NoteLists[i].MoveChord(times[i]);
+            NoteLists[i].Moveaccidental(times[i], 0);
         }
     }
-    for (int iTemp = NumOfTracks() - 1 ; iTemp>=0; iTemp--)
+    for (int i = voiceCount() - 1 ; i >= 0; i--)
     {
-        if (times1[iTemp] > 0) AccMoved += NoteLists[iTemp].Moveaccidental(0, AccMoved + 1);
+        if (times1[i] > 0) AccMoved += NoteLists[i].Moveaccidental(0, AccMoved + 1);
     }
-    delete [] times;
-    delete [] times1;
 }
 
-void CStaff::fibPlay(const int BarToFind, QDomLiteElement* XMLStaff, OCMIDIFile& MFile, OCPointerArray py, const int TrackOffset, OCPlayVarsArray pcurrent, OCSignListArray SignsToPlay)
+CStaff::CStaff(QDomLiteElement *e, const int index) : XMLStaffWrapper(e)
 {
-    OCPointerArray AccelCounter=new int[NumOfTracks()];
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0 ; iTemp<NumOfTracks();iTemp++)
+    StaffLocation.StaffId=index;
+    for (int i = 0; i < e->childCount(); i++)
     {
-        MFile.SetTrackNumber(iTemp + TrackOffset);
-        AccelCounter[iTemp]=0;
-        py[iTemp] = 0; //'Track(iTemp).tstart
-        pcurrent[iTemp].MIDI.Channel = Track[iTemp]->GetFirstChannel(XMLScoreWrapper::Voice(XMLStaff, iTemp));
-        MFile.SetTime(0);
+        Voices.append(CVoice(e->childElement(i),index,i));
     }
-    while (StaffCount.BarCounter < BarToFind)
+}
+
+void CStaff::findBarPlay(const int BarToFind, OCMIDIFile& MFile, const int TrackOffset, OCStaffCounterPlay& PlayCounters, OCPlaySignListArray& SignsToPlay)
+{
+    for (int i = 0 ; i < voiceCount(); i++)
     {
-        for (int iTemp = 0 ; iTemp < NumOfTracks(); iTemp++)
+        MFile.setTrackNumber(i + TrackOffset,0);
+        PlayCounters[i].MIDI.Channel = Voices[i].getFirstChannel();
+    }
+    while (PlayCounters.BarCounter < BarToFind)
+    {
+        for (int i = 0 ; i < voiceCount(); i++)
         {
-            if (StaffCount.Ready(iTemp))
+            if (PlayCounters[i].isReady())
             {
-                MFile.SetTrackNumber(iTemp + TrackOffset);
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->FiBPlayChunk(py[iTemp], XMLStaff, StaffCount.VoiceCounter(), pcurrent, NumOfTracks(), SignsToPlay[iTemp], AccelCounter[iTemp], MFile, TrackOffset);
-                StaffCount.SetNewLen(Rounded, iTemp);
+                MFile.setTrackNumber(i + TrackOffset,0);
+                PlayCounters[i].setLen(Voices[i].findBarPlayChunk(*this, PlayCounters, SignsToPlay[i], MFile, TrackOffset));
             }
         }
-        if (StaffCount.Killed()) break;
-        StaffCount.Flip();
-        if (StaffCount.NewBarPlay(pcurrent[StaffCount.FirstValidVoice()].PlayMeter))
-        {
-            if (StaffCount.BarCounter < BarToFind)
+        if (PlayCounters.isFinished()) break;
+        PlayCounters.flip();
+        //if (PlayCounters.newBarPlay(voiceVarsArray[StaffCount.firstValidVoice()].PlayMeter))
+        if (PlayCounters.newBar()) {
+            if (PlayCounters.BarCounter < BarToFind)
             {
-                StaffCount.BarFlip();
+                PlayCounters.barFlip();
             }
             else
             {
@@ -1544,421 +1066,311 @@ void CStaff::fibPlay(const int BarToFind, QDomLiteElement* XMLStaff, OCMIDIFile&
             }
         }
     }
-    for (int iTemp = 0 ; iTemp < NumOfTracks(); iTemp++)
+    for (int i = 0 ; i < voiceCount(); i++)
     {
-        //if (py[iTemp] > 0)
-        //{
-            MFile.SetTrackNumber(iTemp + TrackOffset);
-            MFile.PlayController(0x79, 0, pcurrent[iTemp].MIDI.Channel);
-            MFile.PlayExpression(expressiondefault, pcurrent[iTemp].MIDI.Channel);
-            //'MFile.PlayController &H41, 64, pcurrent[iTemp].Channel
-            MFile.PlayController(0x5, 0x10, pcurrent[iTemp].MIDI.Channel);
-            MFile.PlayController(0x41, 0, pcurrent[iTemp].MIDI.Channel);
-            MFile.PlayController(0x7, 0x7F, pcurrent[iTemp].MIDI.Channel);
-            MFile.PlayController(0xA, 64, pcurrent[iTemp].MIDI.Channel);
-            MFile.PlayPatch(pcurrent[iTemp].MIDI.Patch, pcurrent[iTemp].MIDI.Channel);
-            if (AccelCounter[iTemp] > 0)
-            {
-                if (pcurrent[iTemp].Accel < 0)
-                {
-                    pcurrent[iTemp].Playtempo = pcurrent[iTemp].Playtempo + ((AccelCounter[iTemp] * 10) / ((pcurrent[iTemp].Playtempo * 8) / -pcurrent[iTemp].Accel));
-                }
-                else if (pcurrent[iTemp].Accel > 0)
-                {
-                    pcurrent[iTemp].Playtempo = pcurrent[iTemp].Playtempo - ((AccelCounter[iTemp] * 10) / ((pcurrent[iTemp].Playtempo * 8) / pcurrent[iTemp].Accel));
-                }
-                MFile.Playtempo(pcurrent[iTemp].Playtempo);
-                AccelCounter[iTemp] = 0;
-            }
-            MFile.SetTime(0);
-        //}
-    }
-    delete [] AccelCounter;
-}
-
-void CStaff::Play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, QDomLiteElement* XMLStaff, const int silence)
-{
-    OCSignListArray SignsToPlay=new OCSignList[NumOfTracks()];
-    OCPlayVarsArray pcurrent=new OCPlayBackVarsType[NumOfTracks()];
-    OCPointerArray py=new int[NumOfTracks()];
-    OCNotesToPlayArray NotesToPlay=new CNotesToPlay[NumOfTracks()];
-    OCPointerArray VoicedTime=new int[NumOfTracks()];
-
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        py[iTemp]=0;
-        VoicedTime[iTemp]=0;
-        MFile.InsertTrack();
-    }
-    fibPlay(StartBar, XMLStaff, MFile, py, MIDITrackNumber, pcurrent, SignsToPlay);
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        pcurrent[iTemp].Currenttime = silence;
-    }
-    StaffCount.reset();
-    forever
-    {
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        OCPlayBackVarsType& voiceVars = PlayCounters[i];
+        MFile.setTrackNumber(i + TrackOffset,0);
+        const OCMIDIVars& m = voiceVars.MIDI;
+        MFile.appendControllerEvent(m.Channel, 0x79, 0);
+        MFile.appendExpressionEvent(m.Channel, expressiondefault);
+        MFile.appendControllerEvent(m.Channel, 0x5, 0x10);
+        MFile.appendControllerEvent(m.Channel, 0x41, 0);
+        MFile.appendControllerEvent(m.Channel, 0x7, 0x7F);
+        MFile.appendControllerEvent(m.Channel, 0xA, 64);
+        MFile.appendPatchChangeEvent(m.Channel, m.Patch);
+        if (voiceVars.AccelCounter > 0)
         {
-            if (StaffCount.Ready(iTemp))
+            if (voiceVars.Accel < 0)
             {
-                MFile.SetTrackNumber(iTemp + MIDITrackNumber);
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->PlayChunk(py[iTemp], XMLStaff, StaffCount.VoiceCounter(), pcurrent, NumOfTracks(), SignsToPlay[iTemp], NotesToPlay[iTemp], VoicedTime[iTemp], MFile, MIDITrackNumber);
-                StaffCount.SetNewLen(Rounded, iTemp);
+                voiceVars.Playtempo = voiceVars.Playtempo + ((voiceVars.AccelCounter * 10) / ((voiceVars.Playtempo * 8) / -voiceVars.Accel));
             }
-        }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        StaffCount.Flip();
-        if (StaffCount.NewBarPlay(pcurrent[StaffCount.FirstValidVoice()].PlayMeter))
-        {
-            StaffCount.BarFlip();
+            else if (voiceVars.Accel > 0)
+            {
+                voiceVars.Playtempo = voiceVars.Playtempo - ((voiceVars.AccelCounter * 10) / ((voiceVars.Playtempo * 8) / voiceVars.Accel));
+            }
+            MFile.appendTempoEvent(voiceVars.Playtempo);
+            voiceVars.AccelCounter = 0;
         }
     }
-    MIDITrackNumber += NumOfTracks();
-    delete [] SignsToPlay;
-    delete [] pcurrent;
-    delete [] py;
-    delete [] NotesToPlay;
-    delete [] VoicedTime;
 }
 
-const QList<SymbolSearchLocation> CStaff::Search(QDomLiteElement* XMLStaff, const QString& SearchTerm, const int TrackToSearch) const
+void CStaff::play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, const int silence, const OCBarMap& barmap)
 {
-    QList<SymbolSearchLocation> l;
-    OCPointerArray py=new int[NumOfTracks()];
-    OCPrintVarsType* dcurrent=new OCPrintVarsType[NumOfTracks()];
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        py[iTemp] = 0;//PointerBegin(iTemp);//dcurrent[iTemp].FilePointer;
-    }
+    OCPlaySignListArray SignsToPlay(voiceCount());
+    OCNotesToPlayArray NotesToPlay(voiceCount());
+    OCStaffCounterPlay PlayCounters(voiceCount());
+    for (int i = 0 ; i < voiceCount() ; i++) MFile.appendTrack("Staff " + QString::number(StaffLocation.StaffId + 1)+" Voice "+QString::number(i+1));
+    findBarPlay(StartBar, MFile, MIDITrackNumber, PlayCounters, SignsToPlay);
+    for (OCPlayBackVarsType& v : PlayCounters) v.CurrentDelta = silence;
+    //PlayCounters.reset();
     forever
     {
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        for (int i = 0 ; i < voiceCount() ; i++)
         {
-            if (StaffCount.Ready(iTemp))
+            if (PlayCounters[i].isReady())
             {
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=0;
-                if ((TrackToSearch==-1) || (iTemp==TrackToSearch))
+                MFile.setTrackNumber(MIDITrackNumber + i, PlayCounters[i].CurrentDelta);
+                if ((MIDITrackNumber + i == 0) && (PlayCounters[i].TickCounter == 0))
                 {
-                    Rounded=Track[iTemp]->SearchChunk(py[iTemp], XMLScoreWrapper::Voice(XMLStaff, iTemp), l, StaffCount.VoiceCounter(), dcurrent, NumOfTracks(), SearchTerm);
+                    const int b = barmap.GetBar(OCSymbolLocation(StaffLocation.StaffId,i,PlayCounters[i].Pointer)).Bar;
+                    if (b < barmap.EndOfVoiceBar(OCVoiceLocation(StaffLocation.StaffId,i))) MFile.appendMetaEvent(0x07, "Bar " + QString::number(b));
+                    PlayCounters[i].CurrentDelta = 0;
+                }
+                PlayCounters[i].setLen(Voices[i].playChunk(*this, PlayCounters, SignsToPlay[i], NotesToPlay[i], MFile, MIDITrackNumber));
+            }
+        }
+        if (PlayCounters.isFinished()) break;
+        PlayCounters.flip();
+        if (PlayCounters.newBar()) {
+            //if (PlayCounters.newBarPlay(voiceVarsArray[StaffCount.firstValidVoice()].PlayMeter)) {
+            PlayCounters.barFlip();
+        }
+    }
+    MIDITrackNumber += voiceCount();
+}
+
+const OCBarSymbolLocationList CStaff::search(const QString& SearchTerm, const int TrackToSearch)
+{
+    OCBarSymbolLocationList l;
+    OCStaffCounterPrint PrintCounters(voiceCount());
+    forever
+    {
+        for (int i = 0 ; i < voiceCount() ; i++)
+        {
+            if (PrintCounters[i].isReady())
+            {
+                if ((TrackToSearch == -1) || (i == TrackToSearch))
+                {
+                    PrintCounters[i].setLen(Voices[i].searchChunk(l, PrintCounters, SearchTerm));
                 }
                 else
                 {
-                    Rounded=Track[iTemp]->FakePlotChunk(py[iTemp], XMLScoreWrapper::Voice(XMLStaff, iTemp), StaffCount.VoiceCounter(), dcurrent, NumOfTracks());
+                    PrintCounters[i].setLen(Voices[i].FakePlotChunk(PrintCounters));
                 }
-                StaffCount.SetNewLen(Rounded, iTemp);
             }
         }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        StaffCount.Flip();
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-        {
-            if (!StaffCount.Killed(iTemp)) dcurrent[iTemp].Decrement(StaffCount.Min / StaffCount.TupletFactor(iTemp));//Track[iTemp]->TupletFactor);
-        }
-        if (StaffCount.NewBar(dcurrent[StaffCount.FirstValidVoice()].Meter)) StaffCount.BarFlip();
+        if (PrintCounters.isFinished()) break;
+        //PrintCounters.flip();
+        PrintCounters.decrementFlip();
+        PrintCounters.newBar();
+        //if (PrintCounters.newBar()) PrintCounters.barFlip();
     }
-    delete [] py;
-    delete [] dcurrent;
     return l;
 }
 
-void CStaff::FakePlot(const int TrackToSearch, const int PointerGoal, QDomLiteElement* XMLStaff, OCMIDIVars& MIDI)
+const OCPrintVarsType CStaff::fakePlot(const int TrackToSearch, const int TargetIndex)
 {
-    OCPointerArray py=new int[NumOfTracks()];
-    OCPrintVarsType* dcurrent=new OCPrintVarsType[NumOfTracks()];
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        Track[iTemp]->getsetting(dcurrent[iTemp]);
-        py[iTemp] = dcurrent[iTemp].FilePointer;
-    }
+    OCStaffCounterPrint PrintCounters(voiceCount());
+    for (int i = 0; i < voiceCount(); i++) Voices[i].getPageStartVars(PrintCounters[i]);
     forever
     {
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        for (int i = 0; i < voiceCount(); i++)
         {
-            if (StaffCount.Ready(iTemp))
+            if (PrintCounters[i].isReady())
             {
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->FakePlotChunk(py[iTemp], XMLScoreWrapper::Voice(XMLStaff, iTemp), StaffCount.VoiceCounter(), dcurrent, NumOfTracks());
-                StaffCount.SetNewLen(Rounded, iTemp);
+                PrintCounters[i].setLen(Voices[i].FakePlotChunk(PrintCounters));
             }
-            if ((iTemp == TrackToSearch) && (py[iTemp] >= PointerGoal))
+            if ((i == TrackToSearch) && (PrintCounters[i].FilePointer >= TargetIndex))
             {
-                StaffCount.Quit();
+                PrintCounters.quit();
                 break;
             }
         }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        StaffCount.Flip();
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-        {
-            if (!StaffCount.Killed(iTemp)) dcurrent[iTemp].Decrement(StaffCount.Min / StaffCount.TupletFactor(iTemp));//Track[iTemp]->TupletFactor);
-        }
-        if (StaffCount.NewBar(dcurrent[StaffCount.FirstValidVoice()].Meter)) StaffCount.BarFlip();
+        if (PrintCounters.isFinished()) break;
+        //PrintCounters.flip();
+        PrintCounters.decrementFlip();
+        //if (PrintCounters.newBar()) PrintCounters.barFlip();
+        PrintCounters.newBar();
     }
-    MIDI=dcurrent[TrackToSearch].MIDI;
-    delete [] py;
-    delete [] dcurrent;
+    return PrintCounters[TrackToSearch];
 }
 
-void CStaff::SetStavenum(const int Stave)
+void CStaff::fillBarsArray(OCBarMap& barMap, const int StaffOffset)
 {
-    foreach(CTrack* t,Track) t->StaveNum = Stave;
-    StaveNum = Stave;
-}
-
-void CStaff::FillBarsArray(QDomLiteElement* XMLStaff, OCBarMap& bars, const int StaffOffset)
-{
-    OCPointerArray py=new int[NumOfTracks()];
-    //OCPointerArray fipmeter=new int[NumOfTracks()];
-    OCPrintVarsArray dcurrent=new OCPrintVarsType[NumOfTracks()];
-    QList<int> dummy;
-    OCBarWindowBar* VoiceBar = new OCBarWindowBar[NumOfTracks()];
-    CStaffCounter StaffCount(NumOfTracks());
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
-    {
-        OCBarWindowVoice v;
-        v.Voice=iTemp;
-        v.Incomplete=false;
-        v.EndPointer=0;
-        bars.Voices.append(v);
-        py[iTemp] = 0; // 'Track(iTemp).tstart
-        //fipmeter[iTemp] = 96;
-    }
+    OCStaffCounterPrint PrintCounters(voiceCount());
+    QVector<OCBarWindowBar> VoiceBar(voiceCount());
+    for (int i = 0; i < voiceCount(); i++) barMap.appendVoice(i);
     forever
     {
-        for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+        for (int i = 0; i < voiceCount(); i++)
         {
-            if (StaffCount.Ready(iTemp))
+            if (PrintCounters[i].isReady())
             {
-                if (!StaffCount.Killed(iTemp))
+                OCBarWindowBar& VB = VoiceBar[i];
+                OCPrintCounter& CountIt = PrintCounters[i];
+                if (!CountIt.isFinished()) VB.Density++;
+                CountIt.setLen(Voices[i].findBarChunk(PrintCounters));
+                if (PrintCounters.Beat == 0)
                 {
-                    VoiceBar[iTemp].Density++;
+                    VB.KeyChangeOnOne = CountIt.KeyChange;
+                    VB.ClefChangeOnOne = CountIt.ClefChange;
                 }
-                StaffCount.SetCurrentVoice(iTemp);
-                int Rounded=Track[iTemp]->FiBChunk(py[iTemp], XMLScoreWrapper::Voice(XMLStaff, iTemp), StaffCount.VoiceCounter(), dcurrent, NumOfTracks(), dummy);
-                if (StaffCount.Beat==0)
+                VB.MasterStuff = VB.MasterStuff | CountIt.MasterStuff;
+                if (CountIt.FilePointer > 0)
                 {
-                    VoiceBar[iTemp].KeyChangeOnOne=dcurrent[iTemp].KeyChange;
-                    VoiceBar[iTemp].ClefChangeOnOne=dcurrent[iTemp].ClefChange;
-                }
-                VoiceBar[iTemp].MasterStuff=VoiceBar[iTemp].MasterStuff | dcurrent[iTemp].MasterStuff;
-                StaffCount.SetNewLen(Rounded, iTemp);
-                if (py[iTemp]>0)
-                {
-                    XMLSymbolWrapper Symbol(XMLScoreWrapper::Voice(XMLStaff, iTemp), py[iTemp]-1, dcurrent[iTemp].Meter);
-                    if (Symbol.IsValuedNote())
+                    const XMLSymbolWrapper& Symbol = XMLVoice(i).XMLSymbol(CountIt.FilePointer - 1, CountIt.Meter);
+                    if (Symbol.IsValuedNote()) VB.Notes++;
+                    if (Symbol.IsRest() && (Symbol.ticks() == CountIt.Meter))
                     {
-                        VoiceBar[iTemp].Notes ++;
-                    }
-                    if (Symbol.IsRest() && (Symbol.ticks()==dcurrent[iTemp].Meter))
-                    {
-                        VoiceBar[iTemp].IsFullRest=true;
-                        if (VoiceBar[iTemp].Pointer==py[iTemp]-1) VoiceBar[iTemp].IsFullRestOnly=true;
+                        VB.IsFullRest = true;
+                        if (VB.Pointer == CountIt.FilePointer - 1) VB.IsFullRestOnly = true;
                     }
                 }
-                dummy.clear();
+                CountIt.Ties.clear();
             }
         }
-        if (StaffCount.Killed()) break; //if (Ended == NumOfTracks()) break;
-        StaffCount.Flip();
-        for (int iTemp = 0 ; iTemp < NumOfTracks(); iTemp++)
+        if (PrintCounters.isFinished()) break; //if (Ended == NumOfTracks()) break;
+        //PrintCounters.flip();
+        PrintCounters.decrementFlip();
+        if (PrintCounters.newBar())
         {
-            if (!StaffCount.Killed(iTemp)) dcurrent[iTemp].Decrement(StaffCount.Min / StaffCount.TupletFactor(iTemp));//Track[iTemp]->TupletFactor);
-        }
-        if (StaffCount.NewBar(dcurrent[StaffCount.FirstValidVoice()].Meter))
-        {
-            StaffCount.BarFlip();
-            for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+            //PrintCounters.barFlip();
+            for (int i = 0; i < voiceCount(); i++)
             {
-                if (!StaffCount.Killed(iTemp))
+                OCBarWindowBar& VB = VoiceBar[i];
+                OCPrintCounter& CountIt = PrintCounters[i];
+                if (!CountIt.isFinished())
                 {
-                    VoiceBar[iTemp].Meter=dcurrent[iTemp].Meter;
-                    VoiceBar[iTemp].MeterText=dcurrent[iTemp].MeterText;
-                    OCBarWindowBar b(VoiceBar[iTemp]);
-                    //b.Density=Items[iTemp];
-                    //b.Notes=Notes[iTemp];
-                    //b.Pointer=BarPointers[iTemp];
-                    //b.Meter=fipmeter[iTemp];
-                    bars.Voices[StaffOffset+iTemp].Bars.append(b);
-                    VoiceBar[iTemp].Pointer=py[iTemp];
+                    VB.setMeter(CountIt.Meter,CountIt.MeterText);
+                    barMap.appendBar(StaffOffset + i, OCBarWindowBar(VB));
+                    VB.Pointer=CountIt.FilePointer;
 
                 }
-                VoiceBar[iTemp].Density = 0;
-                VoiceBar[iTemp].Notes = 0;
-                VoiceBar[iTemp].IsFullRest = false;
-                VoiceBar[iTemp].IsFullRestOnly = false;
-                VoiceBar[iTemp].ClefChangeOnOne = false;
-                VoiceBar[iTemp].KeyChangeOnOne = false;
-                VoiceBar[iTemp].MasterStuff = false;
+                VB.reset();
             }
         }
     }
-    for (int iTemp = 0 ; iTemp < NumOfTracks() ; iTemp++)
+    for (int i = 0 ; i < voiceCount() ; i++)
     {
-        if (py[iTemp]>VoiceBar[iTemp].Pointer)
+        OCBarWindowBar& VB = VoiceBar[i];
+        OCPrintCounter& CountIt = PrintCounters[i];
+        if (CountIt.FilePointer > VB.Pointer)
         {
-            VoiceBar[iTemp].Meter=dcurrent[iTemp].Meter;
-            VoiceBar[iTemp].MeterText=dcurrent[iTemp].MeterText;
-            OCBarWindowBar b(VoiceBar[iTemp]);
-            //b.Density=Items[iTemp];
-            //b.Notes=Notes[iTemp];
-            //b.Pointer=BarPointers[iTemp];
-            //b.Meter=fipmeter[iTemp];
-            bars.Voices[StaffOffset+iTemp].Incomplete=true;
-            bars.Voices[StaffOffset+iTemp].Bars.append(b);
+            VB.setMeter(CountIt.Meter, CountIt.MeterText);
+            barMap.setIncomplete(StaffOffset + i);
+            barMap.appendBar(StaffOffset + i, OCBarWindowBar(VB));
         }
-        bars.Voices[StaffOffset+iTemp].EndPointer=py[iTemp];
+        barMap.setEndPointer(StaffOffset + i, CountIt.FilePointer);
     }
-    delete [] py;
-    delete [] dcurrent;
-    delete [] VoiceBar;
-}
-
-OCScore::OCScore()
-{
-    CStaff* S= new CStaff;
-    S->SetStavenum(0);
-    Staff.append(S);
 }
 
 OCScore::~OCScore()
 {
-    qDeleteAll(Staff);
-    Staff.clear();
+    //qDeleteAll(Staff);
+    //Staff.clear();
 }
 
-const int OCScore::NumOfStaves()
-{
-    return Staff.count();
-}
+int OCScore::barsActuallyPrinted() const { return BarList.actuallyPrinted(); }
 
-void OCScore::PlSystem(const int q, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const QColor color, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj)
+int OCScore::startBar() const { return BarList.startBar(); }
+
+double OCScore::systemLength() const { return BarList.systemLength(); }
+
+bool OCScore::isEnded(const XMLTemplateWrapper &XMLTemplate) const { return BarMap().IsEnded(startBar(),XMLTemplate); }
+
+void OCScore::plotStaff(const int StaffIndex, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj)
 {
-    Staff[q]->ItemList.clear();
+    CStaff& s = Staffs[StaffIndex];
+    s.ItemList.clear();
     ScreenObj.StartList();
-    Staff[q]->PlStaff(BarList, XMLScore, XMLTemplate, SymbolList, color, Staff, ActiveStave, ActiveTrack, StavePlacement, ScreenObj);
-    Staff[q]->ItemList.append(ScreenObj.EndList());
+    s.plotStaff(BarList, XMLScore, XMLTemplate, Options, color, Staffs[Options.masterStaff()], ScreenObj);
+    s.ItemList.append(ScreenObj.EndList());
 }
 
-void OCScore::PlSystemNoList(const int q, XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate, const QColor color, const int ActiveStave, const int ActiveTrack, const int StavePlacement, OCDraw& ScreenObj)
+void OCScore::plotStaffNoList(const int staffIndex, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj)
 {
-    Staff[q]->PlStaff(BarList, XMLScore, XMLTemplate, SymbolList, color, Staff, ActiveStave, ActiveTrack, StavePlacement, ScreenObj);
+    Staffs[staffIndex].plotStaff(BarList, XMLScore, XMLTemplate, Options, color, Staffs[Options.masterStaff()], ScreenObj);
 }
 
-const int OCScore::ActuallyPrinted() const
+void OCScore::eraseSystem(int StaffIndex, QGraphicsScene *Scene)
 {
-    return BarList.ActuallyPrinted();
-}
-
-const int OCScore::StartBar() const
-{
-    return BarList.StartBar();
-}
-
-const int OCScore::SystemLength() const
-{
-    return BarList.SystemLength();
-}
-
-const bool OCScore::IsEnded(QDomLiteElement* XMLTemplate) const
-{
-    //return (BarMap().BarCountAll(XMLTemplate) <= StartBar());
-    return BarMap().IsEnded(StartBar(),XMLTemplate);
-}
-
-void OCScore::EraseSystem(int Stave, QGraphicsScene *Scene)
-{
-    foreach(QGraphicsItem* item,Staff[Stave]->ItemList)
+    CStaff& s = Staffs[StaffIndex];
+    for(QGraphicsItem* item : std::as_const(s.ItemList))
     {
         Scene->removeItem(item);
         delete item;
     }
-    Staff[Stave]->ItemList.clear();
+    s.ItemList.clear();
 }
 
-void OCScore::EraseAll(QGraphicsScene* Scene)
+void OCScore::eraseAll(QGraphicsScene* Scene)
 {
-    foreach(CStaff* s,Staff) s->ItemList.clear();
+    for(CStaff& s : Staffs) s.ItemList.clear();
     Scene->clear();
 }
 
-void OCScore::PageBackFormat(XMLScoreWrapper& XMLScore, QDomLiteElement* XMLTemplate)
+void OCScore::formatPageBack(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options)
 {
-    if (StartBar()<=0) return;
-    int NewEndbar=StartBar();
-    if (IsEnded(XMLTemplate))
+    if (startBar() <= 0) return;
+    const int NewEndbar = startBar();
+    if (isEnded(XMLTemplate))
     {
-        int Start=qMax(0,StartBar()-20);
-        FormatPage(XMLScore,XMLTemplate,SystemLength(),Start);
+        int Start = loBound<int>(0,startBar()-20);
+        formatPage(XMLScore,XMLTemplate,Options,systemLength(),Start);
         forever
         {
-            if (Start+BarList.ActuallyPrinted() >= NewEndbar) return;
+            if (Start+BarList.actuallyPrinted() >= NewEndbar) return;
             Start++;
-            FormatPage(XMLScore,XMLTemplate,SystemLength(),Start);
+            formatPage(XMLScore,XMLTemplate,Options,systemLength(),Start);
         }
     }
     else
     {
-        int Start=StartBar()-1;
-        FormatPage(XMLScore,XMLTemplate,SystemLength(),Start);
+        int Start = startBar() - 1;
+        formatPage(XMLScore,XMLTemplate,Options,systemLength(),Start);
         forever
         {
-            if (Start+BarList.ActuallyPrinted() <= NewEndbar) return;
-            if (Start<=0) return;
+            if (Start + BarList.actuallyPrinted() <= NewEndbar) return;
+            if (Start <= 0) return;
             Start--;
-            FormatPage(XMLScore,XMLTemplate,SystemLength(),Start);
+            formatPage(XMLScore,XMLTemplate,Options,systemLength(),Start);
         }
     }
 }
 
-void OCScore::FormatPage(XMLScoreWrapper& XMLScore, QDomLiteElement *XMLTemplate, const int SysLen, const int Start, const int End)
+void OCScore::formatPage(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const double SysLen, const int Start, const int End)
 {
     bool PreviousFullRest=false;
     bool PreviousFullRestOnly=false;
 
-    findall(Start, XMLScore, XMLTemplate);
-    BarList.reset(SysLen,Start,XMLScore.AllTemplateIndex(XMLTemplate->firstChild()));
-    int BarNr=0;
-    int ActualBarNr=0;
-    for (BarNr = 0 ; BarNr < 20 ; BarNr++)
+    findall(Start, XMLTemplate, Options);
+    BarList.reset(SysLen,Start,XMLTemplate.staffId(0));
+    OCPageBar b(Start);
+    while((b.currentBar < 20) || (End == -1))
     {
-        if (ActualBarNr+Start>BarMap().BarCount(BarList.longeststaff,BarList.longestvoice)-1)
+        if (b.barNumber() > BarMap().barCount(BarList.longestVoice) - 1)
         {
-            for (int iTemp = 0 ; iTemp < XMLTemplate->childCount() ; iTemp++)
+            for (int StaffPos = 0; StaffPos < XMLTemplate.staffCount(); StaffPos++)
             {
-                for (int iTemp1 = 0 ; iTemp1< XMLScore.Staff(XMLScore.AllTemplateIndex(XMLTemplate,iTemp))->childCount() ; iTemp1++)
+                const int StaffId = XMLTemplate.staffId(StaffPos);
+                for (int voc = 0; voc < XMLScore.Staff(StaffId).voiceCount(); voc++)
                 {
-                    if (BarMap().BarCount(XMLScore.AllTemplateIndex(XMLTemplate,iTemp),iTemp1)-1>=ActualBarNr+Start)
+                    if (BarMap().barCount(OCVoiceLocation(StaffId,voc)) - 1 >= b.barNumber())
                     {
-                        BarList.longeststaff=iTemp;
-                        BarList.longestvoice=iTemp1;
+                        BarList.longestVoice.StaffId=StaffId;
+                        BarList.longestVoice.Voice=voc;
                         break;
                     }
                 }
             }
         }
-        BarList.SetMeter(BarNr,BarMap().GetMeter(Start + ActualBarNr,BarList.longeststaff,BarList.longestvoice));
+        BarList.setMeter(b.currentBar,BarMap().GetMeter(OCBarLocation(BarList.longestVoice,b.barNumber())));
         bool IsFullRest=false;
         bool IsFullRestOnly=false;
         forever
         {
-            for (int iTemp = 0 ; iTemp < XMLTemplate->childCount() ; iTemp++)
+            for (int StaffPos = 0; StaffPos < XMLTemplate.staffCount(); StaffPos++)
             {
-                Staff[XMLScore.AllTemplateIndex(XMLTemplate,iTemp)]->FormatBar(BarNr, ActualBarNr, BarList, XMLScore, XMLTemplate);
+                Staffs[XMLTemplate.staffId(StaffPos)].formatBar(b, BarList, XMLScore, XMLTemplate);
             }
-            IsFullRest=BarMap().IsFullRest(Start+ActualBarNr, XMLTemplate);
-            IsFullRestOnly=BarMap().IsFullRestOnly(Start+ActualBarNr, XMLTemplate) & !BarMap().MasterStuff(Start+ActualBarNr,XMLScore.getVal("MasterStaff"));
+            IsFullRest = BarMap().IsFullRest(b.barNumber(), XMLTemplate);
+            IsFullRestOnly = BarMap().IsFullRestOnly(b.barNumber(), XMLTemplate) && !BarMap().MasterStuff(b.barNumber(),Options.masterStaff());
             if (IsFullRestOnly)
             {
-                if ((PreviousFullRest && (BarList.GetMultiPause(BarNr - 1) == 1)) || PreviousFullRestOnly)
+                if ((PreviousFullRest && (BarList.multiPause(b.currentBar - 1) == 1)) || PreviousFullRestOnly)
                 {
-                    BarList.SetMultiPause(BarNr - 1, BarList.GetMultiPause(BarNr - 1) + 1);
-                    ActualBarNr ++;
+                    BarList.setMultiPause(b.currentBar - 1, BarList.multiPause(b.currentBar - 1) + 1);
+                    b.incActual();
                     PreviousFullRest = IsFullRest;
                     PreviousFullRestOnly = IsFullRestOnly;
                 }
@@ -1967,6 +1379,11 @@ void OCScore::FormatPage(XMLScoreWrapper& XMLScore, QDomLiteElement *XMLTemplate
                     break;
                 }
             }
+            else if (IsFullRest)
+            {
+                BarList.setMinimumAll(b.currentBar, 24);
+                break;
+            }
             else
             {
                 break;
@@ -1974,206 +1391,189 @@ void OCScore::FormatPage(XMLScoreWrapper& XMLScore, QDomLiteElement *XMLTemplate
         }
         PreviousFullRest = IsFullRest;
         PreviousFullRestOnly = IsFullRestOnly;
-        if (BarList.GetMultiPause(BarNr - 1) > 4)
+        //if (BarList.multiPause(b.currentBar - 1) > 4)
+        //{
+            //BarList.setMinimumAll(b.currentBar - 1, int(BarList.minimumTotal(b.currentBar - 1) / ((BarList.multiPause(b.currentBar - 1) - 1) / 4) * 0.4) + 2);
+        //}
+        if (BarList.minimumTotal(b.currentBar) == maxticks)
         {
-            BarList.SetMinimumAll(BarNr - 1, (BarList.GetMinimumTotal(BarNr - 1) / ((BarList.GetMultiPause(BarNr - 1) - 1) / 4) * 0.4) + 2);
-        }
-        if (BarList.GetMinimumTotal(BarNr) == maxticks)
-        {
-            BarList.SetMinimumAll(BarNr, 24);
+            BarList.setMinimumAll(b.currentBar, 24);
             break;
         }
         if (End==0)
         {
-            if (BarNr > 0)
+            if (b.currentBar > 0)
             {
-                if (BarList.XTest(BarNr+1)<(XMLScore.getVal("NoteSpace")+1)*12) break;
+                if (BarList.XTest(b.currentBar+1) < (Options.noteSpace() + 1) * 12) break;
             }
         }
-        else
+        else if (End != -1)
         {
-            if (ActualBarNr + Start >= End) break;
+            if (b.barNumber() >= End) break;
         }
-        ActualBarNr++;
+        b.increment();
     }
-    BarList.CalcFactorX(BarNr, ActualBarNr);
-}
-
-void OCScore::ReformatPage(const int SysLen)
-{
-    BarList.RecalcFactorX(SysLen);
-}
-
-const QString OCScore::ToolTipText(const int Pointer,const int Stave, const int TrackNr) const
-{
-    int BarNumber=BarMap().GetBar(Pointer,Stave,TrackNr);
-    int BarPtr=BarMap().GetPointer(BarNumber,Stave,TrackNr);
-    return "Bar <b>"+QString::number(BarNumber+1)+"</b> Symbol <b>"+QString::number(Pointer-BarPtr+1)+"</b>";
-}
-
-void OCScore::findall(const int BarToFind, XMLScoreWrapper& XMLScore, QDomLiteElement* Template)
-{
-    for (int i=0;i<Template->childCount();i++)
+    if (End == -1)
     {
-        Staff[XMLScore.AllTemplateIndex(Template,i)]->Findall(BarToFind, XMLScore.Staff(XMLScore.AllTemplateIndex(Template,i)));
-    }
-    int MS=XMLScore.getVal("MasterStaff");
-    if (!XMLScore.StaffOnTemplate(Template,MS)) Staff[MS]->Findall(BarToFind, XMLScore.Staff(MS));
-}
-
-void OCScore::Play(const int StartBr, XMLScoreWrapper& XMLScore, const int silence, OCMIDIFile& MFile, const QString& Path, const int StaveNum)
-{
-    MFile.OpenIt();
-    int TrackNumber = 0;
-
-    if (StaveNum==-1)
-    {
-        for (int Stave = 0 ; Stave < NumOfStaves() ;Stave++)
-        {
-            QDomLiteElement* s=XMLScore.Staff(Stave);
-            if (!s->attributeValue("Muted"))
-            {
-                Staff[Stave]->Play(MFile, TrackNumber, StartBr, s, silence);
-            }
-        }
+        BarList.TotalLength();
     }
     else
     {
-        Staff[StaveNum]->Play(MFile, TrackNumber, StartBr, XMLScore.Staff(StaveNum), silence);
+        BarList.calcFactorX(b);
     }
-    MFile.CloseIt(Path);
 }
 
-const QByteArray OCScore::MIDIPointer(const int StartBr, XMLScoreWrapper& XMLScore, const int silence, OCMIDIFile& MFile)
+void OCScore::reformatPage(const int SysLen)
 {
-    MFile.OpenIt();
-    int TrackNumber = 0;
+    BarList.recalcFactorX(SysLen);
+}
 
-    for (int Stave = 0 ; Stave < NumOfStaves() ;Stave++)
+const QString OCScore::toolTipText(const OCSymbolLocation& SymbolLocation) const
+{
+    const OCBarSymbolLocation Bar = BarMap().GetBar(SymbolLocation);
+    return "Bar <b>"+QString::number(Bar.Bar + 1) + "</b> Symbol <b>" + QString::number(SymbolLocation.Pointer - Bar.Pointer + 1) + "</b>";
+}
+
+void OCScore::findall(const int BarToFind, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options)
+{
+    for (int StaffPos=0; StaffPos<XMLTemplate.staffCount(); StaffPos++)
     {
-        QDomLiteElement* s=XMLScore.Staff(Stave);
-        if (!s->attributeValue("Muted"))
-        {
-            Staff[Stave]->Play(MFile, TrackNumber, StartBr, s, silence);
-        }
+        Staffs[XMLTemplate.staffId(StaffPos)].findall(BarToFind);
     }
+    const int MasterStaff=Options.masterStaff();
+    if (!XMLTemplate.containsStaffId(MasterStaff)) Staffs[MasterStaff].findall(BarToFind);
+}
+
+OCScore::OCScore() : XMLStaffCollectionWrapper() {}
+
+void OCScore::play(const int StartBr, const int silence, const QString& Path)
+{
+    OCMIDIFile MFile;
+    int TrackNumber = 0;
+    for (CStaff& s : Staffs) s.play(MFile, TrackNumber, StartBr, silence, BarList.BarMap);
+    MFile.Save(Path);
+}
+
+const QByteArray OCScore::MIDIPointer(const int StartBr, const int silence)
+{
+    OCMIDIFile MFile;
+    int TrackNumber = 0;
+    for (CStaff& s : Staffs) s.play(MFile, TrackNumber, StartBr, silence, BarList.BarMap);
     return MFile.MIDIPointer();
 }
 
-void OCScore::Mute(const int Stave, const bool Muted)
+OCBarSymbolLocationList OCScore::search(const QString& SearchTerm, const int StaffIndex, const int Voice)
 {
-    Staff[Stave]->Mute = Muted;
-}
-
-void OCScore::Solo(const int Stave, const bool Solo)
-{
-    Staff[Stave]->Solo = Solo;
-}
-
-void OCScore::AddStave(const int NewNumber)
-{
-    CStaff* S=new CStaff;
-    Staff.insert(NewNumber,S);
-    for (int i=0;i<Staff.count();i++)
+    OCBarSymbolLocationList l;
+    for (int i = 0; i < Staffs.size(); i++)
     {
-        Staff[i]->SetStavenum(i);
-    }
-}
-
-void OCScore::AddTrack(const int Stave)
-{
-     Staff[Stave]->AddTrack();
- }
-
-void OCScore::DeleteTrack(const int Stave, const int Track)
-{
-    Staff[Stave]->DeleteTrack(Track);
-}
-
-void OCScore::DeleteStave(const int Stave)
-{
-    delete Staff[Stave];
-    Staff.removeAt(Stave);
-    for (int i=0;i<Staff.count();i++)
-    {
-        Staff[i]->SetStavenum(i);
-    }
-}
-
-QList<SymbolSearchLocation> OCScore::Search(XMLScoreWrapper& XMLScore, const QString& SearchTerm, const int Stave, const int Track) const
-{
-    QList<SymbolSearchLocation> l;
-    for (int i=0;i<Staff.count();i++)
-    {
-        if ((Stave==-1) || (i==Stave)) l.append(Staff[i]->Search(XMLScore.Staff(i), SearchTerm, Track));
+        if ((StaffIndex==-1) || (i==StaffIndex)) l.append(Staffs[i].search(SearchTerm, Voice));
     }
     return l;
 }
 
-void OCScore::FakePlot(const int Stave, const int Track, const int PointerGoal, XMLScoreWrapper& XMLScore, OCMIDIVars& MIDI)
+const OCMIDIVars OCScore::fakePlot(const OCSymbolLocation& Target)
 {
-    Staff[Stave]->FakePlot(Track, PointerGoal, XMLScore.Staff(Stave), MIDI);
+    return Staffs[Target.StaffId].fakePlot(Target.Voice, Target.Pointer).MIDI;
 }
 
-void OCScore::CreateBarMap(XMLScoreWrapper& XMLScore)
+int OCScore::fakePlotClef(const OCSymbolLocation& Target)
 {
-    BarList.BarMap.Voices.clear();
+    return Staffs[Target.StaffId].fakePlot(Target.Voice, Target.Pointer).clef();
+}
+
+void OCScore::createBarMap()
+{
+    BarList.BarMap.clear();
     int StaffOffset = 0;
-    for (int iTemp = 0 ; iTemp < XMLScore.NumOfStaffs() ; iTemp++)
+    for (int StaffIndex = 0; StaffIndex < Staffs.size(); StaffIndex++)
     {
-        Staff[iTemp]->FillBarsArray(XMLScore.Staff(iTemp), BarList.BarMap, StaffOffset);
-        for (int i=0;i<XMLScore.NumOfVoices(iTemp);i++)
+        Staffs[StaffIndex].fillBarsArray(BarList.BarMap, StaffOffset);
+        const XMLStaffWrapper& Staff=XMLStaff(StaffIndex);
+        for (int v = 0; v < Staff.voiceCount(); v++)
         {
-            BarList.BarMap.Voices[StaffOffset+i].Staff=iTemp;
-            BarList.BarMap.Voices[StaffOffset+i].NumOfVoices=XMLScore.NumOfVoices(iTemp);
-            BarList.BarMap.Voices[StaffOffset+i].Name=XMLScore.StaffName(iTemp);
-        }
-        StaffOffset += XMLScore.NumOfVoices(iTemp);
-    }
-}
-
-const OCBarMap& OCScore::BarMap() const
-{
-    return BarList.BarMap;
-}
-
-const bool OCScore::StaffEmpty(const int Staff, XMLScoreWrapper &XMLScore, QDomLiteElement *XMLTemplate)
-{
-    return (BarMap().NoteCountStaff(XMLScore.AllTemplateIndex(XMLTemplate,Staff),BarList.StartBar(),BarList.StartBar()+BarList.ActuallyPrinted())==0);
-}
-
-void OCScore::MakeStaves(XMLScoreWrapper& XMLScore)
-{
-    qDeleteAll(Staff);
-    Staff.clear();
-    CStaff* S=new CStaff();
-    S->SetStavenum(0);
-    Staff.append(S);
-    for (int iTemp = 1; iTemp < XMLScore.NumOfVoices(0); iTemp++)// ' Datafile.NumOfTracks(1)
-    {
-        AddTrack(0);
-    }
-    for (int iTemp = 1; iTemp < XMLScore.NumOfStaffs(); iTemp++)
-    {
-        AddStave(iTemp);
-        for (int iTemp1 = 1; iTemp1 < XMLScore.NumOfVoices(iTemp); iTemp1++) // 'Datafile.NumOfTracks(iTemp)
-        {
-            AddTrack(iTemp);
+            BarList.BarMap.setStaffParams(StaffOffset++,StaffIndex,Staff.voiceCount(),Staff.name());
         }
     }
 }
 
-OCFrameProperties* OCScore::GetFrame(const int Pointer)
+const OCBarMap &OCScore::BarMap() const { return BarList.BarMap; }
+
+bool OCScore::StaffEmpty(const int StaffPos, const XMLTemplateWrapper &XMLTemplate)
 {
-    return SymbolList.RetrieveFromPointer(Pointer);
+    return (BarMap().NoteCountStaff(XMLTemplate.staffId(StaffPos),BarList.startBar(),BarList.startBar()+BarList.actuallyPrinted())==0);
 }
 
-int OCScore::InsideFrame(const QPoint& m) const
+void OCScore::assignXML(const XMLScoreWrapper &XMLScore)
 {
-    return SymbolList.Inside(m);
+    //qDeleteAll(Staff);
+    Staffs.clear();
+    shadowXML(XMLScore.Score.xml());
+    for (int i = 0; i < staffCount(); i++)
+    {
+        Staffs.append(CStaff(XMLStaff(i).xml(),i));
+    }
 }
 
-const QList<int> OCScore::PointersInside(const QRect& r) const
+const OCFrameProperties &OCScore::getFrame(const OCSymbolLocation &l) { return Staffs[l.StaffId].FrameList(l.Voice).RetrieveFromPointer(l); }
+
+const OCSymbolLocation OCScore::insideFrame(const QPointF &m)
 {
-    return SymbolList.PointersInside(r);
+    for (int i=0;i<staffCount();i++)
+    {
+        for (int j=0;j<Staffs[i].voiceCount();j++)
+        {
+            const OCSymbolLocation& l=Staffs[i].FrameList(j).Inside(m);
+            if (l.Pointer > -1) return l;
+        }
+    }
+    return OCSymbolLocation();
 }
+
+const OCSymbolLocation OCScore::nearestLocation(const double y, const OCSymbolLocation &currentLocation)
+{
+    int p = Staffs[currentLocation.StaffId].FrameList(currentLocation.Voice).Nearest(y);
+    return OCSymbolLocation(currentLocation,p);
+}
+
+const OCLocationList OCScore::locationsInside(const QRectF &r)
+{
+    OCLocationList v;
+    for (int i=0;i<staffCount();i++)
+    {
+        for (int j=0;j<Staffs[i].voiceCount();j++)
+        {
+            v.append(Staffs[i].FrameList(j).locationsInside(r));
+        }
+    }
+    return v;
+}
+
+const OCPointerList OCScore::pointersInsideVoice(const QRectF &r, const OCVoiceLocation &v)
+{
+    return Staffs[v.StaffId].FrameList(v.Voice).locationsInside(r).pointers();
+}
+
+const QRectF OCScore::getBarlineX(const int BarNum)
+{
+    return BarList.frame(BarNum - startBar());
+}
+
+int OCScore::insideBarline(const QPointF &x)
+{
+    for (int i=0;i<BarList.barsToPrint();i++)
+    {
+        if (BarList.frame(i).x()-3 < x.x())
+        {
+            if (BarList.frame(i).x()+3 > x.x())
+            {
+                return i + startBar();
+            }
+        }
+    }
+    return -1;
+}
+
+OCFrameArray &OCScore::FrameList(const int Staff, const int Voice) { return Staffs[Staff].FrameList(Voice); }
+
+

@@ -1,0 +1,213 @@
+<!DOCTYPE  ObjectComposerProject>
+<ObjectComposerScore>
+<Template>
+<TemplateStaff/>
+</Template>
+<TempoFont Bold="true" FontSize="160"/>
+<DynamicFont Italic="true" FontSize="150"/>
+<LayoutCollection/>
+<Score>
+<Staff Name="New Staff">
+<Voice>
+<Symbol SymbolName="Tempo" NoteValue="2" Tempo="200"/>
+<Symbol SymbolName="Note" Pitch="50" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="52" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="55" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="60" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="64" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="65" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="63" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="61" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="60" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="56" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="54" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="51" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="48" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="49" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="57" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="62" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="65" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="71" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="74" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="75" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="72" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="66" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="65" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="69" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="70" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="72" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="66" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="60" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="56" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="58" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="51" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="48" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="44" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="48" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="53" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="57" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="62" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="69" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="74" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="77" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="80" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="75" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="70" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="66" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="67" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="72" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="76" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="81" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="83" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="78" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="75" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="76" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="79" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="83" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="85" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="80" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="83" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="86" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="89" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="85" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="82" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="86" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="89" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="91" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="92" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="90" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="87" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="85" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="86" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="89" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="92" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="90" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="91" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="95" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="103" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="97" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="96" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="98" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="92" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="90" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="87" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="82" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="86" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="87" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="80" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="78" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="81" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="78" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="73" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="70" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="71" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="74" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="73" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="70" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="66" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="63" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="62" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="65" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="69" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="68" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="63" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="60" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="58" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="59" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="64" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="63" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="58" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="54" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="51" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="52" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="55" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="59" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="58" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="54" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="51" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="49" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="47" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="50" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="53" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="51" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="48" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="46" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="43" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="47" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="50" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="48" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="46" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="42" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="41" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="43" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="45" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="47" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="50" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="52" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="53" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="54" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="56" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="58" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="60" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="61" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="63" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="66" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="68" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="70" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="72" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="73" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="74" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="76" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="77" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="79" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="81" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="83" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Pitch="84" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Fermata" Common="true" Duration="240" Inaudible="false" Invisible="false"/>
+<Symbol SymbolName="Rest" Inaudible="false" Invisible="false" NoteValue="4" Ticks="6"/>
+<Symbol SymbolName="Note" Inaudible="false" Invisible="false" NoteType="2" Pitch="67" NoteValue="0" Ticks="96"/>
+<Symbol SymbolName="Note" Inaudible="false" Invisible="false" NoteType="2" Pitch="48" NoteValue="0" Ticks="96"/>
+<Symbol SymbolName="Note" Inaudible="false" Invisible="false" NoteType="2" Pitch="36" NoteValue="0" Ticks="96"/>
+<Symbol SymbolName="Note" Inaudible="false" Invisible="false" NoteType="0" Pitch="76" NoteValue="0" Ticks="96"/>
+</Voice>
+</Staff>
+</Score>
+<MIDIMixer>
+<Custom File="/Users/Shared/oc.mid">
+<Mixer>
+<Channel0>
+<Channel Volume="100" Bypass="false" Pan="100" Mute="false" Solo="false" Effect1="100" Effect2="100" Effect3="100" EQActive="false" HiGain="100" MidGain="100" LoGain="100" Gain="100" LoCut="false">
+<Custom File=":/028.5mg Masterpiece GM Bank.sf2" Bank="0" Preset="0" DeviceType="SF2Player">
+<Items>
+<Position Height="155" Width="407"/>
+</Items>
+<Device>
+<Parameter Name="MIDI Channel" Index="0"/>
+<Parameter Name="Volume" Value="100" Index="1"/>
+<Parameter Name="Transpose" Index="2"/>
+<Parameter Name="Tune" Value="44000" Index="3"/>
+<Parameter Name="Patch Change" Value="1" Index="4"/>
+</Device>
+</Custom>
+</Channel>
+</Channel0>
+<Master Lock="true" Volume Left="100" Volume Right="100" Effect 1="100" Effect 2="100" Effect 3="100"/>
+<Effect0>
+<Custom/>
+</Effect0>
+<Effect1>
+<Custom/>
+</Effect1>
+<Effect2>
+<Custom/>
+</Effect2>
+</Mixer>
+</Custom>
+</MIDIMixer>
+</ObjectComposerScore>

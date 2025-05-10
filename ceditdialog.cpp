@@ -1,5 +1,7 @@
 #include "ceditdialog.h"
+#include "csymbol.h"
 #include "ui_ceditdialog.h"
+//#include <QSettings>
 
 CEditDialog::CEditDialog(QWidget *parent) :
         QDialog(parent,Qt::Sheet),
@@ -13,6 +15,8 @@ CEditDialog::CEditDialog(QWidget *parent) :
 
 CEditDialog::~CEditDialog()
 {
+    OCSettings s;
+    if (XML.documentElement->childCount()) s.setValue("OCStuff",XML.toString()); //XML.save(settingsfile);
     delete ui;
 }
 
@@ -26,7 +30,7 @@ void CEditDialog::AddItem()
     QString Name=tr("New")+" "+TopNode;
     int c=1;
     QStringList sl;
-    for (int i=0;i<theNode->childCount();i++) sl.append(theNode->childElement(i)->attribute("Name"));
+    for (const QDomLiteElement* e : std::as_const(theNode->childElements)) sl.append(e->attribute("Name"));
     while (sl.contains(Name)) Name=tr("New")+" "+TopNode+" - "+QString::number(c++);
     QDomLiteElement* add=theNode->appendChild(TopNode+"Element");
     add->setAttribute("Name",Name);
@@ -40,14 +44,15 @@ void CEditDialog::AddItem()
     }
     else if (TopNode=="Text")
     {
-        ui->EditWidget->GetText(add);
+        XMLTextElementWrapper t(add);
+        ui->EditWidget->GetText(t);
     }
-    QListWidgetItem* item=new QListWidgetItem(Name);
+    auto item=new QListWidgetItem(Name);
     item->setFlags( item->flags() | Qt::ItemIsEditable);
     ui->listWidget->addItem(item);
     ui->listWidget->setCurrentRow(ui->listWidget->count()-1);
     ui->listWidget->editItem(ui->listWidget->currentItem());
-    ui->SaveItem->setEnabled(ui->listWidget->currentRow()>-1);
+    //ui->SaveItem->setEnabled(ui->listWidget->currentRow()>-1);
 }
 
 void CEditDialog::RemoveItem()
@@ -58,7 +63,7 @@ void CEditDialog::RemoveItem()
         ui->listWidget->takeItem(ui->listWidget->currentRow());
         SetItem(ui->listWidget->currentRow());
     }
-    ui->SaveItem->setEnabled(ui->listWidget->currentRow()>-1);
+    //ui->SaveItem->setEnabled(ui->listWidget->currentRow()>-1);
 }
 
 void CEditDialog::SetItem(int Index)
@@ -76,10 +81,11 @@ void CEditDialog::SetItem(int Index)
         }
         else if (TopNode=="Text")
         {
-            ui->EditWidget->PutText(item);
+            item->setAttribute("Text",item->attribute("Name"));
+            ui->EditWidget->PutText(XMLTextElementWrapper(item));
         }
     }
-    ui->SaveItem->setEnabled(Index>-1);
+    //ui->SaveItem->setEnabled(Index>-1);
 }
 
 void CEditDialog::RenameItem(QListWidgetItem* item)
@@ -89,7 +95,18 @@ void CEditDialog::RenameItem(QListWidgetItem* item)
         if (item->text() != theNode->childElement(ui->listWidget->currentRow())->attribute("Name"))
         {
             theNode->childElement(ui->listWidget->currentRow())->setAttribute("Name",item->text());
+            SetItem(ui->listWidget->currentRow());
         }
+    }
+}
+
+void CEditDialog::AcceptItem(QListWidgetItem* item)
+{
+    ui->listWidget->setCurrentItem(item);
+    if (ui->listWidget->currentRow()>-1)
+    {
+        SetItem(ui->listWidget->currentRow());
+        accept();
     }
 }
 
@@ -108,21 +125,25 @@ void CEditDialog::SaveItem()
         }
         else if (TopNode=="Text")
         {
-            ui->EditWidget->GetText(item);
+            XMLTextElementWrapper t(item);
+            ui->EditWidget->GetText(t);
+            ui->listWidget->currentItem()->setText(t.text());
         }
     }
-    XML.save(settingsfile);
+    //XML.save(settingsfile);
 }
-
+/*
 void CEditDialog::HideList()
 {
     XML.save(settingsfile);
 }
-
+*/
 void CEditDialog::ShowList(const QString& TopNode)
 {
     XML.clear("OCStuff","Stuff");
-    XML.load(settingsfile);
+    //XML.load(settingsfile);
+    OCSettings s;
+    XML.fromString(s.value("OCStuff").toString());
     this->TopNode=TopNode;
     InitLayout(true);
     if (XML.documentElement->childCount(TopNode)==0)
@@ -140,17 +161,22 @@ void CEditDialog::ShowList(const QString& TopNode)
     {
         theNode=XML.documentElement->elementByTag(TopNode);
     }
-    for (int i=0;i<theNode->childCount();i++)
+    for (const QDomLiteElement* e : std::as_const(theNode->childElements))
     {
-        QListWidgetItem* item=new QListWidgetItem(theNode->childElement(i)->attribute("Name"));
+        QListWidgetItem* item=new QListWidgetItem(e->attribute("Name"));
         item->setFlags( item->flags() | Qt::ItemIsEditable);
         ui->listWidget->addItem(item);
     }
-    ui->SaveItem->setEnabled(ui->listWidget->currentRow()>-1);
-    connect(ui->AddItem,SIGNAL(clicked()),this,SLOT(AddItem()));
-    connect(ui->RemoveItem,SIGNAL(clicked()),this,SLOT(RemoveItem()));
-    connect(ui->listWidget,SIGNAL(itemChanged(QListWidgetItem*)),this,SLOT(RenameItem(QListWidgetItem*)));
-    connect(ui->listWidget,SIGNAL(currentRowChanged(int)),this,SLOT(SetItem(int)));
-    connect(this,SIGNAL(accepted()),this,SLOT(HideList()));
-    connect(ui->SaveItem,SIGNAL(clicked()),this,SLOT(SaveItem()));
+    connect(ui->AddItem,&QAbstractButton::clicked,this,&CEditDialog::AddItem);
+    connect(ui->RemoveItem,&QAbstractButton::clicked,this,&CEditDialog::RemoveItem);
+    connect(ui->listWidget,&QListWidget::itemChanged,this,&CEditDialog::RenameItem);
+    connect(ui->listWidget,&QListWidget::currentRowChanged,this,&CEditDialog::SetItem);
+    connect(ui->EditWidget,&CEditWidget::Changed,this,&CEditDialog::SaveItem);
+    connect(ui->listWidget,&QListWidget::itemDoubleClicked,this,&CEditDialog::AcceptItem);
+}
+
+void CEditDialog::QuickAccept(bool hide)
+{
+    if (hide) ui->buttonBox->hide();
+    connect(ui->EditWidget,&CEditWidget::Changed,this,&QDialog::accept);
 }

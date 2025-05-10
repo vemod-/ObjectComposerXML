@@ -44,9 +44,8 @@ QSize QMacSplitterHandle::sizeHint() const
     QSize parent = QSplitterHandle::sizeHint();
     if (orientation() == Qt::Vertical) {
         return parent + QSize(0, 3);
-    } else {
-        return QSize(1, parent.height());
     }
+    return {2, parent.height()};
 }
 
 QSplitterHandle *QMacSplitter::createHandle()
@@ -73,7 +72,7 @@ void QMacSplitter::init()
     a2=new QPropertyAnimation(this);
     anim->addAnimation(a1);
     anim->addAnimation(a2);
-    connect (anim,SIGNAL(finished()),this,SLOT(animationFinished()));
+    connect(anim,SIGNAL(finished()),this,SLOT(animationFinished()));
     a1->setDuration(400);
     a1->setEasingCurve(QEasingCurve::Linear);
     a2->setDuration(400);
@@ -83,9 +82,8 @@ void QMacSplitter::init()
     expandIndex=-1;
 }
 
-void QMacSplitter::Load(QString Tag)
+void QMacSplitter::Load(const QString& Tag, QSettings& s)
 {
-    QSettings s;
     QByteArray ba=s.value(Tag+"/state").toByteArray();
     if (!ba.isEmpty())
     {
@@ -100,10 +98,9 @@ void QMacSplitter::Load(QString Tag)
     }
 }
 
-void QMacSplitter::Save(QString Tag)
+void QMacSplitter::Save(const QString& Tag, QSettings& s)
 {
     //setChildrenCollapsible(true);
-    QSettings s;
     s.setValue(Tag+"/state",this->saveState());
     s.setValue(Tag+"/index",collapseIndex);
     s.setValue(Tag+"/expandindex",expandIndex);
@@ -213,6 +210,7 @@ void QMacSplitter::animationFinished()
         widget(expandIndex)->setMinimumSize(expandedMinSize);
         expandIndex=-1;
     }
+    qDebug() << widget(0)->maximumWidth() << widget(1)->maximumWidth() << widget(0)->minimumWidth() << widget(1)->minimumWidth() << widget(0)->geometry() << widget(1)->geometry() << geometry();
 }
 
 bool QMacSplitter::isCollapsed()

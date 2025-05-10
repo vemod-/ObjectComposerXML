@@ -10,7 +10,13 @@ EffectLabel::EffectLabel(QWidget* parent) :
 	effect_(Plain)
 {
     shadowColor_=palette().color(QPalette::Shadow);
+    textColor_=palette().color(QPalette::Text);
     iconSize_=QSize(24,24);
+}
+
+void EffectLabel::setTextColor(QColor c)
+{
+    textColor_=c;
 }
 
 void EffectLabel::setShadowColor(QColor c)
@@ -27,7 +33,7 @@ void EffectLabel::drawTextEffect(QPainter *painter,
         painter->drawText(textRect_.translated(offset),
 	                  alignment(), text());
 	// Draw text.
-        painter->setPen(palette().color(QPalette::WindowText));
+        painter->setPen(textColor_);
         painter->drawText(textRect_, alignment(), text());
 }
 
@@ -65,8 +71,10 @@ void EffectLabel::paintEvent(QPaintEvent *event)
         painter.drawPixmap((r.width()-iconSize_.width())/2,2,pm);
     }
 
-    if (effect_ == Plain)
-    painter.drawText(textRect_, alignment(), text());
+    if (effect_ == Plain) {
+        painter.setPen(textColor_);
+        painter.drawText(textRect_, alignment(), text());
+    }
     else if (effect_ == Sunken)
         // Shadow above the text.
         drawTextEffect(&painter, QPoint(0, 1));

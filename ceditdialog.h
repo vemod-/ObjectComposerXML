@@ -6,7 +6,6 @@
 #include <QListWidget>
 #include <QGridLayout>
 #include <QDomLite>
-#include "CommonClasses.h"
 #include <QTextStream>
 
 namespace Ui {
@@ -18,22 +17,24 @@ class CEditDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit CEditDialog(QWidget *parent = 0);
+    explicit CEditDialog(QWidget *parent = nullptr);
     ~CEditDialog();
     CEditWidget* EditWidget;
     void ShowList(const QString& TopNode);
+    void QuickAccept(bool hide = false);
 private slots:
     void AddItem();
     void RemoveItem();
     void SetItem(int Index);
     void RenameItem(QListWidgetItem* item);
-    void HideList();
+    void AcceptItem(QListWidgetItem* item);
+    //void HideList();
     void SaveItem();
 private:
     Ui::CEditDialog *ui;
     void InitLayout(bool HasList);
     QDomLiteDocument XML;
-    QDomLiteElement* theNode;
+    QDomLiteElement* theNode=nullptr;
     QString TopNode;
 };
 

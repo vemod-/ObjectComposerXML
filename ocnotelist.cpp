@@ -1,1964 +1,953 @@
 #include "ocnotelist.h"
 #include "ocsymbolscollection.h"
 
-const float FnSize(const float c, const int SymbolSize)
+void OCStaffAccidentals::SetKeyAccidentals(const int Key)
 {
-    if (SymbolSize == 0) return c;
-    return FloatDiv(c ,SizeFactor(SymbolSize));
-}
-
-void OCStaffAccidentals::Reset1(const int Pitch)
-{
-    lfortegn[Pitch].current = 0;
-}
-
-void OCStaffAccidentals::RdAcc(const int Key)
-{
-    int Antal=CKey::NumOfAccidentals(Key);
-    int KBFlag=CKey::AccidentalFlag(Key);
-    int fn[7];
-    if (KBFlag == -1)
-    {
-        fn[1] = 3;
-        fn[2] = 0;
-        fn[3] = 4;
-        fn[4] = 1;
-        fn[5] = 5;
-        fn[6] = 2;
-    }
-    else
-    {
-        fn[1] = 6;
-        fn[2] = 2;
-        fn[3] = 5;
-        fn[4] = 1;
-        fn[5] = 4;
-        fn[6] = 0;
-    }
-    for (int iTemp=0;iTemp<128;iTemp++)
-    {
-        lfortegn[iTemp].current=0;
-        lfortegn[iTemp].faste=0;
-    }
+    static const uint FlatLines[7] = {6, 2, 5, 1, 4, 0, 3};
+    static const uint SharpLines[7] = {3, 0, 4, 1, 5, 2, 6};
+    uint Antal=CKey::NumOfAccidentals(Key);
+    OCKeyAccidental AccSignFlag=CKey::AccidentalFlag(Key);
+    StaffAccidentals.reset();
+    OneOct.reset();
     if (Antal > 0)
     {
-        for (int iTemp = 1;iTemp<=Antal;iTemp++)
+        for (uint n = 0; n < Antal; n++)
         {
-            int b = fn[iTemp];
-            for (int iTemp1 = b;iTemp1 < 128;iTemp1+=7)
+            if (AccSignFlag == keyAccSharps)
             {
-                lfortegn[iTemp1].faste = 1;
+                StaffAccidentals.setAllOctaves(SharpLines[n]);
+            }
+            else if (AccSignFlag == keyAccFlats)
+            {
+                StaffAccidentals.setAllOctaves(FlatLines[n]);
             }
         }
     }
-    for (int iTemp = 0;iTemp<7;iTemp++)
-    {
-        Dirty[iTemp] = false;
-        OneOct[iTemp] = 0;
-    }
 }
 
-void OCStaffAccidentals::CheckFortegn(int *iJ)
+void OCStaffAccidentals::ProcessAccidentals(const OCScaleArray& Scale)
 {
-    bool WasHere[7];
-    calc(WasHere, iJ);
-    if (NoteItems.count()) calc(WasHere, iJ);
+    OCOneOctaveFlagsArray WasHere;
+    OCIntList IgnoreLines;
+    for (const int& i : std::as_const(IgnorePitches)) IgnoreLines.append(CNotesToPrint::Pitch2LineNum(i,Scale));
+    Process(WasHere, Scale, IgnoreLines);
+    if (NoteItems.size() > 1) Process(WasHere, Scale, IgnoreLines);
 }
 
-void OCStaffAccidentals::calc(bool* WasHere, int* iJ)
+void OCStaffAccidentals::Process(OCOneOctaveFlagsArray& WasHere, const OCScaleArray& Scale, const OCIntList& IgnoreLines)
 {
-    for (int iTemp = 0;iTemp<NoteItems.count();iTemp++)
+    for (OCNoteAccidental& item : NoteItems)//(int iTemp = 0;iTemp<NoteItems.size();iTemp++)
     {
-        OCStaffAccidentalItem& item=NoteItems[iTemp];
-        int LineNum = item.Pitch % 7;
-        LineNum = Inside(LineNum, 0, 6, 7);
-        int KB = FnKB(iJ, item.NoteNum);
-        if (Ignore.contains(item.Pitch))
+        //OCNoteAccidental& item=NoteItems[iTemp];
+        OCNoteAccidentalTypes AccSign = item.getAccSign(Scale);
+        if ((IgnorePitches.contains(item.NoteNum)) && ((!OneOct.isSet(item.LineNum)) || (!WasHere.isSet(item.LineNum))))
         {
-            Dirty[LineNum] = true;
-            lfortegn[item.Pitch].current = -3;
-            OneOct[LineNum] = -3;
-            WasHere[LineNum] = false;
-        }
-        /*
-        for (int iTemp1 = 0; iTemp1<Ignore.count();iTemp1++)
-        {
-
-            if (Ignore[iTemp1] == item.Pitch)
+            //Tie, same note, ignore this one
+            if (AccSign != noteAccNone)
             {
-                Dirty[LineNum] = true;
-                lfortegn[item.Pitch].current = -3;
-                OneOct[LineNum] = -3;
-                WasHere[LineNum] = false;
-                break;
+                setCurrent(item,noteAccDirty);
+                WasHere.unset(item.LineNum);
             }
         }
-        */
-        if (!Dirty[LineNum])
+        else if (IgnoreLines.contains(int(item.LineNum)))
         {
-            if ((KB == 0) && (lfortegn[item.Pitch].faste == 1))
+            //Tie, different note on same line
+            setNoteAccidental(WasHere,item,AccSign);
+        }
+        else if (!OneOct.isSet(item.LineNum))
+        {
+            if ((AccSign == noteAccNone) && StaffAccidentals.isSet(item.LineNum))
             {
-                item.HasFortegn=FnHasFortegn(KB);
-                update(WasHere,LineNum,KB,iTemp);
+                //natural
+                setNoteAccidental(WasHere,item,AccSign);
             }
-            else if ((lfortegn[item.Pitch].faste == 0) && (KB != 0))
+            else if ((!StaffAccidentals.isSet(item.LineNum)) && (AccSign != noteAccNone))
             {
-                item.HasFortegn=FnHasFortegn(KB);
-                update(WasHere,LineNum,KB,iTemp);
+                //flat or sharp
+                setNoteAccidental(WasHere,item,AccSign);
             }
         }
         else
         {
-            if ((KB != OneOct[LineNum]) || (OneOct[LineNum] != lfortegn[item.Pitch].current))
+            //Octaves
+            if ((AccSign != OneOct.current(item.LineNum)) || (OneOct.current(item.LineNum) != StaffAccidentals.current(item.LineNum)))
             {
-                item.HasFortegn=FnHasFortegn(KB);
-                update(WasHere,LineNum,KB,iTemp);
+                setNoteAccidental(WasHere,item,AccSign);
             }
         }
     }
 }
 
-void OCStaffAccidentals::update(bool* WasHere, const int LineNum, const int KB, const int iTemp)
+void OCStaffAccidentals::setNoteAccidental(OCOneOctaveFlagsArray& WasHere, OCNoteAccidental& item, const OCNoteAccidentalTypes AccSign)
 {
-    Dirty[LineNum] = true;
-    if ((WasHere[LineNum]) && (KB != OneOct[LineNum]) && (OneOct[LineNum] != 0))
+    if ((WasHere.isSet(item.LineNum)) && (AccSign != OneOct.current(item.LineNum)) && (OneOct.current(item.LineNum) != noteAccNone))
     {
-        lfortegn[NoteItems[iTemp].Pitch].current = -3;
-        OneOct[LineNum] = -3;
+        item.setSymbol(AccSign);
+        setCurrent(item,noteAccDirty);
     }
     else
     {
-        lfortegn[NoteItems[iTemp].Pitch].current = KB;
-        OneOct[LineNum] = KB;
+        item.setSymbol(AccSign);
+        setCurrent(item,AccSign);
     }
-    WasHere[LineNum] = true;
+    WasHere.set(item.LineNum);
 }
 
-const int OCStaffAccidentals::Switch(const int In, const int Out1, const int Out2, const int OutElse) const
+void OCStaffAccidentals::setCurrent(OCNoteAccidental& item, const OCNoteAccidentalTypes AccSign)
 {
-    switch (In)
-    {
-    case 1:
-        return Out1;
-    case 2:
-        return Out2;
-    default:
-        return OutElse;
-    }
+    StaffAccidentals.setCurrent(item.LineNum,AccSign);
+    OneOct.setCurrent(item.LineNum,AccSign);
 }
 
-const int OCStaffAccidentals::FnKB(int *iJ, const int NoteNum) const
+OCAccidentalSymbols OCStaffAccidentals::PopNoteAccidental()
 {
-    switch (NoteNum)
-    {
-    case 0:
-        return Switch(iJ[0],1,-2,0);
-    case 1:
-        return Switch(iJ[1],2,-1,1);
-    case 2:
-        return Switch(iJ[2],2,-2,0);
-    case 3:
-        return Switch(iJ[3],1,-2,-1);
-    case 4:
-        return Switch(iJ[4],2,-1,0);
-    case 5:
-        return Switch(iJ[5],1,-2,0);
-    case 6:
-        return Switch(iJ[6],2,-1,1);
-    case 7:
-        return Switch(iJ[7],2,-2,0);
-    case 8:
-        return Switch(iJ[8],1,-1,-1);
-    case 9:
-        return Switch(iJ[9],2,-2,0);
-    case 10:
-        return Switch(iJ[10],1,-2,-1);
-    case 11:
-        return Switch(iJ[11],2,-1,0);
-    }
-    return 0;
+    return (!NoteItems.isEmpty()) ? NoteItems.takeFirst().AccSymbol : accNone;
 }
 
-const int OCStaffAccidentals::FnHasFortegn(const int KB) const
+void OCStaffAccidentals::PushNote(const int LineNum, const int NoteNum)
 {
-    switch (KB)
-    {
-    case 0: return 5;
-    case -1: return 1;
-    case 1: return 2;
-    case -2: return 3;
-    case 2: return 4;
-    }
-    return 0;
+    NoteItems.append(OCNoteAccidental(LineNum,NoteNum));
 }
 
-const QList<int> OCStaffAccidentals::GetHasFortegnArray(const int Antal)
-{
-    QList<int> HasFortegn;
-    for (int i=0;i<Antal;i++)
-    {
-        if (NoteItems.count())
-        {
-            HasFortegn.append(NoteItems.takeFirst().HasFortegn);
-        }
-        else
-        {
-            HasFortegn.append(0);
-        }
-    }
-    return HasFortegn;
-}
-
-void OCStaffAccidentals::PutNoteArrays(const QList<OCStaffAccidentalItem>& Items)
-{
-    NoteItems.append(Items);
-}
-
-void OCStaffAccidentals::ResetCluster()
+void OCStaffAccidentals::Clear()
 {
     NoteItems.clear();
+    IgnorePitches.clear();
 }
 
-void OCStaffAccidentals::AddIgnore(const int Pitch)
+void OCStaffAccidentals::AddIgnore(const OCIntList& Pitches)
 {
-    Ignore.append(Pitch);
-}
-
-void OCStaffAccidentals::ClearIgnore()
-{
-    Ignore.clear();
+    for (const int& Pitch : Pitches) if (!IgnorePitches.contains(Pitch)) IgnorePitches.append(Pitch);
 }
 
 //--------------------------------------------------------------------------
 
-OCRhythmObject::OCRhythmObject()
+const OCGraphicsList CPausesToPrint::PrintPauseSign(const int Ticks, OCDraw& ScreenObj)
 {
-    Size=0;
-    MoveX=0;
-    BalkBeginY=0;
-    val=0;
-    balkx=0;
-    UpDown=0;
-    AverageY=0;
-    BalkEndY=0;
-    Rounded=0;
-    Beat=0;
-    Bar=0;
-    Meter=0;
-    NumOfBeams=0;
-    NumOfEvInBeam=0;
-    IsPause=false;
-    ForceUpDown=0;
-    ForceBeam=0;
-    NumOfForcedBeams=0;
-    ForceSlant=0;
-    HighestY=0;
-    LowestY=0;
-    SlantFactor=0;
-    BeamLimit=0;
-    CenterX=0;
-    IsSingleNoteWithTie=false;
-    FlipTie=false;
-    PerformanceSign=0;
-    PerformanceSignPos=QPointF(0,0);
-    PerformanceSignSize=0;
-}
-
-void OCRhythmObject::PlotStem(OCDraw& ScreenObj)
-{
-    int SgnThickness = LineHalfThickNess * 2 * UpDown;
-    int SgnHalfThickness = LineHalfThickNess * UpDown;
-    if (val != 144)
+    ScreenObj.moveTo(mCenterX, mCenterY);
+    switch (Ticks)
     {
-        if (val != 96)
-        {
-            if (val != 64)
-            {
-                ScreenObj.DM(balkx, BalkBeginY - SgnThickness);
-                ScreenObj.DL(0,(BalkEndY + SgnHalfThickness) - (BalkBeginY - SgnThickness));
-            }
-        }
-    }
-    ScreenObj.DM(balkx, BalkEndY + SgnHalfThickness); //' Size
-}
-
-const bool OCRhythmObject::BeamAble()
-{
-    return ((val <= 12) || (val == 18));
-}
-
-const int OCRhythmObject::FNclcfanr(const int c) const
-{
-    switch (c)
-    {
-        case 1:
-            return 4;
-        case 2:
-        case 3:
-            return 3;
-        case 4:
-        case 6:
-        case 9:
-            return 2;
-        case 8:
-        case 12:
-        case 18:
-            return 1;
-    }
-    return 0;
-}
-
-//--------------------------------------------------------------------------
-
-const int IOCRhythmObject::stemX(const int UpDown, const int X)
-{
-    return X - (53 * UpDown);
-}
-
-void IOCRhythmObject::plot(int& NextHeight, int NextX, int BarsToPrint, OCTieWrap& TieWrap, int TriolVal, QColor TrackColor, int &Py, OCSymbolArray& SymbolList, OCDraw& ScreenObj){}
-
-IOCRhythmObject::IOCRhythmObject(){}
-
-const int IOCRhythmObject::Pitch(const int NoteNum) const{return 0;}
-
-const int IOCRhythmObject::Count(){return 0;}
-
-void IOCRhythmObject::CalcUpDownProps(){}
-
-void IOCRhythmObject::FillLineNumsArray(const QList<int>& LineNums){}
-
-void IOCRhythmObject::SetHasFortegn(OCStaffAccidentals& lfortegn){}
-
-int IOCRhythmObject::FNBalkHeight() const{return 0;}
-
-const NoteTypeCode IOCRhythmObject::NoteType(const int NoteNum) const{return tsnote;}
-
-void IOCRhythmObject::Fill(int &Py, QDomLiteElement* XMLVoice, int TrackNum, OCPrintVarsType &dCurrent, float XFysic, OCCounter& CountIt, OCStaffAccidentals& lfortegn, XMLSymbolWrapper& Symbol, OCBarList& BarList, OCDraw& ScreenObj){}
-
-const int IOCRhythmObject::LineNum(const int Index) const{return 0;}
-
-void IOCRhythmObject::MoveTo(OCDraw& ScreenObj){}
-
-const int IOCRhythmObject::Moveaccidental(const int Notes, const int Accidentals) const{return 0;}
-
-void IOCRhythmObject::MoveChord(int factor){}
-
-//--------------------------------------------------------------------------
-
-CPausesToPrint::CPausesToPrint()
-{
-    mCenterX=0;
-    mCenterY=0;
-    NumOfCompressed=0;
-    PointerAfterCompress=0;
-}
-
-const QList<QGraphicsItem*> CPausesToPrint::plPsSgn(const int c, OCDraw& ScreenObj)
-{
-    QList<QGraphicsItem*> l;
-//'    Dim faner As Integer
-    ScreenObj.DM(mCenterX, mCenterY);
-    switch (c)
-    {
+    case 168:
     case 144:
     case 96:
     case 64:
-        ScreenObj.DR(FnSize(-5 * 12,Props.Size), 8 * 12);
-        l.append(ScreenObj.PlRect(120,-48,Props.Size));
-        break;
+        ScreenObj.move(sized(-5 * 12), 8 * 12);
+        return ScreenObj.PlRect(120,-48,Size);
     case 48:
     case 32:
     case 72:
-        ScreenObj.DR(FnSize(-5 * 12,Props.Size), 0);
-        l.append(ScreenObj.PlRect(120,48,Props.Size));
-        break;
+    case 84:
+        ScreenObj.move(sized(-5 * 12), 0);
+        return ScreenObj.PlRect(120,48,Size);
     case 24:
     case 16:
     case 36:
-        ScreenObj.DM(mCenterX - FnSize(36,Props.Size), mCenterY - FnSize(66,Props.Size));
-        l.append(ScreenObj.plLet(QChar(OCTTFRestQuarter), Props.Size, OCTTFname, false, false, 1200));
-        break;
+    case 42:
+        ScreenObj.moveTo(mCenterX - sized(36), mCenterY - sized(66));
+        return ScreenObj.plLet(OCTTFRestQuarter, Size);
     case 12:
     case 8:
     case 18:
-        ScreenObj.DM(mCenterX - FnSize(36,Props.Size), mCenterY - FnSize(66,Props.Size));
-        l.append(ScreenObj.plLet(QChar(OCTTFRestEight), Props.Size, OCTTFname, false, false, 1200));
-        break;
+    case 21:
+        ScreenObj.moveTo(mCenterX - sized(36), mCenterY - sized(66));
+        return ScreenObj.plLet(OCTTFRestEight, Size);
     case 6:
     case 4:
     case 9:
-        ScreenObj.DM(mCenterX - FnSize(36,Props.Size), mCenterY - FnSize(66,Props.Size));
-        l.append(ScreenObj.plLet(QChar(OCTTFRestSixteen), Props.Size, OCTTFname, false, false, 1200));
-        break;
+        ScreenObj.moveTo(mCenterX - sized(36), mCenterY - sized(66));
+        return ScreenObj.plLet(OCTTFRestSixteen, Size);
     case 3:
     case 2:
-        ScreenObj.DM(mCenterX - FnSize(36,Props.Size), mCenterY - FnSize(66,Props.Size));
-        l.append(ScreenObj.plLet(QChar(OCTTFRestTrirtytwo), Props.Size, OCTTFname, false, false, 1200));
-        break;
+        ScreenObj.moveTo(mCenterX - sized(36), mCenterY - sized(66));
+        return ScreenObj.plLet(OCTTFRestTrirtytwo, Size);
     case 1:
-        ScreenObj.DM(mCenterX - FnSize(36,Props.Size), mCenterY - FnSize(66,Props.Size));
-        l.append(ScreenObj.plLet(QChar(OCTTFRestSixtyfour), Props.Size, OCTTFname, false, false, 1200));
-        break;
+        ScreenObj.moveTo(mCenterX - sized(36), mCenterY - sized(66));
+        return ScreenObj.plLet(OCTTFRestSixtyfour, Size);
     }
-    return l;
+    return OCGraphicsList();
 }
 
-void CPausesToPrint::plNum(const int b, const int siz, OCDraw& ScreenObj)
+void CPausesToPrint::PrintNumber(const int b, const int siz, OCDraw& ScreenObj)
 {
     ScreenObj.plLet(QString::number(b).trimmed(), siz, "times new roman", true, false, 192);
 }
 
 void CPausesToPrint::CalcUpDownProps()
 {
-    Props.BalkBeginY = mCenterY - (Props.UpDown * 192);
-    Props.balkx = stemX(Props.UpDown, mCenterX);
-    Props.CenterX = mCenterX;
+    BalkBeginY = mCenterY - directed(120 + 96 + (loBound<int>(0,NumOfBeams-1)*96));
+    BalkX = stemX(mCenterX);
+    CenterX = mCenterX;
 }
 
-void CPausesToPrint::Fill(int &Py, QDomLiteElement* XMLVoice, int TrackNum, OCPrintVarsType &dCurrent, float XFysic, OCCounter& CountIt, OCStaffAccidentals& lfortegn, XMLSymbolWrapper& Symbol, OCBarList& BarList, OCDraw& ScreenObj)
+void CPausesToPrint::Fill(const OCVoiceLocation& /*VoiceLocation*/, const XMLVoiceWrapper& /*XMLVoice*/, const double XFysic, OCPrintCounter& CountIt, OCStaffAccidentals& /*StaffAccidentals*/, const XMLSymbolWrapper& Symbol, OCPageBarList& BarList, OCDraw& /*ScreenObj*/)
 {
-    Props.Invisible = Symbol.getVal("Invisible");
-    Props.IsPause = true;
-    Props.MoveX = Symbol.pos().x();
-    mCenterX = XFysic + Props.MoveX;
-    Props.Size = Symbol.size();
-    Props.val = Symbol.ticks();
-    Props.Rounded = CountIt.Rounded;
-    Props.Beat = CountIt.Counter;
-    Props.Bar = CountIt.BarCounter;
-    Props.Meter = dCurrent.Meter;
-    Props.AverageY = Symbol.moveY(1008);
-    Props.HighestY = Props.AverageY;
-    Props.NumOfBeams = Props.FNclcfanr(Symbol.ticks());
-    Props.LowestY = Props.AverageY;
-    mCenterY = Props.AverageY;
-    if (BarList.GetMultiPause(Props.Bar) > 1)
+    fillProps(Symbol,CountIt);
+    Invisible = !Symbol.isVisible();
+    IsPause = true;
+    mCenterX = int(XFysic + Symbol.pos().x());
+    AverageY = int(Symbol.moveY(1008));
+    HighestY = AverageY;
+    LowestY = AverageY;
+    InvisibleMeter = BarList.invisibleMeter(Bar);
+    mCenterY = AverageY;
+    if (BarList.multiPause(Bar) > 1)
     {
-        NumOfCompressed = BarList.GetMultiPause(Props.Bar);
-        //'py = py + (BarList.GetMultiPauseNumOfEvents(Props.Bar + 1) * 6 * (BarList.GetMultiPause(Props.Bar + 1) - 1)) + (6 * (BarList.GetMultiPauseNumOfEvents(Props.Bar + 1) - 1))
-        Py = Py + (BarList.GetMultiPause(Props.Bar) - 1);
-        PointerAfterCompress = Py;
+        NumOfCompressed = BarList.multiPause(Bar);
+        CountIt.FilePointer = CountIt.FilePointer + (BarList.multiPause(Bar) - 1);
+        PointerAfterCompress = CountIt.FilePointer;
     }
 }
 
-void CPausesToPrint::FillLineNumsArray(QList<int>& LineNums)
+const OCIntList CPausesToPrint::FillLineNumsArray() const
 {
-    LineNums.clear();
-    //if (Props.Size > -1)
-    LineNums.append(34);
+    return (Invisible) ? OCIntList() : OCIntList(1,34);
 }
 
-int CPausesToPrint::FNBalkHeight() const
+void CPausesToPrint::MoveChord(const int factor)
 {
-    int c;
-    if (Props.UpDown == 1)
+    CenterX += 120 * factor;
+    BalkX += 120 * factor;
+    mCenterX += 120 * factor;
+}
+
+void CPausesToPrint::plot(OCPrintCounter& CountIt, const int /*NextHeight*/, const double /*NextX*/, const int /*BarsToPrint*/, const QColor& TrackColor, const OCVoiceLocation& VoiceLocation, OCFrameArray& FrameList, OCDraw& ScreenObj)
+{
+    int Pnt = CountIt.FilePointer;
+    ScreenObj.setcol(CountIt.FilePointer);
+    OCGraphicsList l;
+    if (NumOfCompressed > 1) {
+        CountIt.FilePointer = PointerAfterCompress;
+    }
+    if (Invisible) return;
+    if (NumOfCompressed > 1)
     {
-        c = mCenterY - (28 * 12);
-        if (c > (94 * 12)) c = (94 * 12);
+        ScreenObj.moveTo(mCenterX, mCenterY);
+        ScreenObj.move(-60, 48);
+        PlMorePauses(NumOfCompressed, ScreenObj);
+        //'ScreenObj.setsize Size
+        Beat = Meter;
+        ScreenObj.moveTo(mCenterX - 72, mCenterY + 288);
+        ScreenObj.move(IntDiv((NumOfCompressed - 1) ,4) * 72, 0);
+        PrintNumber(NumOfCompressed, 0, ScreenObj);
     }
     else
     {
-        c = mCenterY + (28 * 12);
-        if (c < (74 * 12)) c = (74 * 12);
-    }
-    return c;
-}
-
-void CPausesToPrint::MoveChord(int factor)
-{
-    Props.CenterX = Props.CenterX + (120 * factor);
-    Props.balkx = Props.balkx + (120 * factor);
-    mCenterX = mCenterX + (120 * factor);
-}
-
-void CPausesToPrint::plot(int& NextHeight, int NextX, int BarsToPrint, OCTieWrap& TieWrap, int TriolVal, QColor TrackColor, int& Py, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
-{
-    /*
-    int Height=0;
-    int Width=0;
-    int LeftAdd=0;
-    int BottomAdd=0;
-    */
-    int Pnt = Py;
-    ScreenObj.setcol(Py);
-    QList<QGraphicsItem*> l;
-    if (NumOfCompressed > 1) Py = PointerAfterCompress;
-    if (Props.Invisible) return;
-    //if (Props.Size > -1)
-    //{
-        if (NumOfCompressed > 1)
+        if ((NoteValue == Meter) && (!InvisibleMeter))
         {
-            ScreenObj.DM(mCenterX, mCenterY);
-            ScreenObj.DR(-60, 48);
-            PlMorePauses(NumOfCompressed, ScreenObj);
-            //'ScreenObj.setsize Props.Size
-            Props.Beat = Props.Meter;
-            ScreenObj.DM(mCenterX - 72, mCenterY + 288);
-            ScreenObj.DR(IntDiv((NumOfCompressed - 1) ,4) * 72, 0);
-            plNum(NumOfCompressed, 0, ScreenObj);
-            /*
-            LeftAdd = -132;
-            BottomAdd = 36;
-            Height = 72;
-            Width = 168;
-            */
+            l.append(PrintPauseSign(96,ScreenObj));
         }
         else
         {
-            if (Props.val == Props.Meter)
+            l.append(PrintPauseSign(NoteValue, ScreenObj));
+            ScreenObj.moveTo(mCenterX + sized(12), mCenterY + 48);
+            l.append(OCNoteList::PlotDot(NoteValue, CountIt.underTriplet(), 4, ScreenObj));
+            if (ForceBeamIndex > 0)
             {
-                //ScreenObj.DMabs(mCenterX, mCenterY, Props.Size);
-                //ScreenObj.DR(-60, 48);
-                //ScreenObj.PlRect(120,48);
-                //ScreenObj.DR(0,48);
-                l.append(plPsSgn(96,ScreenObj));
-                /*
-                LeftAdd = -132;
-                BottomAdd = 36;
-                Height = 72;
-                Width = 168;
-                */
-            }
-            else
-            {
-                //ScreenObj.DMabs(mCenterX + 24, mCenterY + 12, Props.Size);
-                l.append(plPsSgn(Props.val, ScreenObj));
-                ScreenObj.DM(mCenterX + FnSize(12,Props.Size), mCenterY + 48);
-                l.append(OCNoteList::PlPunkt(Props.val, TriolVal, 0, ScreenObj));
-                /*
-                switch (Props.val)
-                {
-                case 144:
-                case 96:
-                case 64:
-                    LeftAdd = -132;
-                    BottomAdd = 36;
-                    Height = 72;
-                    Width = 168;
-                    break;
-                case 72:
-                case 48:
-                case 32:
-                    LeftAdd = -132;
-                    BottomAdd = -12;
-                    Height = 72;
-                    Width = 168;
-                    break;
-                default:
-                    LeftAdd = -120;
-                    BottomAdd = -120;
-                    Height = 240;
-                    Width = 192;
-                }
-                */
-                if (Props.ForceBeam > 0)
-                {
-                    ScreenObj.DM(mCenterX, mCenterY + (96*Props.UpDown));
-                    Props.PlotStem(ScreenObj);
-                }
+                ScreenObj.moveTo(mCenterX, mCenterY + directed(96));
+                PlotStem(ScreenObj);
             }
         }
-    //}
+    }
     ScreenObj.col = TrackColor;
-    //SymbolList.Append(Props.CenterX + 48 + LeftAdd, Props.AverageY + BottomAdd, Height, Width, Pnt, Props.Size);
-    //SymbolList.AppendBoundingRect(r,Pnt);
-    SymbolList.AppendGroup(ScreenObj.MakeGroup(l),Pnt);
+    FrameList.AppendGroup(ScreenObj.MakeGroup(l),OCSymbolLocation(VoiceLocation,Pnt));
 }
 
 void CPausesToPrint::PlMorePauses(const int NumOfBars, OCDraw& ScreenObj)
 {
-    for (int iTemp = 1;iTemp<=IntDiv(NumOfBars ,4)+1;iTemp++)
+    for (int i = 1;i<=IntDiv(NumOfBars ,4)+1;i++)
     {
-        if (iTemp == IntDiv(NumOfBars ,4) + 1)
+        if (i == IntDiv(NumOfBars ,4) + 1)
         {
-            for (int iTemp1 = 1; iTemp1 <= NumOfBars % 4; iTemp1++)
+            for (int i1 = 1; i1 <= NumOfBars % 4; i1++)
             {
                 ScreenObj.PlRect(120,48);
-                ScreenObj.DR(0, -48);
+                ScreenObj.move(0, -48);
             }
         }
         else
         {
-            for (int iTemp1 = 1;iTemp1 <=4; iTemp1++)
+            for (int i1 = 1; i1 <= 4; i1++)
             {
                 ScreenObj.PlRect(120,48);
-                ScreenObj.DR(0, -48);
+                ScreenObj.move(0, -48);
             }
         }
-        ScreenObj.DR(192, 192);
+        ScreenObj.move(192, 192);
     }
 }
 
 //--------------------------------------------------------------------------
-
-CNoteHead::CNoteHead()
-{
-    OrigPlace=0;
-    Voice=0;
-    PitchCode=0;
-    NoteVal=0;
-    Left=0;
-    AccidentalLeft=0;
-    Size=0;
-    Marked=0;
-    CenterX=0;
-    CenterY=0;
-    FortegnAddX=0;
-    Pitch=0;
-    NoteNum=0;
-    HasFortegn=0;
-}
-
-void CNoteHead::MoveTo(OCDraw& ScreenObj)
-{
-    ScreenObj.DM(CenterX, CenterY);
-}
-/*
-void CNoteHead::MoveTo0(OCDraw& ScreenObj)
-{
-    ScreenObj.DM(CenterX, CenterY);
-}
-*/
-void CNoteHead::plot(const int ClusterSize, const int TriolVal, const QColor TrackColor, const int UpDown, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
-{
-    if (ScreenObj.canColor())
-    {
-        if (Marked)
-        {
-            if (ScreenObj.Cursor->SelCount()==0)
-            {
-                ScreenObj.col=markedcolor;
-            }
-            else
-            {
-                ScreenObj.col=selectedcolor;
-            }
-        }
-    }
-    MoveTo(ScreenObj);
-    QList<QGraphicsItem*> a;
-    switch (HasFortegn)
-    {
-    case 1:
-        ScreenObj.DR(FnSize((-11 * 12) + FortegnAddX,Size), 150);
-        a.append(ScreenObj.plLet(QChar(OCTTFFlat), Size, OCTTFname, false, false, 1200));
-        break;
-    case 2:
-        ScreenObj.DR(FnSize((-13 * 12) + FortegnAddX,Size), 150);
-        a.append(ScreenObj.plLet(QChar(OCTTFSharp), Size, OCTTFname, false, false, 1200));
-        break;
-    case 3:
-        ScreenObj.DR(FnSize((-17 * 12) + FortegnAddX,Size), 150);
-        a.append(ScreenObj.plLet(QChar(OCTTFDoubleFlat), Size, OCTTFname, false, false, 1200));
-        break;
-    case 4:
-        ScreenObj.DR(FnSize((-14 * 12) + FortegnAddX,Size), 150);
-        a.append(ScreenObj.plLet(QChar(OCTTFDoubleSharp), Size, OCTTFname, false, false, 1200));
-        break;
-    case 5:
-        ScreenObj.DR(FnSize(FortegnAddX - 12 * 12,Size), 150);
-        a.append(ScreenObj.plLet(QChar(OCTTFOpl), Size, OCTTFname, false, false, 1200));
-    }
-    QList<QGraphicsItem*> l;
-    MoveTo(ScreenObj);
-    if ((CenterY % 96) != 0) ScreenObj.DR(0,48);
-    l.append(OCNoteList::PlPunkt(NoteVal, TriolVal, 0, ScreenObj));
-    MoveTo(ScreenObj);
-    ScreenObj.DR(0,77);
-    ScreenObj.DR((53+FnSize(-53,Size))*-UpDown,0);
-    switch (NoteVal)
-    {
-    case 144:
-    case 96:
-    case 64:
-        l.append(ScreenObj.plLet(QChar(OCTTFNoteWhole), ClusterSize, OCTTFname, false, false, 612));
-        break;
-    case 48:
-    case 32:
-    case 72:
-        l.append(ScreenObj.plLet (QChar(OCTTFNoteHalf), ClusterSize, OCTTFname, false, false, 612));
-        break;
-    default:
-        l.append(ScreenObj.plLet(QChar(OCTTFNoteQuarter), ClusterSize, OCTTFname, false, false, 612));
-    }
-    SymbolList.AppendAccidentalGroup(ScreenObj.MakeGroup(l),ScreenObj.Scene->createItemGroup(a),Pointer);
-    ScreenObj.col = TrackColor;
-}
-
-//--------------------------------------------------------------------------
-
-CNotesToPrint::CNotesToPrint()
-{
-    OldNote=0;
-    NextNote=0;
-    CAvoid=0;
-    hi=0;
-    lo=0;
-}
 
 CNotesToPrint::~CNotesToPrint()
 {
     clear();
 }
 
-void CNotesToPrint::Append(const int Voice, const int Pointer, const XMLSymbolWrapper& Symbol, const bool Marked)
-{
-    CNoteHead* n=new CNoteHead;
-    n->Pointer=Pointer;
-    n->OrigPlace = NoteHeadList.count();
-    n->Voice = Voice;
-    n->Invisible=Symbol.getVal("Invisible");
-    n->NoteType = (NoteTypeCode)(Symbol.getVal("NoteType"));
-    n->PitchCode = Symbol.getVal("Pitch");
-    n->NoteVal = Symbol.ticks();
-    n->Left = Symbol.pos().x();
-    n->AccidentalLeft = Symbol.getVal("AccidentalLeft");
-    n->Size = Symbol.size();
-    n->Marked = Marked;
-    NoteHeadList.append(n);
-}
-
 void CNotesToPrint::clear()
 {
-    qDeleteAll(NoteHeadList);
     NoteHeadList.clear();
 }
 
 void CNotesToPrint::sort()
 {
-    for (int iTemp1=0;iTemp1<NoteHeadList.count();iTemp1++)
+    for (int i = 0; i < NoteHeadList.size(); i++)
     {
-        for (int iTemp=0;iTemp<NoteHeadList.count();iTemp++)
+        for (int j = 0; j < NoteHeadList.size(); j++)
         {
-            if (NoteHeadList[iTemp1]->PitchCode < NoteHeadList[iTemp]->PitchCode) NoteHeadList.swap(iTemp,iTemp1);
+            if (NoteHeadList[i].PitchCode < NoteHeadList[j].PitchCode) NoteHeadList.swapItemsAt(j,i);
         }
     }
 }
 
-void CNotesToPrint::CalcCenters(OCPrintVarsType &dCurrent, const float XFysic)
+void CNotesToPrint::CalcCenters(OCPrintVarsType &voiceVars, const double XFysic)
 {
-    //for (int iTemp=0;iTemp<NoteHeadList.count();iTemp++)
-    foreach(CNoteHead* n,NoteHeadList)
+    for (CNoteHead& n : NoteHeadList)
     {
-        n->CenterY = fnAandClefCalc(n->PitchCode, dCurrent);
-        n->CenterX = XFysic + n->Left;
-        n->FortegnAddX = n->AccidentalLeft;
-        n->Pitch = fnAcalc(n->PitchCode, dCurrent);
-        n->NoteNum = n->PitchCode % 12;
+        n.LineNum = Pitch2LineNum(n.PitchCode, voiceVars.Scale);
+        n.CenterY = LineNum2CenterY(n.LineNum, voiceVars.clef());
+        n.CenterX = int(XFysic + n.Left)  + (VorschlagList.size() * 66);
+        n.FortegnAddX = n.AccidentalLeft;
+    }
+    for (int i = 0; i < VorschlagList.size(); i++)
+    {
+        CNoteHead& n = VorschlagList[i];
+        n.LineNum = Pitch2LineNum(n.PitchCode, voiceVars.Scale);
+        n.CenterY = LineNum2CenterY(n.LineNum, voiceVars.clef());
+        n.CenterX = (int(XFysic + n.Left) - ((i * 132) + 156)) + (VorschlagList.size() * 66);
+        n.FortegnAddX = n.AccidentalLeft;
     }
 }
-/*
-void CNotesToPrint::Retrieve(int RecNum)
-{
-    CurrentNote = NoteHeadList[RecNum];
-}
-*/
-const int CNotesToPrint::GetAlti(const int RecNum) const
-{
-    return NoteHeadList[RecNum]->PitchCode;
-}
 
-void CNotesToPrint::PlBilinier(const int CurrNote, OCDraw& ScreenObj)
+void CNotesToPrint::PrintHelpLinesDown(const CNoteHead& CurrentNote, OCDraw& ScreenObj)
 {
-    if (CurrNote == 0)
-    {
-        if (CurrentNote->CenterY <= 720)
+    //if (CurrentNote.PitchCode == NoteHeadList.first().PitchCode)
+    //{
+    const double bold = (CurrentNote.NoteType < tsgracenote) ? 1 : 0.8;
+    const int HalfWidth = HelpLineHalfWidth * bold;
+        if (CurrentNote.CenterY <= 720)
         {
-            ScreenObj.DM(CurrentNote->CenterX - HelpLineHalfWidth, 720);
-            for (int iTemp = 720;iTemp>=CurrentNote->CenterY;iTemp+=-96)
+            ScreenObj.moveTo(CurrentNote.CenterX - HalfWidth, 720);
+            for (int i = 720;i >= CurrentNote.CenterY; i += -96)
             {
-                ScreenObj.DL(HelpLineHalfWidth * 2, 0);
-                ScreenObj.DR(-HelpLineHalfWidth * 2, -96);
+                ScreenObj.line(HalfWidth * 2, 0, bold);
+                ScreenObj.move(-HalfWidth * 2, -96);
             }
         }
-    }
-    if (CurrNote == NoteHeadList.count()-1)
-    {
-        if (CurrentNote->CenterY >= 1296)
-        {
-            ScreenObj.DM(CurrentNote->CenterX - HelpLineHalfWidth, 1296);
-            for (int iTemp = 1296;iTemp<=CurrentNote->CenterY;iTemp+=96)
-            {
-                ScreenObj.DL(HelpLineHalfWidth * 2, 0);
-                ScreenObj.DR(-HelpLineHalfWidth * 2, 96);
-            }
-        }
-    }
+    //}
 }
 
-void CNotesToPrint::Calcprops(const int UpDown)
+void CNotesToPrint::PrintHelpLinesUp(const CNoteHead& CurrentNote, OCDraw& ScreenObj)
 {
-    int FlytFortegn=0;
-    //if (CurrentNote->Size < 0) return;
-    if (UpDown == 1)
+    //if (CurrentNote.PitchCode == NoteHeadList.last().PitchCode)
+    //{
+    const double bold = (CurrentNote.NoteType < tsgracenote) ? 1 : 0.8;
+    const int HalfWidth = HelpLineHalfWidth * bold;
+    if (CurrentNote.CenterY >= 1296)
     {
-        if (CAvoid)
+        ScreenObj.moveTo(CurrentNote.CenterX - HalfWidth, 1296);
+        for (int i = 1296; i <= CurrentNote.CenterY; i += 96)
         {
+            ScreenObj.line(HalfWidth * 2, 0, bold);
+            ScreenObj.move(-HalfWidth * 2, 96);
+        }
+    }
+    //}
+}
+
+
+void CNotesToPrint::Calcprops(CNoteHead& CurrentNote, const StemDirection UpDown, const int PrevNoteCenterY, const int NextNoteCenterY, int& CAvoid)
+{
+    int MoveAccidental=0;
+    if (UpDown == StemUp)
+    {
+        if (CAvoid) {
             CAvoid = 0;
         }
-        else
-        {
-            if (Abs(CurrentNote->CenterY - OldNote) < 60)
-            {
+        else {
+            if (qAbs<int>(CurrentNote.CenterY - PrevNoteCenterY) < 60) {
                 CAvoid = -108;
             }
         }
-        if (Abs(CurrentNote->CenterY - NextNote) < 60)
-        {
-            FlytFortegn = -180;
-        }
-        else
-        {
-            FlytFortegn = 0;
-        }
+        MoveAccidental = (qAbs<int>(CurrentNote.CenterY - NextNoteCenterY) < 60) ? -180 : 0;
     }
     else
     {
-        if (CAvoid)
-        {
+        if (CAvoid) {
             CAvoid = 0;
-            FlytFortegn = 0;
+            MoveAccidental = 0;
         }
-        else
-        {
-            if (Abs(CurrentNote->CenterY - OldNote) < 60)
-            {
+        else {
+            if (qAbs<int>(CurrentNote.CenterY - PrevNoteCenterY) < 60) {
                 CAvoid = 108;
-                FlytFortegn = -180;
+                MoveAccidental = -180;
             }
         }
     }
-    CurrentNote->CenterX = CurrentNote->CenterX + CAvoid;
-    CurrentNote->FortegnAddX = CurrentNote->FortegnAddX + FlytFortegn;
-    OldNote = CurrentNote->CenterY;
+    CurrentNote.CenterX = CurrentNote.CenterX + CAvoid;
+    CurrentNote.FortegnAddX = CurrentNote.FortegnAddX + MoveAccidental;
 }
 
-const int CNotesToPrint::fnAcalc(const int a, OCPrintVarsType &b) const
+int CNotesToPrint::Count() const
 {
-    int Add=0;
-    //'Pitch = (Fix((a% * 3 / 4) - 0.1) + 14) Mod 12
-    int Pitch = a % 12;
-    if (b.J[Pitch] == 1)
-    {
-        Add = -1;
-    }
-    else if (b.J[Pitch] == 2)
-    {
-        Add = 1;
-    }
-    return (int)(FloatDiv((a - 12) * 7.0 ,12) + 0.4 + Add); // used to be fix()
-}
-
-void CNotesToPrint::CalcAverage()
-{
-    lo = 32000;
-    hi = 0;
-    foreach (CNoteHead* NoteHead, NoteHeadList)
-    {
-        hi=qMax(hi,NoteHead->CenterY);
-        lo=qMin(lo,NoteHead->CenterY);
-        //if (NoteHead->CenterY > hi) hi = NoteHead->CenterY;
-        //if (NoteHead->CenterY < lo) lo = NoteHead->CenterY;
-    }
-    Props.AverageY = FloatDiv(hi - lo, 2) + lo;
-    Props.HighestY = hi;
-    Props.LowestY = lo;
-}
-
-void CNotesToPrint::CalcFortegns(OCStaffAccidentals& lfortegn, OCPrintVarsType &dCurrent)
-{
-    AddToArrays(lfortegn);
-    lfortegn.CheckFortegn(dCurrent.J);
-    SetHasFortegn(lfortegn);
-}
-
-void CNotesToPrint::AddToArrays(OCStaffAccidentals& lfortegn)
-{
-    QList<OCStaffAccidentalItem> NoteItems;
-    foreach (CNoteHead* NoteHead, NoteHeadList)
-    {
-        OCStaffAccidentalItem i = {0,NoteHead->Pitch,NoteHead->NoteNum};
-        //i.Pitch=NoteHead->Pitch;
-        //i.NoteNum=NoteHead->NoteNum;
-        NoteItems.append(i);
-    }
-    lfortegn.PutNoteArrays(NoteItems);
-}
-
-const int CNotesToPrint::Count() const
-{
-    return NoteHeadList.count();
+    return NoteHeadList.size();
 }
 
 void CNotesToPrint::CalcUpDownProps()
 {
-    NextNote = -2400;
-    OldNote = -2400;
-    CAvoid = 0;
-    if (Props.UpDown == -1)
+    int NextNoteCenterY = -2400;
+    int PrevNoteCenterY = -2400;
+    int CAvoid = 0;
+    if (UpDown == StemDown)
     {
-        for (int iTemp = 0; iTemp<NoteHeadList.count();iTemp++)
+        for (int i = 0; i < NoteHeadList.size(); i++)
         {
-            CurrentNote=NoteHeadList[iTemp];
-            if (iTemp < NoteHeadList.count()-1)
-            {
-                NextNote = NoteHeadList[iTemp+1]->CenterY;
-            }
-            else
-            {
-                NextNote = -200;
-            }
-            Calcprops(Props.UpDown);
+            NextNoteCenterY = (i < NoteHeadList.size()-1) ? NoteHeadList[i+1].CenterY : -200;
+            Calcprops(NoteHeadList[i], UpDown, PrevNoteCenterY, NextNoteCenterY, CAvoid);
+            PrevNoteCenterY = NoteHeadList[i].CenterY;
         }
-        CurrentNote=NoteHeadList.first();
     }
     else
     {
-        for (int iTemp = NoteHeadList.count()-1;iTemp>=0;iTemp--)
+        for (int i = NoteHeadList.size() - 1; i >= 0; i--)
         {
-            CurrentNote=NoteHeadList[iTemp];
-            if (iTemp > 0)
-            {
-                NextNote = NoteHeadList[iTemp - 1]->CenterY;
-            }
-            else
-            {
-                NextNote = -200;
-            }
-            Calcprops(Props.UpDown);
+            NextNoteCenterY = (i > 0) ? NoteHeadList[i - 1].CenterY : -200;
+            Calcprops(NoteHeadList[i], UpDown, PrevNoteCenterY, NextNoteCenterY, CAvoid);
+            PrevNoteCenterY = NoteHeadList[i].CenterY;
         }
-        CurrentNote=NoteHeadList.last();
     }
-    Props.BalkBeginY = CurrentNote->CenterY;
-    Props.balkx = stemX(Props.UpDown, CurrentNote->CenterX);
-    Props.CenterX = CurrentNote->CenterX;
+    CNoteHead& CurrentNote = (UpDown == StemDown) ? NoteHeadList.first() : NoteHeadList.last();
+    BalkBeginY = CurrentNote.CenterY;
+    BalkX = stemX(CurrentNote.CenterX);
+    CenterX = CurrentNote.CenterX;
 }
 
-const int CNotesToPrint::CenterY(const int NoteNum) const
+void CNotesToPrint::Fill(const OCVoiceLocation& VoiceLocation, const XMLVoiceWrapper& XMLVoice, const double XFysic, OCPrintCounter& CountIt, OCStaffAccidentals& StaffAccidentals, const XMLSymbolWrapper& Symbol, OCPageBarList& /*BarList*/, OCDraw& ScreenObj)
 {
-    return NoteHeadList[NoteNum]->CenterY;
-}
-
-const NoteTypeCode CNotesToPrint::NoteType(const int NoteNum) const
-{
-    return NoteHeadList[NoteNum]->NoteType;
-}
-
-void CNotesToPrint::Fill(int &Py, QDomLiteElement* XMLVoice, int TrackNum, OCPrintVarsType &dCurrent, float XFysic, OCCounter& CountIt, OCStaffAccidentals& lfortegn, XMLSymbolWrapper& Symbol, OCBarList& BarList, OCDraw& ScreenObj)
-{
-    int py1 = Py;
+    fillProps(Symbol,CountIt);
     clear();
-    //XMLSymbolWrapper S(XMLVoice, py1, dCurrent.Meter);
-    Props.MoveX = Symbol.pos().x();
-    Props.Size=Symbol.size();
-    Props.val = Symbol.ticks();
-    Props.Rounded = CountIt.Rounded;
-    Props.Beat = CountIt.Counter;
-    Props.Bar = CountIt.BarCounter;
-    Props.Meter = dCurrent.Meter;
-    Props.FlipTie = dCurrent.FlipTie;
-    Props.NumOfBeams = Props.FNclcfanr(Props.val);
-    Append(TrackNum,py1, Symbol, ScreenObj.IsMarked(py1));
-    forever
+    NoteHeadList.append(CNoteHead(Symbol,OCSymbolLocation(VoiceLocation,CountIt.FilePointer),ScreenObj.IsMarked(CountIt.FilePointer)));
+    for (int py = CountIt.FilePointer - 1; py >- 1; py--)
     {
-        py1--;
-        if (py1 < 0) break;
-        XMLSymbolWrapper S(XMLVoice, py1, dCurrent.Meter);
-        if (S.IsRestOrValuedNote())
-        {
-            break;
-        }
-        else if (S.IsCompoundNote())
-        {
-            Append(TrackNum,py1, S, ScreenObj.IsMarked(py1));
+        const XMLSymbolWrapper S = XMLVoice.XMLSymbol(py, CountIt.Meter);
+        if (S.IsRestOrValuedNote()) break;
+        if (S.IsCompoundNote()) NoteHeadList.append(CNoteHead(S,OCSymbolLocation(VoiceLocation,py),ScreenObj.IsMarked(py)));
+        if (S.IsAnyVorschlag()) {
+            auto n = CNoteHead(S,OCSymbolLocation(VoiceLocation,py),ScreenObj.IsMarked(py));
+            n.Size = n.Size - 6;
+            n.NoteVal = S.noteValueToTicks(S.noteValue(),S.dotted(),S.triplet());
+            VorschlagList.append(n);
         }
     }
-    if ((NoteHeadList.count() == 1) && (NoteHeadList[0]->NoteType == tstiednote))
+    if ((NoteHeadList.size() == 1) && (NoteHeadList[0].NoteType == tstiednote))
     {
-        Props.IsSingleNoteWithTie = true;
+        IsSingleNoteWithTie = true;
     }
-    CalcCenters(dCurrent, XFysic);
+    CalcCenters(CountIt, XFysic);
     sort();
-    AddToArrays(lfortegn);
+    for (const CNoteHead& n : std::as_const(NoteHeadList)) if (!n.Invisible) StaffAccidentals.PushNote(n.LineNum,n.PitchCode);
+    for (const CNoteHead& n : std::as_const(VorschlagList)) if (!n.Invisible) StaffAccidentals.PushNote(n.LineNum,n.PitchCode);
     CalcAverage();
 }
 
-void CNotesToPrint::FillLineNumsArray(QList<int>& LineNums)
+const OCIntList CNotesToPrint::FillLineNumsArray() const
 {
-    LineNums.clear();
-    foreach(CNoteHead* n,NoteHeadList)
-    {
-        LineNums.append(n->Pitch);
-    }
-}
-/*
-void CNotesToPrint::FillNotesPrinted(OCSymbolArray& SymbolList, int Py)
-{
-    foreach(CNoteHead* n,NoteHeadList)
-    {
-        SymbolList.Append(n->CenterX - (12 * 6), n->CenterY - (12 * 4), 12 * 8, 12 * 12, Py - n->OrigPlace, n->Size);
-    }
-}
-*/
-int CNotesToPrint::FNBalkHeight() const
-{
-    int c=0;
-    if (Props.UpDown == 1)
-    {
-        c = lo - (28 * 12);
-        if (c > (94 * 12)) c = (94 * 12);
-    }
-    else
-    {
-        c = hi + (28 * 12);
-        if (c < (74 * 12)) c = (74 * 12);
-    }
-    return c;
+    OCIntList LineNums;
+    for (const CNoteHead& n : NoteHeadList) if (!n.Invisible) LineNums.append(n.LineNum);
+    for (const CNoteHead& n : VorschlagList) if (!n.Invisible) LineNums.append(n.LineNum);
+    return LineNums;
 }
 
-const int CNotesToPrint::HasAccidental(const int NoteNum) const
-{
-    return NoteHeadList[NoteNum]->HasFortegn;
-}
-
-const int CNotesToPrint::LineNum(const int Index) const
-{
-    return NoteHeadList[Index]->Pitch;
-}
-
-const int CNotesToPrint::Moveaccidental(const int Notes, const int Accidentals) const
+int CNotesToPrint::Moveaccidental(const int Notes, const int Accidentals)
 {
     int RetVal=0;
-    foreach(CNoteHead* n,NoteHeadList)
+    for (CNoteHead& n : NoteHeadList)
     {
-        if (n->HasFortegn)
+        if (!n.Invisible)
         {
-            RetVal ++;
-            if (Notes > 0) n->FortegnAddX = n->FortegnAddX - (120 * Notes);
-            if (Accidentals > 0) n->FortegnAddX = n->FortegnAddX - (96 * Accidentals);
+            if (n.AccidentalSymbol != accNone)
+            {
+                RetVal ++;
+                if (Notes > 0) n.FortegnAddX = n.FortegnAddX - (120 * Notes);
+                if (Accidentals > 0) n.FortegnAddX = n.FortegnAddX - (96 * Accidentals);
+            }
         }
     }
     return RetVal;
 }
 
-void CNotesToPrint::MoveChord(int factor)
+void CNotesToPrint::MoveChord(const int factor)
 {
-    Props.CenterX = Props.CenterX + (120 * factor);
-    Props.balkx = Props.balkx + (120 * factor);
-    foreach(CNoteHead* n,NoteHeadList)
-    {
-        n->CenterX = n->CenterX + (120 * factor);
-    }
+    CenterX += 120 * factor;
+    BalkX += 120 * factor;
+    for (CNoteHead& n : NoteHeadList) if (!n.Invisible) n.CenterX += 120 * factor;
 }
 
 void CNotesToPrint::MoveTo(OCDraw& ScreenObj)
 {
-    CurrentNote->MoveTo(ScreenObj);
+    CNoteHead& CurrentNote = (UpDown == StemDown) ? NoteHeadList.first() : NoteHeadList.last();
+    CurrentNote.moveTo(ScreenObj);
 }
 
 void CNotesToPrint::PlFane(OCDraw& ScreenObj)
 {
-    if (Props.NumOfBeams) OCNoteList::plFan(30*12,-Props.UpDown,Props.NumOfBeams,0,ScreenObj);
+    if (NumOfBeams) OCNoteList::plFan(30*12,UpDown,NumOfBeams,0,ScreenObj);
 }
 
-const int CNotesToPrint::NoteNum(const int Index) const
-{
-    return NoteHeadList[Index]->NoteNum;
-}
-
-const int CNotesToPrint::Pitch(const int NoteNum) const
-{
-    return NoteHeadList[NoteNum]->PitchCode;
-}
-
-void CNotesToPrint::plot(int& NextHeight, int NextX, int BarsToPrint, OCTieWrap& TieWrap, int TriolVal, QColor TrackColor, int &Py, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
+void CNotesToPrint::plot(OCPrintCounter& CountIt, const int NextHeight, const double NextX, const int BarsToPrint, const QColor& TrackColor, const OCVoiceLocation& /*VoiceLocation*/, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
     int TieDirection = 1;
-    if (Props.UpDown == -1)
+    PrintHelpLinesDown(NoteHeadList.first(), ScreenObj);
+    PrintHelpLinesUp(NoteHeadList.last(),ScreenObj);
+    for (CNoteHead& n : VorschlagList) {
+        PrintHelpLinesDown(n, ScreenObj);
+        PrintHelpLinesUp(n,ScreenObj);
+    }
+    if (UpDown == StemDown)
     {
-        for (int iTemp = 0; iTemp<NoteHeadList.count(); iTemp++)
+        for (int i = 0; i < NoteHeadList.size(); i++)
         {
-            CurrentNote=NoteHeadList[iTemp];
-            //if (CurrentNote->Size > -1)
-            if (!CurrentNote->Invisible) plNote(TieDirection,iTemp,NextHeight,NextX,BarsToPrint,TriolVal,TrackColor,TieWrap,SymbolList,ScreenObj); //GoSub 1630
-            if ((iTemp+1) * 2 >= NoteHeadList.count()) TieDirection = -1;
+            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            if ((i+1) * 2 >= NoteHeadList.size()) TieDirection = -1;
         }
-        CurrentNote=NoteHeadList.first();
+        for (int i = 0; i < VorschlagList.size(); i++)
+        {
+            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection, NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            //if ((i+1) * 2 >= NoteHeadList.size()) TieDirection = -1;
+        }
     }
     else
     {
-        for (int iTemp = NoteHeadList.count()-1; iTemp>=0; iTemp--)
+        for (int i = NoteHeadList.size() - 1; i >= 0; i--)
         {
-            CurrentNote=NoteHeadList[iTemp];
-            if ((iTemp+1) * 2 <= NoteHeadList.count()) TieDirection = -1;
-            //if (CurrentNote->Size > -1)
-            if (!CurrentNote->Invisible) plNote(TieDirection,iTemp,NextHeight,NextX,BarsToPrint,TriolVal,TrackColor,TieWrap,SymbolList,ScreenObj); //GoSub 1630
+            if ((i+1) * 2 <= NoteHeadList.size()) TieDirection = -1;
+            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
         }
-        CurrentNote=NoteHeadList.last();
-    }
-    CurrentNote->MoveTo(ScreenObj);
-    if (!CurrentNote->Invisible) Props.PlotStem(ScreenObj);
-    if ((Props.NumOfEvInBeam == 0) && (Props.ForceBeam == 0))
-    {
-        if (!CurrentNote->Invisible) PlFane(ScreenObj);
-    }
-    //FillNotesPrinted(SymbolList, Py);
-}
-
-//1630
-void CNotesToPrint::plNote(int& TieDirection, int iTemp, int& NextHeight, int NextX, int BarsToPrint,int TriolVal, QColor TrackColor, OCTieWrap& TieWrap, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
-{
-    PlBilinier(iTemp, ScreenObj);
-    CurrentNote->MoveTo(ScreenObj);
-    if (NextHeight <= 0) NextHeight = CurrentNote->CenterY; //'FNclclf%(a%, dcurrent)
-    int TieLen = NextX - CurrentNote->CenterX - 192;
-    int TieUpDown = Props.UpDown;
-    if (Props.FlipTie) TieUpDown = -TieUpDown;
-    if (Props.Bar == 0)
-    {
-        if (Props.Beat == Props.Rounded)
+        for (int i = VorschlagList.size() - 1; i >= 0; i--)
         {
-            TieWrap.plot(CurrentNote->CenterX, CurrentNote->CenterY, CurrentNote->PitchCode, TieDirection, TieUpDown, ScreenObj);
+            //if ((i+1) * 2 <= VorschlagList.size()) TieDirection = -1;
+            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection,NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
         }
     }
-    if ((CurrentNote->NoteType==tstiednote) || (CurrentNote->NoteType==tstiedpolynote))
-    {
-        CurrentNote->MoveTo(ScreenObj);
-        if (TieLen < 336)
-        {
-            ScreenObj.DR(IntDiv(TieLen ,4), 0);
-            TieLen = TieLen - IntDiv(TieLen ,2);
-        }
-        else
-        {
-            ScreenObj.DR(84, 0);
-            TieLen = TieLen - 168;
-        }
-        bool LastTie=((Props.Beat == Props.Meter) & (Props.Bar == BarsToPrint - 1));
-        TieWrap.PlotTie(LastTie, NoteHeadList.count(), TieUpDown, TieDirection, TieLen, CurrentNote->CenterY, NextHeight, ScreenObj);
+    CNoteHead& CurrentNote = (UpDown == StemDown) ? NoteHeadList.first() : NoteHeadList.last();
+    CurrentNote.moveTo(ScreenObj);
+    if (!CurrentNote.Invisible) {
+        PlotStem(ScreenObj);
+        if ((AutoBeamIndex == 0) && (ForceBeamIndex == 0)) PlFane(ScreenObj);
     }
-    CurrentNote->plot(Props.Size, TriolVal, TrackColor, Props.UpDown, SymbolList, ScreenObj);
-}
-
-void CNotesToPrint::SetHasFortegn(OCStaffAccidentals& lfortegn)
-{
-    QList<int> HasFortegn=lfortegn.GetHasFortegnArray(NoteHeadList.count());
-    for (int iTemp = 0;iTemp<NoteHeadList.count();iTemp++)
-    {
-        NoteHeadList[iTemp]->HasFortegn = HasFortegn[iTemp];
+    for (CNoteHead& n : VorschlagList) {
+        if (!n.Invisible) {
+            n.moveTo(ScreenObj);
+            const double bold = 0.8;
+            const int beamCount = NumOfFlags(n.NoteVal);
+            const double BalkBeginY = n.CenterY - n.sized(directed(120 + 96 + (beamCount * 96)));
+            const double BalkX = stemX(n.CenterX);
+            if ((n.NoteVal != 144) && (n.NoteVal != 96) && (n.NoteVal != 64))
+            {
+                ScreenObj.line(BalkX, BalkBeginY, 0, n.CenterY - BalkBeginY, bold);
+                ScreenObj.line(BalkX - 72, BalkBeginY + directed(144), 144, directed(-144), bold);
+                ScreenObj.moveTo(BalkX,BalkBeginY);
+                if (beamCount) OCNoteList::plFan(30*12,UpDown,beamCount,n.Size,ScreenObj);
+            }
+        }
     }
 }
 
-const int CNotesToPrint::fnAandClefCalc(const int a, OCPrintVarsType& b) const
+void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, const int NextCenterY, const double NextX, const int BarsToPrint,const bool UnderTriplet, const QColor& TrackColor, OCTieWrap& TieWrap, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
-    int Add=0;
-    int Pitch = a % 12;
-    if (b.J[Pitch] == 1)
-    {
-        Add = -1;
+    CurrentNote.moveTo(ScreenObj);
+    OCGraphicsList t;
+    //if (NextCenterY <= 0) NextCenterY = CurrentNote.CenterY;
+    auto TieLen = int(NextX - CurrentNote.CenterX - 192);
+    int TieUpDown = UpDown;
+    if (FlipTie) TieUpDown = -TieUpDown;
+    if (CurrentNote.NoteType < tsgracenote) {
+        if (Bar == 0)
+        {
+            if (Beat == Rounded)
+            {
+                TieWrap.plotWrappedTie(CurrentNote.CenterX, CurrentNote.CenterY, CurrentNote.PitchCode, TieDirection, TieUpDown, ScreenObj);
+            }
+        }
+        if ((CurrentNote.NoteType==tstiednote) || (CurrentNote.NoteType==tstiedpolynote))
+        {
+            CurrentNote.moveTo(ScreenObj);
+            ScreenObj.move(0,CurrentNote.TieTop);
+            if (TieLen < 336)
+            {
+                ScreenObj.move(IntDiv(TieLen ,4), 0);
+                TieLen = TieLen - IntDiv(TieLen ,2);
+            }
+            else
+            {
+                ScreenObj.move(84, 0);
+                TieLen = TieLen - 168;
+            }
+            bool IsWrap=((Beat == Meter) & (Bar == BarsToPrint - 1));
+            t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
+        }
+        CurrentNote.plot(Size, UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
-    else if (b.J[Pitch] == 2)
-    {
-        Add = 1;
+    else {
+        if (CurrentNote.NoteType==tstiedgracenote)
+        {
+            CurrentNote.moveTo(ScreenObj);
+            ScreenObj.move(0,CurrentNote.TieTop);
+            if (TieLen < 336)
+            {
+                ScreenObj.move(IntDiv(TieLen ,4), 0);
+                TieLen = TieLen - IntDiv(TieLen ,2);
+            }
+            else
+            {
+                ScreenObj.move(84, 0);
+                TieLen = TieLen - 168;
+            }
+            t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
+        }
+        CurrentNote.plot(CurrentNote.Size, UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
-    else
-    {
-        Add = 0;
-    }
-    int RetVal = ((int)(((a - 12.0) * 7.0 / 12.0) + 0.4 + Add) * 4 * 12); //used to be fix()
-    switch (b.CurrentClef.val)
-    {
-    case 2:
-        RetVal=RetVal - (4*12);
-        break;
-    case 3:
-        RetVal=RetVal - (28*12);
-        break;
-    case 4:
-        RetVal=RetVal - (20*12);
-        break;
-    default:
-        RetVal=RetVal - (52*12);
-    }
-    return RetVal;
+}
+
+void CNotesToPrint::ApplyAccidentals(OCStaffAccidentals& StaffAccidentals)
+{
+    for (CNoteHead& n : NoteHeadList) n.AccidentalSymbol = StaffAccidentals.PopNoteAccidental();
+    for (CNoteHead& n : VorschlagList) n.AccidentalSymbol = StaffAccidentals.PopNoteAccidental();
+}
+
+int CNotesToPrint::LineNum2CenterY(const int LineNum, const int Clef) const
+{
+    return ((LineNum - 7)*4*12)-(CClef::LineDiff(Clef)*12);
 }
 
 //--------------------------------------------------------------------------
-
-OCNoteList::OCNoteList()
-{
-    BalkOverRideCount=0;
-}
 
 OCNoteList::~OCNoteList()
 {
     clear();
 }
 
-void OCNoteList::Append(const float XFysic, XMLSymbolWrapper& Symbol, int& Py, QDomLiteElement* XMLVoice, const int TrackNum, OCPrintVarsType &dCurrent, OCCounter& CountIt, OCStaffAccidentals& lfortegn, OCBarList& BarList, QList<int> &LastTiedNotes, OCDraw& ScreenObj)
+IOCRhythmObject* OCNoteList::Append(const double XFysic, const XMLSymbolWrapper& Symbol, const OCVoiceLocation& VoiceLocation, const XMLVoiceWrapper& XMLVoice, OCPrintCounter& CountIt, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, OCDraw& ScreenObj)
 {
-    //Static BalkOverRideCount As Integer
-    IOCRhythmObject* s;
-    int Ticks=Symbol.ticks();
-    if (Symbol.IsRest())
-    {
-        s = new CPausesToPrint;
-    }
-    else
-    {
-        s = new CNotesToPrint;
-    }
-    s->Fill(Py, XMLVoice, TrackNum, dCurrent, XFysic, CountIt, lfortegn, Symbol, BarList, ScreenObj);
+    IOCRhythmObject* s = (Symbol.IsRest()) ? static_cast<IOCRhythmObject*>(new CPausesToPrint) : new CNotesToPrint;
+
+    s->Fill(VoiceLocation, XMLVoice, XFysic, CountIt, StaffAccidentals, Symbol, BarList, ScreenObj);
     RhythmObjectList.append(s);
-    if (CountIt.Counter == CountIt.Rounded)
+    if (CountIt.TickCounter == CountIt.CurrentTicksRounded)
     {
-        if (Symbol.IsAnyNote())
+        if (Symbol.IsPitchedNote()) StaffAccidentals.AddIgnore(CountIt.Ties);
+    }
+    CountIt.Ties.clear();
+    for (int i = 0; i < s->Count(); i++)
+    {
+        if ((s->NoteType(i)==tstiednote) || (s->NoteType(i)==tstiedpolynote))
         {
-            for (int iTemp=0;iTemp<s->Count();iTemp++) if (LastTiedNotes.contains(s->Pitch(iTemp))) lfortegn.AddIgnore(s->LineNum(iTemp));
+            CountIt.Ties.append(s->Pitch(i));
         }
     }
-    LastTiedNotes.clear();
-    for (int iTemp = 0;iTemp<s->Count();iTemp++)
+    OCDurSignVector l = CountIt.DurSigns.signs("Beam");
+    if (!l.empty())
     {
-        if ((s->NoteType(iTemp)==tstiednote) || (s->NoteType(iTemp)==tstiedpolynote))
+        OCDurSignType d = l.first();
+        if (d.remains())
         {
-            LastTiedNotes.append(s->Pitch(iTemp));
+            if (RhythmObjectList.size() == 1) d.Counter = 0;
+            s->ForceBeamIndex = d.Counter + 1;
+            s->NumOfForcedBeams = d.XMLSymbol.getIntVal("Beams");
         }
     }
-    if (dCurrent.BalkOverRide.RemainingTicks > 0)
+    s->ForceUpDown = StemDirection(CountIt.UpDown.getValue(s->ForceUpDown));
+    s->ForceSlant = CountIt.SlantFlag.getValue(s->ForceSlant);
+    s->BeamLimit = CountIt.BalkLimit;
+    const OCSignType& art = CountIt.Articulation.getSign();
+    if (art.val)
     {
-        BalkOverRideCount++;
-        s->Props.ForceBeam = BalkOverRideCount;
-        s->Props.NumOfForcedBeams = dCurrent.BalkOverRide.val;
-        dCurrent.BalkOverRide.Decrem(Ticks);
+        s->PerformanceSign = art.val % 3;
+        s->PerformanceSignPos = art.XMLSymbol.pos();
+        s->PerformanceSignSize = art.XMLSymbol.size();
     }
-    else
-    {
-        if (BalkOverRideCount > 0)
-        {
-            s->Props.ForceBeam = BalkOverRideCount + 1;
-            s->Props.NumOfForcedBeams = dCurrent.BalkOverRide.val;
-            BalkOverRideCount = 0;
-        }
-    }
-    if (dCurrent.UpDown) s->Props.ForceUpDown = dCurrent.UpDown;
-    if (dCurrent.SlantFlag) s->Props.ForceSlant = dCurrent.SlantFlag;
-    if (dCurrent.UpDownOverRide.RemainingTicks > 0)
-    {
-        s->Props.ForceUpDown = dCurrent.UpDownOverRide.val;
-        dCurrent.UpDownOverRide.Decrem(Ticks);
-    }
-    if (dCurrent.SlantOverRide.RemainingTicks > 0)
-    {
-        s->Props.ForceSlant = dCurrent.SlantOverRide.val;
-        dCurrent.SlantOverRide.Decrem(Ticks);
-    }
-    s->Props.BeamLimit = dCurrent.BalkLimit;
-    if (dCurrent.Articulationx1.val > 0)
-    {
-        s->Props.PerformanceSignPos = dCurrent.Articulationx1.Pos;
-        s->Props.PerformanceSignSize = dCurrent.Articulationx1.Size;
-        if (dCurrent.Articulationx1.val == 5)
-        {
-            s->Props.PerformanceSign = 1;
-            dCurrent.Articulationx1.val = 0;
-        }
-        if (dCurrent.Articulationx1.val == 4)
-        {
-            s->Props.PerformanceSign = 2;
-            dCurrent.Articulationx1.val = 0;
-        }
-    }
-    else if (dCurrent.StregOverRide.RemainingTicks > 0)
-    {
-        s->Props.PerformanceSignPos = dCurrent.StregOverRide.Pos;
-        s->Props.PerformanceSignSize = dCurrent.StregOverRide.Size;
-        s->Props.PerformanceSign = 2;
-        dCurrent.StregOverRide.Decrem(Ticks);
-    }
-    else if (dCurrent.Punktoverride.RemainingTicks > 0)
-    {
-        s->Props.PerformanceSignPos = dCurrent.Punktoverride.Pos;
-        s->Props.PerformanceSignSize = dCurrent.Punktoverride.Size;
-        s->Props.PerformanceSign = 1;
-        dCurrent.Punktoverride.Decrem(Ticks);
-    }
-    else if (dCurrent.Articulation.val > 0)
-    {
-        s->Props.PerformanceSignPos = dCurrent.Articulation.Pos;
-        s->Props.PerformanceSignSize = dCurrent.Articulation.Size;
-        if (dCurrent.Articulation.val == 2) s->Props.PerformanceSign = 1;
-        if (dCurrent.Articulation.val == 1) s->Props.PerformanceSign = 2;
-    }
+    s->CenterNextXAdd = BarList.calcX(CountIt.barCount(),CountIt.CurrentTicksRounded);
+    return s;
 }
 
 void OCNoteList::clear()
 {
     qDeleteAll(RhythmObjectList);
     RhythmObjectList.clear();
+    //qDeleteAll(BeamLists);
+    BeamLists.clear();
 }
 
-void OCNoteList::SearchForBeams()
+void OCNoteList::CreateBeamLists()
 {
-    //Dim iTemp As Integer
-    int BalkLimit = 0;
-    bool NoGood = false;
-    int BeamCount = 0;
-    //'If toprec < 1 Then Exit Sub
-    for (int iTemp=0;iTemp<RhythmObjectList.count();iTemp++)
-    {
-        OCRhythmObject* s=&RhythmObjectList[iTemp]->Props;
-        if (s->Beat == s->Rounded) BalkLimit = 0;
-        NoGood = false;
-        if (BeamCount > 0)
-        {
-            if (!s->BeamAble()) NoGood = true;
-            if (s->Rounded > BalkLimit) NoGood = true;
-            if (s->ForceBeam == 1) NoGood = true;
-            if ((s->IsPause) && (s->ForceBeam == 0)) NoGood = true;
-            //if (!NoGood) GoTo putit
+    int AutoBeamLimit = 0;
+    int AutoBeamCount = 0;
+    OCBeamList TempBeamList;
+
+    for (int i = 0; i < RhythmObjectList.size(); ++i) {
+        IOCRhythmObject* s = RhythmObjectList[i];
+
+        // Reset BalkLimit if start of bar
+        if (s->Beat == s->Rounded) AutoBeamLimit = 0;
+        // Check if current beam should end
+        if (AutoBeamCount > 0) if (s->shouldEndBeam(AutoBeamLimit)) AutoBeamCount = 0;
+        // Prepare for possible new beam
+        bool canStartBeam = false;
+        if (AutoBeamCount == 0 && i < RhythmObjectList.size() - 1) {
+            AutoBeamLimit = qMin(boundStep<int>(1, AutoBeamLimit, s->BeamLimit, s->BeamLimit), s->Meter);
+            canStartBeam = s->shouldStartBeam(RhythmObjectList[i + 1], AutoBeamLimit);
         }
-        if ((NoGood && (BeamCount > 0)) || (BeamCount==0))
-        {
-            if (iTemp == RhythmObjectList.count()-1) break;
-            BalkLimit = Inside(BalkLimit, 1, s->BeamLimit, s->BeamLimit);
-            if (BalkLimit > s->Meter) BalkLimit = s->Meter;
-            NoGood = false;
-            if (!s->BeamAble()) NoGood = true;
-            if (!RhythmObjectList[iTemp + 1]->Props.BeamAble()) NoGood = true;
-            if (s->Rounded >= s->Meter) NoGood = true;
-            if (s->IsPause) NoGood = true;
-            if (RhythmObjectList[iTemp + 1]->Props.IsPause) NoGood = true;
-            if (s->Rounded + RhythmObjectList[iTemp + 1]->Props.Rounded > BalkLimit) NoGood = true;
-            if (RhythmObjectList[iTemp + 1]->Props.Bar > s->Bar) NoGood = true;
-            if (s->ForceBeam > 0) NoGood = true;
-            if (RhythmObjectList[iTemp + 1]->Props.ForceBeam > 0) NoGood = true;
+        if (canStartBeam) {
+            AutoBeamCount = 1;
+            s->AutoBeamIndex = 1;
         }
-//putit:
-        if (NoGood)
-        {
-            BeamCount = 0;
-            s->NumOfEvInBeam = 0;
+        else if (AutoBeamCount > 0) {
+            s->AutoBeamIndex = ++AutoBeamCount;
+            if (s->Rounded >= AutoBeamLimit) AutoBeamCount = 0; //end beam
+        } else {
+            s->AutoBeamIndex = 0;
         }
-        else
-        {
-            BeamCount++;
-            s->NumOfEvInBeam = BeamCount;
-            if (s->Rounded >= BalkLimit) BeamCount = 0;
+        // Update BalkLimit after this symbol
+        AutoBeamLimit = boundStep<int>(0, AutoBeamLimit - s->Rounded, s->BeamLimit, s->BeamLimit);
+
+        if (s->ForceBeamIndex + s->AutoBeamIndex < TempBeamList.size()) {
+            TempBeamList.CalcBalk();
+            BeamLists.append(OCBeamList(TempBeamList));
+            TempBeamList.clear();
         }
-        BalkLimit = BalkLimit - s->Rounded;
-        BalkLimit = Inside(BalkLimit, 0, s->BeamLimit, s->BeamLimit);
+        if (s->ForceBeamIndex + s->AutoBeamIndex > 0) {
+            TempBeamList.append(s);
+        }
+        else {
+            s->SetUpDown();
+        }
     }
-    BeamUpDown();
+    if (TempBeamList.size()) {
+        TempBeamList.CalcBalk();
+        BeamLists.append(OCBeamList(TempBeamList));
+    }
 }
 
-void OCNoteList::plot(const int iTemp, int& CurrentMeter, int& Py, OCBarList& BarList, OCTieWrap& TieWrap, const int TriolVal, const QColor TrackColor, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
+void OCNoteList::plot(const int FirstNote, OCPrintCounter& CountIt, const OCVoiceLocation& VoiceLocation, const OCPageBarList& BarList, const QColor& TrackColor, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
-    int NextHeight;
-    int NextX;
-    if (iTemp >= RhythmObjectList.count()) return;
-    if (iTemp < RhythmObjectList.count()-1)
+    if (FirstNote >= RhythmObjectList.size()) return;
+    IOCRhythmObject* s=RhythmObjectList[FirstNote];
+    int NextHeight = 86 * 12;
+    double NextX = BarList.systemLength() + 144;
+    if (s != RhythmObjectList.last())
     {
-        NextHeight = RhythmObjectList[iTemp + 1]->Props.AverageY;
-        NextX = RhythmObjectList[iTemp + 1]->Props.CenterX;
+        NextHeight = RhythmObjectList[FirstNote + 1]->AverageY;
+        NextX = RhythmObjectList[FirstNote + 1]->CenterX;
     }
-    else
-    {
-        NextHeight = 86 * 12;
-        NextX = BarList.SystemLength() + 144;
-    }
-    RhythmObjectList[iTemp]->plot(NextHeight, NextX, BarList.BarsToPrint(), TieWrap, TriolVal, TrackColor, Py, SymbolList, ScreenObj);
-    CurrentMeter = RhythmObjectList[iTemp]->Props.Meter;
+    s->plot(CountIt, NextHeight, NextX, BarList.barsToPrint(), TrackColor, VoiceLocation, FrameList, ScreenObj);
+    CountIt.Meter = s->Meter;
 }
-
-void OCNoteList::BeamUpDown()
+/*
+void OCNoteList::FillBeamLists()
 {
-    for (int iTemp=0;iTemp<RhythmObjectList.count();iTemp++)
+    for (int i = 0; i < RhythmObjectList.size(); i++)
     {
-        IOCRhythmObject* s=RhythmObjectList[iTemp];
-        if ((s->Props.NumOfEvInBeam == 1) || (s->Props.ForceBeam == 1))
+        IOCRhythmObject* s = RhythmObjectList[i];
+        if ((s->AutoBeamIndex == 1) || (s->ForceBeamIndex == 1))
         {
-            bool Forced = false;
-            if (s->Props.ForceBeam == 1) Forced = true;
-            int iTemp1 = iTemp;
-            int Added = s->Props.AverageY;
-            forever
+            OCBeamList l;
+            l.append(s);
+            for (int j = i + 1; j < RhythmObjectList.size(); j++)
             {
-                iTemp1 ++;
-                if (iTemp1 >= RhythmObjectList.count()) break;
-                if (Forced)
-                {
-                    if (RhythmObjectList[iTemp1]->Props.ForceBeam < iTemp1 - iTemp + 1) break;
+                IOCRhythmObject* r = RhythmObjectList[j];
+                const int idx = j - i + 1;
+                if (s->ForceBeamIndex == 1) {
+                    if (r->ForceBeamIndex < idx) break;
+                } else {
+                    if (r->AutoBeamIndex < idx) break;
                 }
-                else
-                {
-                    //'If objarr(iTemp1).Props.IsPause Then Exit Do
-                    if (RhythmObjectList[iTemp1]->Props.NumOfEvInBeam < iTemp1 - iTemp + 1) break;
-                }
-                Added += RhythmObjectList[iTemp1]->Props.AverageY;
+                l.append(r);
             }
-            int LastNote = iTemp1 - 1;
-            Added = IntDiv(Added, LastNote - iTemp + 1);
-            if (Added > (86 * 12))
-            {
-                Added = 1;
-            }
-            else
-            {
-                Added = -1;
-            }
-            for (iTemp1 = iTemp; iTemp1<=LastNote;iTemp1++)
-            {
-                if (RhythmObjectList[iTemp1]->Props.ForceUpDown != 0)
-                {
-                    Added = RhythmObjectList[iTemp1]->Props.ForceUpDown;
-                    break;
-                }
-            }
-            for (iTemp1 = iTemp; iTemp1<=LastNote;iTemp1++)
-            {
-                RhythmObjectList[iTemp1]->Props.UpDown = Added;
-                RhythmObjectList[iTemp1]->Props.BalkEndY = RhythmObjectList[iTemp1]->FNBalkHeight();
-                RhythmObjectList[iTemp1]->CalcUpDownProps();
-            }
-            CalcBalk(iTemp, LastNote);
-        }
-        else if ((s->Props.NumOfEvInBeam == 0) && (s->Props.ForceBeam == 0))
-        {
-            SetUpDown(&s->Props);// 'dcurrent, isacombine, combinewith
-            s->Props.BalkEndY = s->FNBalkHeight();
-            s->CalcUpDownProps();
+            l.CalcBalk();
+            BeamLists.append(l);
         }
     }
 }
-
-void OCNoteList::SetUpDown(OCRhythmObject *Props)
-{
-    if (Props->ForceUpDown)
-    {
-        Props->UpDown = Props->ForceUpDown;
-    }
-    else
-    {
-        if (Props->AverageY > (86 * 12))
-        {
-            Props->UpDown = 1;
-        }
-        else
-        {
-            Props->UpDown = -1;
-        }
-    }
-}
-
-void OCNoteList::CalcBalk(const int First, const int Last)
-{
-    float BalkFactor;
-    int UpDown = RhythmObjectList[First]->Props.UpDown;
-    int BalkTotal = RhythmObjectList[Last]->Props.balkx - RhythmObjectList[First]->Props.balkx;
-    if (BalkTotal == 0) BalkTotal = 1;
-    int FirstHd = RhythmObjectList[First]->Props.BalkEndY;
-    int LastHd = RhythmObjectList[Last]->Props.BalkEndY;
-    if (RhythmObjectList[First]->Props.ForceSlant)
-    {
-        BalkFactor = 0;
-    }
-    else
-    {
-        BalkFactor = (float)(FirstHd - LastHd) / (float)BalkTotal;
-    }
-    if (Abs(BalkFactor) > 0.5) BalkFactor = Sgn(BalkFactor) * 0.5;
-    int balkheight = FirstHd;
-    int addit = 0;
-    for (int iTemp = First + 1;iTemp<=Last;iTemp++)
-    {
-        balkheight = balkheight - (BalkFactor * (RhythmObjectList[iTemp]->Props.balkx - RhythmObjectList[iTemp - 1]->Props.balkx));
-        int add1 = RhythmObjectList[iTemp]->Props.BalkEndY - balkheight;
-        if (add1 * UpDown < 0)
-        {
-            if (add1 * UpDown < addit * UpDown) addit = add1;
-        }
-    }
-    FirstHd += addit;
-    RhythmObjectList[First]->Props.BalkEndY = FirstHd;
-    RhythmObjectList[First]->Props.SlantFactor = BalkFactor;
-    for (int iTemp = First + 1;iTemp<=Last;iTemp++)
-    {
-        RhythmObjectList[iTemp]->Props.BalkEndY = FirstHd + ((RhythmObjectList[iTemp]->Props.balkx - RhythmObjectList[First]->Props.balkx) * -BalkFactor);
-        RhythmObjectList[iTemp]->Props.SlantFactor = BalkFactor;
-    }
-}
-
-void OCNoteList::PlotBeams(const QColor TrackColor, OCDraw& ScreenObj)
+*/
+void OCNoteList::PlotBeams(const QColor& TrackColor, OCDraw& ScreenObj)
 {
     ScreenObj.col = TrackColor;
-    for (int iTemp=0;iTemp<RhythmObjectList.count();iTemp++)
-    {
-        IOCRhythmObject* s=RhythmObjectList[iTemp];
-        if ((s->Props.NumOfEvInBeam == 1) || (s->Props.ForceBeam == 1))
-        {
-            bool Forced = false;
-            if (s->Props.ForceBeam == 1) Forced = true;
-            int iTemp1 = iTemp;
-            int MinNumOfBeams = s->Props.NumOfBeams;
-            forever
-            {
-                iTemp1 ++;
-                if (iTemp1 >= RhythmObjectList.count()) break;
-                if (RhythmObjectList[iTemp1]->Props.NumOfBeams < MinNumOfBeams) MinNumOfBeams = RhythmObjectList[iTemp1]->Props.NumOfBeams;
-                if (Forced)
-                {
-                    if (RhythmObjectList[iTemp1]->Props.ForceBeam < iTemp1 - iTemp) break;
-                }
-                else
-                {
-                    //'If objarr[iTemp1]->Props.IsPause Then Exit Do
-                    if (RhythmObjectList[iTemp1]->Props.NumOfEvInBeam < iTemp1 - iTemp + 1) break;
-                }
-            }
-            if (s->Props.NumOfForcedBeams > MinNumOfBeams) MinNumOfBeams = s->Props.NumOfForcedBeams;
-            int LastNote = iTemp1 - 1;
-            plBeam(s->Props.balkx, s->Props.BalkEndY-(s->Props.UpDown*LineHalfThickNess), RhythmObjectList[LastNote]->Props.balkx, RhythmObjectList[LastNote]->Props.BalkEndY, s->Props.UpDown, MinNumOfBeams, ScreenObj);
-            //'SlantFactor = -(objarr[LastNote]->Props.BalkEndY - s->Props.BalkEndY) / (objarr[LastNote]->Props.balkx - s->Props.balkx)
-            for (int iTemp1 = iTemp;iTemp1<=LastNote;iTemp1++)
-            {
-                int LenLeft = 0;
-                int LenRight = 0;
-                int NumOfBeamsLeft = 0;
-                int NumOfBeamsRight = 0;
-                if ((iTemp1 > 0) && (iTemp1 > iTemp))
-                {
-                    NumOfBeamsLeft = RhythmObjectList[iTemp1 - 1]->Props.NumOfBeams;
-                    LenLeft = (RhythmObjectList[iTemp1]->Props.balkx - RhythmObjectList[iTemp1 - 1]->Props.balkx);
-                }
-                if ((iTemp1 < RhythmObjectList.count()-1) && (iTemp1 < LastNote))
-                {
-                    NumOfBeamsRight = RhythmObjectList[iTemp1 + 1]->Props.NumOfBeams;
-                    LenRight = (RhythmObjectList[iTemp1 + 1]->Props.balkx - RhythmObjectList[iTemp1]->Props.balkx);
-                }
-                if ((LenRight == 0) && (iTemp1 > 0) && (iTemp1 > iTemp)) LenRight = LenLeft; // '(LenLeft * objarr[iTemp1]->Props.Rounded) \ objarr[iTemp1 - 1]->Props.Rounded
-                int a = RhythmObjectList[iTemp1]->Props.NumOfBeams;
-                int b = NumOfBeamsRight;
-                if (NumOfBeamsLeft >= RhythmObjectList[iTemp1]->Props.NumOfBeams)
-                {
-                    if (RhythmObjectList[iTemp1]->Props.NumOfBeams <= NumOfBeamsRight)
-                    {
-                        a = RhythmObjectList[iTemp1]->Props.NumOfBeams;
-                        b = RhythmObjectList[iTemp1]->Props.NumOfBeams;
-                    }
-                }
-                else
-                {
-                    if (NumOfBeamsLeft < NumOfBeamsRight)
-                    {
-                        a = NumOfBeamsLeft;
-                        b = RhythmObjectList[iTemp1]->Props.NumOfBeams;
-                    }
-                }
-                if (a)
-                {
-                    ScreenObj.DM(RhythmObjectList[iTemp1]->Props.balkx, RhythmObjectList[iTemp1]->Props.BalkEndY); // '- (84 * MinNumOfBeams * s->Props.UpDown)
-                    int cbld = 0;
-                    plleftsubbalk(a, MinNumOfBeams, LenRight / 2, NumOfBeamsLeft, s->Props.UpDown, s->Props.SlantFactor, cbld, ScreenObj);
-                }
-                if (b)
-                {
-                    ScreenObj.DM(RhythmObjectList[iTemp1]->Props.balkx, RhythmObjectList[iTemp1]->Props.BalkEndY); // '- (84 * MinNumOfBeams * s->Props.UpDown)
-                    int cbld = LenRight;
-                    plrightsubbalk(b, MinNumOfBeams, LenRight / 2, NumOfBeamsRight, s->Props.UpDown, RhythmObjectList[iTemp]->Props.SlantFactor, cbld, ScreenObj);
-                }
-            }
-        }
-    }
+    for (OCBeamList& l : BeamLists) l.plot(ScreenObj);
 }
 
-void OCNoteList::plleftsubbalk(const int num, const int commonbalk, const int Length, const int prevnum, const int UpDown, const float factor, int cbld, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj)
 {
-    for (int iTemp = 1; iTemp<=num;iTemp++)
-    {
-        if (iTemp <= commonbalk)
-        {
-            ScreenObj.DR(0, UpDown * (BeamThickness + BeamSpace));
-            if (iTemp == prevnum) cbld = -Length; // ': Slant = -6
-        }
-        else
-        {
-            if (cbld != 0)
-            {
-                plBalk(cbld, factor, UpDown, ScreenObj);
-            }
-            else
-            {
-                ScreenObj.DR(0, UpDown * (BeamThickness + BeamSpace));
-            }
-            if (iTemp == prevnum) cbld = -Length; // ': Slant = -6
-        }
+    OCGraphicsList l;
+    if (TupletList.isEmpty()) return l;
+    IOCRhythmObject* NoteL = TupletList.first();
+    IOCRhythmObject* NoteR = TupletList.last();
+    QPointF lineL(NoteL->directed(NoteL->BalkEnd(),108));
+    QPointF lineR(NoteL->directed(NoteR->BalkEnd(),108));
+    if (NoteL->UpDown != NoteR->UpDown) {
+        lineR.setY(NoteR->BalkBeginY - NoteL->directed(108));
     }
-}
-
-void OCNoteList::plrightsubbalk(const int num, const int commonbalk, const int Length, const int nextnum, const int UpDown, const float factor, int cbld, OCDraw& ScreenObj)
-{
-    for (int iTemp = 1; iTemp<=num;iTemp++)
-    {
-        if (iTemp <= commonbalk)
-        {
-            ScreenObj.DR(0, UpDown * (BeamThickness + BeamSpace));
-            if (iTemp == nextnum) cbld = Length; // ': Slant = 6
-        }
-        else
-        {
-            plBalk(cbld, factor, UpDown, ScreenObj);
-            if (iTemp == nextnum) cbld = Length; // ': Slant = 6
-        }
-    }
-}
-
-const QList<QGraphicsItem*> OCNoteList::PlotTuplet(const int iTemp, const int Beats, const int TupletNumber, const QPointF& Pos, const int Size, OCDraw& ScreenObj)
-{
-    int LastNote;
-    int TupletY=0;
-    int NoteLeft=0;
-    int NoteRight=0;
-    int Add = 0;
-    QList<QGraphicsItem*> l;
-    if (iTemp >= RhythmObjectList.count()) return l;
-    for (int iTemp1 = iTemp; iTemp1<RhythmObjectList.count();iTemp1++)
-    {
-        Add += RhythmObjectList[iTemp1]->Props.val;
-        LastNote = iTemp1;
-        if (Add > Beats) break;
-    }
-    int TupletX = ((RhythmObjectList[LastNote]->Props.balkx - RhythmObjectList[iTemp]->Props.balkx) / 2) + RhythmObjectList[iTemp]->Props.balkx;
-    for (int iTemp1 = iTemp; iTemp1<=LastNote; iTemp1++)
-    {
-        if (RhythmObjectList[iTemp1]->Props.balkx <= TupletX) NoteLeft = iTemp1;
-        if (RhythmObjectList[iTemp1]->Props.balkx > TupletX)
-        {
-            NoteRight = iTemp1;
-            break;
-        }
-    }
-
-    if (RhythmObjectList[NoteLeft]->Props.IsPause)
-    {
-        if (!RhythmObjectList[NoteRight]->Props.IsPause)
-        {
-            if (RhythmObjectList[NoteLeft]->Props.UpDown!=RhythmObjectList[NoteRight]->Props.UpDown)
-            {
-                RhythmObjectList[NoteLeft]->Props.UpDown=RhythmObjectList[NoteRight]->Props.UpDown;
-                RhythmObjectList[NoteLeft]->CalcUpDownProps();
-                RhythmObjectList[NoteLeft]->Props.BalkEndY=RhythmObjectList[NoteLeft]->Props.BalkBeginY;
-            }
-        }
-    }
-    if (RhythmObjectList[NoteRight]->Props.IsPause)
-    {
-        if (!RhythmObjectList[NoteLeft]->Props.IsPause)
-        {
-            if (RhythmObjectList[NoteLeft]->Props.UpDown!=RhythmObjectList[NoteRight]->Props.UpDown)
-            {
-                RhythmObjectList[NoteRight]->Props.UpDown=RhythmObjectList[NoteLeft]->Props.UpDown;
-                RhythmObjectList[NoteRight]->CalcUpDownProps();
-                RhythmObjectList[NoteRight]->Props.BalkEndY=RhythmObjectList[NoteRight]->Props.BalkBeginY;
-            }
-        }
-    }
-    /*
-    else
-    {
-        if (RhythmObjectList[NoteLeft]->Props.UpDown!=RhythmObjectList[NoteRight]->Props.UpDown)
-        {
-            RhythmObjectList[NoteRight]->Props.UpDown=RhythmObjectList[NoteLeft]->Props.UpDown;
-            RhythmObjectList[NoteRight]->CalcUpDownProps();
-            RhythmObjectList[NoteRight]->Props.BalkEndY+=RhythmObjectList[NoteRight]->Props.UpDown*192;
-        }
-    }
-    */
-
-    if ((RhythmObjectList[NoteRight]->Props.balkx - RhythmObjectList[NoteLeft]->Props.balkx) == 0) return l;
-    float factor = (RhythmObjectList[NoteLeft]->Props.balkx - TupletX) / (RhythmObjectList[NoteRight]->Props.balkx - RhythmObjectList[NoteLeft]->Props.balkx);
-    if (RhythmObjectList[NoteLeft]->Props.UpDown == RhythmObjectList[NoteRight]->Props.UpDown)
-    {
-        TupletY = ((RhythmObjectList[NoteRight]->Props.BalkEndY - RhythmObjectList[NoteLeft]->Props.BalkEndY) * factor) + RhythmObjectList[NoteLeft]->Props.BalkEndY;
-        TupletY = TupletY - (RhythmObjectList[NoteLeft]->Props.UpDown * 96);
-    }
-    else
-    {
-        /*
-        int UD1 = ((RhythmObjectList[NoteLeft]->Props.BalkEndY - RhythmObjectList[NoteRight]->Props.BalkBeginY) * factor) + RhythmObjectList[NoteRight]->Props.BalkBeginY;
-        int UD2 = ((RhythmObjectList[NoteRight]->Props.BalkBeginY - RhythmObjectList[NoteLeft]->Props.BalkEndY) * factor) + RhythmObjectList[NoteLeft]->Props.BalkEndY;
-        if (Abs(UD1 - (86 * 12)) < Abs(UD2 - (86 * 12)))
-        {
-            TupletY = UD1 + (192*RhythmObjectList[NoteLeft]->Props.UpDown);//48;
-        }
-        else
-        {
-            TupletY = UD2 + (192*RhythmObjectList[NoteRight]->Props.UpDown);//48;
-        }
-        */
-        TupletY = RhythmObjectList[NoteRight]->Props.BalkBeginY + (RhythmObjectList[NoteRight]->Props.UpDown*192);
-    }
-    //ScreenObj.DM(TupletX,TupletY);
-    ScreenObj.DM(Pos+QPointF(TupletX,TupletY));
-    l.append(ScreenObj.plLet(QString::number(TupletNumber).trimmed(), Size, "times new roman", true, true, 120,Qt::AlignHCenter | Qt::AlignVCenter));
+    lineL += Pos;
+    lineR += Pos;
+    const int lineUD = NoteL->UpDown;
+    const QPointF center = (lineL + lineR) / 2.0;
+    QVector2D dir(lineR - lineL);
+    dir.normalize();
+    l.append(ScreenObj.line(lineL, center - QPointF(dir.x() * 60, dir.y() * 60)));
+    l.append(ScreenObj.line(center + QPointF(dir.x() * 60, dir.y() * 60),lineR));
+    l.append(ScreenObj.line(lineL, 0, lineUD * 36));
+    l.append(ScreenObj.line(lineR, 0, lineUD * 36));
+    ScreenObj.moveTo(center);
+    l.append(ScreenObj.plLet(QString::number(TupletCaption).trimmed(), Size, "times new roman", true, true, 132,Qt::AlignHCenter | Qt::AlignVCenter));
     return l;
 }
 
-void OCNoteList::PlotTuplet(const int iTemp, const int Beats, const int TupletNumber, const QPointF& Pos, const int Size, OCSymbolArray& SymbolList, const int Pointer, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotSlur(const OCRhythmObjectList& SlurList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj)
 {
-    QList<QGraphicsItem*> l=PlotTuplet(iTemp,Beats,TupletNumber,Pos,Size,ScreenObj);
-    SymbolList.AppendGroup(ScreenObj.MakeGroup(l),Pointer);
-}
-
-const QList<QGraphicsItem*> OCNoteList::PlotSlur(const int iTemp, const int Beats, const int UpDown, const int Angle, const QPointF& Pos, const int Size, const bool IsAWrap, OCDraw& ScreenObj)
-{
-    int LastNote=0;
+    const SlurTypes UpDown = CDurSlur::SlurDirection(XMLSymbol.getIntVal("Direction"),SlurList);
+    const int Angle = XMLSymbol.getIntVal("Angle");
+    const QPointF& Pos = XMLSymbol.pos();
+    const int Size = XMLSymbol.getIntVal("Curve");
     int WrapLeft=0;
-    int MoveBottom = 0;
-    QList<QGraphicsItem*> l;
-    //if (Size < 0) return l;
-    //if (Size > 0) Size = Size - 10;
-    if (UpDown == -1) MoveBottom = -192;
+    OCGraphicsList l;
     int WrapRight = 360;
     if (IsAWrap) WrapLeft = 360;
-    int Add = 0;
-    if (iTemp >= RhythmObjectList.count()) return l;
-    for (int iTemp1 = iTemp; iTemp1 < RhythmObjectList.count(); iTemp1++)
-    {
-        Add += RhythmObjectList[iTemp1]->Props.val;
-        LastNote = iTemp1;
-        if (Add > Beats)
-        {
-            WrapRight = 0;
-            break;
-        }
-    }
-    QPointF SlurPos(RhythmObjectList[iTemp]->Props.CenterX - 48 - WrapLeft,FNSlurY(iTemp, UpDown));
-    int Length = (RhythmObjectList[LastNote]->Props.CenterX - SlurPos.x()) - 144 + WrapRight;
-    int SlurY1 = FNSlurY(LastNote, UpDown);
-    int Slant = SlurPos.y() - SlurY1 - Angle;
-    ScreenObj.DM(SlurPos + Pos);
-    l.append(OCTieWrap::PlSlur(Length,1,Slant,UpDown,Size*4,ScreenObj));
+
+    if (SlurList.isEmpty()) return l;
+    if (!SlurList.isWrapRight) WrapRight=0;
+
+    //const double lastX = (SlurList.size() < 2) ? SlurList.first()->CenterX + SlurList.first()->CenterNextXAdd : SlurList.last()->CenterX + 24;
+    const double lastX = SlurList.last()->CenterX + 24;
+    QPointF SlurPos(SlurList.first()->CenterX - 60 - WrapLeft,SlurList.first()->SlurY(UpDown));
+    const double Length = (lastX - SlurPos.x()) - 144 + WrapRight;
+    const double SlurY1 = SlurList.last()->SlurY(UpDown);
+    const double EndHeight = SlurPos.y() - SlurY1 - Angle;
+    ScreenObj.moveTo(SlurPos + Pos);
+    l.append(OCTieWrap::plotSlur(QPointF(Length,EndHeight),UpDown,Size*4,ScreenObj));
     return l;
 }
 
-void OCNoteList::PlotSlur(const int iTemp, const int Beats, const int UpDown, const int Angle, const QPointF& Pos, const int Size, OCSymbolArray& SymbolList, const bool IsAWrap, const int Pointer, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotHairPin(const OCRhythmObjectList& HPList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj)
 {
-    QList<QGraphicsItem*> l=PlotSlur(iTemp,Beats,UpDown,Angle,Pos,Size,IsAWrap,ScreenObj);
-    //SymbolList.Append(args["SlurX"] + MoveX, args["SlurY"] + MoveY + args["MoveBottom"], 192, 192, Pointer, Size);
-    SymbolList.AppendGroup(ScreenObj.MakeGroup(l),Pointer,ScreenObj.lastSlur);
-    //SymbolList.AppendGroup(ScreenObj.MakeGroup(l),Pointer);
-}
-
-const int OCNoteList::FNSlurY(const int iTemp, const int UpDown) const
-{
-    int RetVal;
-    if (UpDown == -1)
-    {
-        if (RhythmObjectList[iTemp]->Props.UpDown == 1)
-        {
-            RetVal = RhythmObjectList[iTemp]->Props.BalkEndY;
-        }
-        else
-        {
-            RetVal = RhythmObjectList[iTemp]->Props.BalkBeginY;
-        }
-    }
-    else
-    {
-        if (RhythmObjectList[iTemp]->Props.UpDown == 1)
-        {
-            RetVal = RhythmObjectList[iTemp]->Props.BalkBeginY;
-        }
-        else
-        {
-            RetVal = RhythmObjectList[iTemp]->Props.BalkEndY;
-        }
-    }
-    return RetVal + (UpDown * 24);
-}
-
-const QList<QGraphicsItem*> OCNoteList::PlotHairPin(const int iTemp, const int Beats, const int WhatType, const QPointF& Pos, const int Size, const bool IsAWrap, OCDraw& ScreenObj)
-{
-    QList<QGraphicsItem*> l;
-    int LastNote=0;
+    const HairpinTypes WhatType = HairpinTypes(XMLSymbol.getIntVal("HairpinType"));
+    const QPointF& Pos = XMLSymbol.pos();
+    const int Size = XMLSymbol.getIntVal("Gap");
+    OCGraphicsList l;
     int Gap=0;
     int WrapLeft=0;
-    //if (Size < 0) return l;
     int WrapRight = 360;
     if (IsAWrap) WrapLeft = 360;
-    int Add = 0;
-    if (iTemp >= RhythmObjectList.count()) return l;
-    for (int iTemp1 = iTemp; iTemp1 < RhythmObjectList.count(); iTemp1++)
-    {
-        Add += RhythmObjectList[iTemp1]->Props.val;
-        LastNote = iTemp1;
-        if (Add > Beats)
-        {
-            WrapRight = 0;
-            break;
-        }
-    }
-    QPointF HPPos(RhythmObjectList[iTemp]->Props.CenterX - 48, ScoreBottomSymbolY+48);
-    int Length = (RhythmObjectList[LastNote]->Props.CenterX - HPPos.x()) - 144 + WrapLeft + WrapRight;
+
+    if (HPList.isEmpty()) return l;
+    if (!HPList.isWrapRight) WrapRight=0;
+
+    const int lastX = (HPList.size() < 2) ? HPList.first()->CenterX + HPList.first()->CenterNextXAdd : HPList[HPList.size()-2]->CenterX + HPList[HPList.size()-2]->CenterNextXAdd;
+
+    QPointF HPPos(HPList.first()->CenterX - 48, ScoreBottomSymbolY+48);
+    auto Length = int((lastX - HPPos.x()) - 144 + WrapLeft + WrapRight);
     HPPos+=Pos;
-    /*
-    if (Size == 0)
-    {
-        Gap = 10;
-    }
-    else
-    {
-        Gap = Size;
-    }
-    */
     Gap=Size+10;
-    ScreenObj.DM(HPPos + QPointF(-WrapLeft,0));
-    if (WhatType == 0)
+    ScreenObj.moveTo(HPPos + QPointF(-WrapLeft,0));
+    if (WhatType == HairpinTypes::Cresc)
     {
         l.append(PlotHairPin(Length, Gap * 24, false, ScreenObj));
     }
-    else if (WhatType == 1)
+    else if (WhatType == HairpinTypes::Dim)
     {
         l.append(PlotHairPin(Length, Gap * 24, true, ScreenObj));
     }
-    else if (WhatType == 2)
+    else if (WhatType == HairpinTypes::Fish)
     {
         l.append(PlotHairPin((Length / 2) - 48, Gap * 24, true, ScreenObj));
-        ScreenObj.DM(HPPos + QPointF((Length / 2)+48,0));
+        ScreenObj.moveTo(HPPos + QPointF((Length / 2.0)+48,0));
         l.append(PlotHairPin((Length / 2) - 48, Gap * 24, false, ScreenObj));
     }
-    else if (WhatType == 3)
+    else if (WhatType == HairpinTypes::InvFish)
     {
         l.append(PlotHairPin((Length / 2) - 48, Gap * 24, false, ScreenObj));
-        ScreenObj.DM(HPPos + QPointF((Length / 2)+48,0));
+        ScreenObj.moveTo(HPPos + QPointF((Length / 2.0)+48,0));
         l.append(PlotHairPin((Length / 2) - 48, Gap * 24, true, ScreenObj));
     }
     return l;
 }
 
-void OCNoteList::PlotHairPin(const int iTemp, const int Beats, const int WhatType, const QPointF& Pos, const int Size, OCSymbolArray& SymbolList, const bool IsAWrap, const int Pointer, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotHairPin(const int Length, const int gap, const bool IsDim, OCDraw& ScreenObj)
 {
-    QList<QGraphicsItem*> l=PlotHairPin(iTemp,Beats,WhatType,Pos,Size,IsAWrap,ScreenObj);
-    SymbolList.AppendGroup(ScreenObj.MakeGroup(l),Pointer);
-    //SymbolList.Append(args["HPX"] + MoveX, args["HPY"] + MoveY - (args["Gap"] * 24), args["Gap"] * 24, -48, Pointer, 0);
-}
-
-void OCNoteList::plBeam(const float x1, const float y1, const float x2, const float y2, const int UpDown, const int NumOfBeams, OCDraw& ScreenObj)
-{
-    QPainterPath b(QPointF(0,0));
-    for (int iTemp = 0;iTemp<=NumOfBeams-1;iTemp++)
-    {
-        QPainterPath p(QPointF(0,0));
-        p.lineTo(QPointF(x2-x1,y1-y2)/ScreenObj.ScreenSize);
-        p.lineTo(QPointF(x2-x1,(y1-y2)+(-UpDown*BeamThickness))/ScreenObj.ScreenSize);
-        p.lineTo(QPointF(0,-UpDown*BeamThickness)/ScreenObj.ScreenSize);
-        p.lineTo(0,0);
-        b.addPath(p.translated(QPointF(0,(BeamThickness + BeamSpace) * iTemp * -UpDown)/ScreenObj.ScreenSize));
-    }
-    ScreenObj.DM(x1,y1);
-    ScreenObj.translatePath(b);
-    //b.translate(MovingPoint/ScreenSize);
-    ScreenObj.plTextPath(b,true);
-    //AppendToList(Scene->addPath(b,QPen(col),QBrush(col)));
-}
-
-void OCNoteList::plBalk(const float Length, const float factor, const int UpDown, OCDraw& ScreenObj)
-{
-    QPainterPath p(QPointF(0,0));
-    p.lineTo(QPointF(Length,factor * Length)/ScreenObj.ScreenSize);
-    p.lineTo(QPointF(Length,(factor * Length)+(-UpDown*BeamThickness))/ScreenObj.ScreenSize);
-    p.lineTo(QPointF(0,-UpDown*BeamThickness)/ScreenObj.ScreenSize);
-    p.lineTo(0,0);
-    ScreenObj.translatePath(p);
-    ScreenObj.plTextPath(p,true);
-    //AppendToList(Scene->addPath(p.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
-    ScreenObj.DR(0, (BeamSpace+BeamThickness) * UpDown);
-}
-
-const QList<QGraphicsItem*> OCNoteList::PlotHairPin(const int Length, const int gap, const bool IsDim, OCDraw& ScreenObj)
-{
-    QList<QGraphicsItem*> l;
+    OCGraphicsList l;
     QPainterPath p(QPointF(0,0));
     if (IsDim)
     {
-        p.moveTo(0,FloatDiv(-gap,2*ScreenObj.ScreenSize));
-        p.lineTo(FloatDiv(Length,ScreenObj.ScreenSize),0);
-        p.lineTo(0,FloatDiv(gap,2*ScreenObj.ScreenSize));
+        p.moveTo(0,DoubleDiv(-gap,2*ScreenObj.ScreenSize));
+        p.lineTo(DoubleDiv(Length,ScreenObj.ScreenSize),0);
+        p.lineTo(0,DoubleDiv(gap,2*ScreenObj.ScreenSize));
     }
     else
     {
-        p.moveTo(FloatDiv(Length,ScreenObj.ScreenSize),FloatDiv(-gap,2*ScreenObj.ScreenSize));
+        p.moveTo(DoubleDiv(Length,ScreenObj.ScreenSize),DoubleDiv(-gap,2*ScreenObj.ScreenSize));
         p.lineTo(0,0);
-        p.lineTo(FloatDiv(Length,ScreenObj.ScreenSize),FloatDiv(gap,2*ScreenObj.ScreenSize));
+        p.lineTo(DoubleDiv(Length,ScreenObj.ScreenSize),DoubleDiv(gap,2*ScreenObj.ScreenSize));
     }
-    //p.translate(MovingPoint/ScreenSize);
     ScreenObj.translatePath(p);
-    //QGraphicsItem* i=Scene->addPath(p,QPen(col,FloatDiv(LineHalfThickNess*3,ScreenSize)));
-    //AppendToList(i);
-    //l.append(i);
-    l.append(ScreenObj.plTextPath(p,true,FloatDiv(LineHalfThickNess*3,ScreenObj.ScreenSize)));
+    l.append(ScreenObj.plTextPath(p,true,DoubleDiv(LineHalfThickNess * 3,ScreenObj.ScreenSize)));
     return l;
 }
 
-const QList<QGraphicsItem*> OCNoteList::PlPunkt(const int Value, const int TriolVal, const int Size, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotDot(const int Value, const bool UnderTriplet, const int Size, OCDraw& ScreenObj)
 {
-    QList<QGraphicsItem*> l;
-    switch (Value)
+    OCGraphicsList l;
+    if (OCCounter::isDoubleDotted(Value))
     {
-    case 9:
-    case 18:
-    case 36:
-    case 72:
-    case 144:
-        if (TriolVal == 0)
+        l.append(ScreenObj.plDot(Size,5*12,0,Size));
+        l.append(ScreenObj.plDot(Size,8*12,0,Size));
+    }
+    if (OCCounter::isDotted(Value))
+    {
+        if (!UnderTriplet)
         {
-            l.append(ScreenObj.plDot(10*12,0,Size));
+            l.append(ScreenObj.plDot(Size,5*12,0,Size));
         }
-        break;
-    case 3:
-        case 6:
-        case 12:
-        case 24:
-        case 48:
-        case 96:
-        if (TriolVal)
+    }
+    if (OCCounter::isStraight(Value))
+    {
+        if (UnderTriplet)
         {
-            l.append(ScreenObj.plDot(10*12,0,Size));
+            l.append(ScreenObj.plDot(Size,5*12,0,Size));
         }
-        break;
     }
     return l;
 }
 
-const QList<QGraphicsItem*> OCNoteList::PlotLengths(const int Sign, const QPointF& Pos, const int UpDown, const int Size, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotLengths(const int Sign, const QPointF& Pos, const int UpDown, const int Size, OCDraw& ScreenObj)
 {
-    QList<QGraphicsItem*> l;
-    ScreenObj.DM(Pos);
-    if (Sign == 1)
+    OCGraphicsList l;
+    ScreenObj.moveTo(Pos);
+    if (Sign == 2)
     {
-        ScreenObj.DR(0, UpDown * 10 * 12);
-        l.append(ScreenObj.plDot(0,0,Size));
+        ScreenObj.move(0, UpDown * 10 * 12);
+        l.append(ScreenObj.plDot(Size + 3,0,0,Size));
     }
-    else if (Sign == 2)
+    else if (Sign == 1)
     {
-        ScreenObj.DR(FnSize(-5 * 12,Size), UpDown * 10 * 12);
-        l.append(ScreenObj.DL(FnSize(120,Size),0));
+        ScreenObj.move(FnSize(-5 * 12,Size), UpDown * 10 * 12);
+        l.append(ScreenObj.line(FnSize(120,Size),0));
     }
     return l;
 }
 
-const QList<QGraphicsItem*> OCNoteList::plFan(const float height, const int updown, const int repeat, const int Size, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotLengths(const IOCRhythmObject* Props, OCDraw& ScreenObj)
 {
-    QPainterPath b=FanPath((height/ScreenObj.ScreenSize)/SizeFactor(Size),updown,repeat);
+    return PlotLengths(Props->PerformanceSign, Props->Center() + Props->PerformanceSignPos, Props->UpDown, Props->PerformanceSignSize,ScreenObj);
+}
+
+const OCGraphicsList OCNoteList::plFan(const double height, const StemDirection updown, const int repeat, const int Size, OCDraw& ScreenObj)
+{
+    QPainterPath b=FanPath((height/ScreenObj.ScreenSize)/SizeFactor(Size),StemDirection(-updown),repeat);
     ScreenObj.translatePath(b);
     return ScreenObj.plTextPath(b,true);
 }
 
-const QPainterPath OCNoteList::FanPath(const float height, const int updown, const int repeat)
+const QPainterPath OCNoteList::FanPath(const double height, const StemDirection updown, const int repeat)
 {
     QPainterPath b(QPointF(0,0));
-    if (repeat<1) return b;
+    if (repeat < 1) return b;
     b.cubicTo(QPointF(0,12.0*updown),QPointF(18.0,17.0*updown),QPointF(6.5,35.0*updown));
     b.cubicTo(QPointF(14.2,20.0*updown),QPointF(6.5,15.0*updown),QPointF(0,10.0*updown));
     b.setFillRule(Qt::WindingFill);
@@ -1986,91 +975,320 @@ const QPainterPath OCNoteList::FanPath(const float height, const int updown, con
         b.addPath(e.translated(0,12.0*updown));
         break;
     }
-    QMatrix m;
-    float factor=height/35.0;
+    QTransform m;
+    double factor=height/35.0;
     m.scale(factor,factor);
     return b*m;
 }
 
-void OCNoteList::plotsigns(const int iTemp, OCSignList& SignsToPrint, OCSymbolArray& SymbolList, OCDraw& ScreenObj)
+void OCNoteList::plotsigns(const int FirstNote, OCPrintSignList& SignsToPrint, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
-    int NextNoteX=0;
-    if (iTemp >= RhythmObjectList.count()) return;
-    OCRhythmObject* s=&RhythmObjectList[iTemp]->Props;
-    if (s->IsPause) return;
-    if (!s->IsSingleNoteWithTie)
+    if (FirstNote >= RhythmObjectList.size()) return;
+    IOCRhythmObject* r = RhythmObjectList[FirstNote];
+    //OCRhythmObject* s=&r;
+    if (r->IsPause) return;
+    if (!r->IsSingleNoteWithTie)
     {
         ScreenObj.setcol(QColor(unselectablecolor));
-        PlotLengths(s->PerformanceSign, QPointF(s->CenterX, s->BalkBeginY) + s->PerformanceSignPos, s->UpDown, s->PerformanceSignSize,ScreenObj);
+        PlotLengths(r,ScreenObj);
         ScreenObj.resetcol();
     }
-    if (iTemp < RhythmObjectList.count()-1)
-    {
-        NextNoteX = RhythmObjectList[iTemp + 1]->Props.CenterX;
-    }
-    else
-    {
-        NextNoteX = s->CenterX + 432;
-    }
-    int TieLen = NextNoteX - s->CenterX - 192;// Min(NextNoteX - s->CenterX - 192,1);
-    if (TieLen<1) TieLen=1;
-    RhythmObjectList[iTemp]->MoveTo(ScreenObj);
-    SignsToPrint.PrintSign(TieLen, SymbolList, s->CenterX, s->UpDown, s->BalkEndY, s->BalkBeginY, ScreenObj);
-    RhythmObjectList[iTemp]->MoveTo(ScreenObj);
+    int NextNoteX = r->CenterX + 432;
+    if (r != RhythmObjectList.last()) NextNoteX = RhythmObjectList[FirstNote + 1]->CenterX;
+    int TieLen = loBound<int>(1,NextNoteX - r->CenterX - 192);
+    r->MoveTo(ScreenObj);
+    SignsToPrint.PrintSigns(TieLen, FrameList, r, ScreenObj);
+    r->MoveTo(ScreenObj);
 }
 
-void OCNoteList::SetHasFortegn(OCStaffAccidentals& lfortegn)
+void OCNoteList::ApplyAccidentals(OCStaffAccidentals& StaffAccidentals)
 {
-    if (RhythmObjectList.count())
+    if (!RhythmObjectList.isEmpty())
     {
-        if (!RhythmObjectList.last()->Props.IsPause)
+        if (!RhythmObjectList.last()->IsPause)
         {
-            RhythmObjectList.last()->SetHasFortegn(lfortegn);
+            RhythmObjectList.last()->ApplyAccidentals(StaffAccidentals);
         }
     }
 }
 
-void OCNoteList::SetVoiceUpDown(const int Voice)
+//--------------------------------------------------------------------------
+
+void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray &FrameList, const OCGraphicsList& tie, OCDraw &ScreenObj)
 {
-    int UpDown=0;
-    if (Voice % 2 == 1)
+    if (ScreenObj.canColor())
     {
-        UpDown = 1;
+        if (Marked)
+        {
+            ScreenObj.col = (ScreenObj.Cursor->SelCount()==0) ? markedcolor : selectedcolor;
+        }
+    }
+    moveTo(ScreenObj);
+    OCGraphicsList a;
+    switch (AccidentalSymbol)
+    {
+    case accFlat:
+        ScreenObj.move(sized((-11 * 12) + FortegnAddX), 150);
+#ifndef __Lelandfont
+        a.append(ScreenObj.plLet(OCTTFFlat, Size));
+#else
+        ScreenObj.move(-12,-118);
+        a.append(ScreenObj.plLet(LelandFlat, Size));
+#endif
+        break;
+    case accSharp:
+        ScreenObj.move(sized((-13 * 12) + FortegnAddX), 150);
+#ifndef __Lelandfont
+        a.append(ScreenObj.plLet(OCTTFSharp, Size));
+#else
+        ScreenObj.move(-12,-118);
+        a.append(ScreenObj.plLet(LelandSharp, Size));
+#endif
+        break;
+    case accDoubleFlat:
+        ScreenObj.move(sized((-17 * 12) + FortegnAddX), 150);
+        a.append(ScreenObj.plLet(OCTTFDoubleFlat, Size));
+        break;
+    case accDoubleSharp:
+        ScreenObj.move(sized((-14 * 12) + FortegnAddX), 150);
+        a.append(ScreenObj.plLet(OCTTFDoubleSharp, Size));
+        break;
+    case accNatural:
+        ScreenObj.move(sized(FortegnAddX - 12 * 12), 150);
+        a.append(ScreenObj.plLet(OCTTFOpl, Size));
+        break;
+    case accNone:
+        break;
+    }
+    OCGraphicsList l;
+    moveTo(ScreenObj);
+    if ((CenterY % 96) != 0) ScreenObj.move(0,48);
+    l.append(OCNoteList::PlotDot(NoteVal, UnderTriplet, 4, ScreenObj));
+    moveTo(ScreenObj);
+    if (NoteHeadType == 0) {
+        ScreenObj.move(0,77);
+    #ifdef __Lelandfont
+        ScreenObj.move(-60,-41);
+    #endif
+        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
+        switch (NoteVal)
+        {
+        case 168:
+        case 144:
+        case 96:
+        case 64:
+    #ifndef __Lelandfont
+            l.append(ScreenObj.plLet(OCTTFNoteWhole, ClusterSize, 612));
+    #else
+            l.append(ScreenObj.plLet(LelandNoteWhole, ClusterSize));
+    #endif
+            break;
+        case 48:
+        case 32:
+        case 72:
+        case 84:
+    #ifndef __Lelandfont
+            l.append(ScreenObj.plLet(OCTTFNoteHalf, ClusterSize, 612));
+    #else
+            l.append(ScreenObj.plLet(LelandNoteHalf, ClusterSize));
+    #endif
+            break;
+        default:
+    #ifndef __Lelandfont
+            l.append(ScreenObj.plLet(OCTTFNoteQuarter, ClusterSize, 612));
+    #else
+            l.append(ScreenObj.plLet(LelandNoteQuarter, ClusterSize));
+    #endif
+        }
+    }
+    else if (NoteHeadType == 1) {
+        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
+        ScreenObj.move(-24,0,ClusterSize);
+        l.append(ScreenObj.plLet(QChar(0xF0CF),ClusterSize,"Wingdings 2",true,false,132,Qt::AlignCenter | Qt::AlignHCenter));
+    }
+    else if (NoteHeadType == 2) {
+        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
+        ScreenObj.move(-14,-2,ClusterSize);
+        l.append(ScreenObj.plLet(QChar(0xF0AF),ClusterSize,"Wingdings 2",true,false,108,Qt::AlignCenter | Qt::AlignHCenter));
+        ScreenObj.move(4,4,ClusterSize);
+        l.append(ScreenObj.plLet(QChar(0xF0AF),ClusterSize,"Wingdings 2",true,false,108,Qt::AlignCenter | Qt::AlignHCenter));
+    }
+    FrameList.AppendAccidentalGroup(ScreenObj.MakeGroup(l),ScreenObj.MakeGroup(a),ScreenObj.MakeGroup(tie),Location);
+    ScreenObj.col = TrackColor;
+}
+
+void OCBeamList::append(IOCRhythmObject *r)
+{
+    if (isEmpty())
+    {
+        MinNumOfBeams=r->NumOfBeams;
     }
     else
     {
-        UpDown = -1;
+        if (r->NumOfBeams < MinNumOfBeams) MinNumOfBeams = r->NumOfBeams;
     }
-    if (RhythmObjectList.count())
+    RhythmObjects.append(r);
+    Average.append(r->AverageY);
+}
+
+void OCBeamList::CalcBalk()
+{
+    if (RhythmObjects.first()->NumOfForcedBeams > MinNumOfBeams) MinNumOfBeams = RhythmObjects.first()->NumOfForcedBeams;
+    if ((RhythmObjects.first()->ForceBeamIndex == 1) && (MinNumOfBeams == 0)) MinNumOfBeams = 1;
+    StemDirection UpDown = StemDown;
+    if (Average.average() > (86 * 12)) UpDown = StemUp;
+    for (const IOCRhythmObject* r : std::as_const(RhythmObjects)) {
+        if (r->ForceUpDown != 0) {
+            UpDown = r->ForceUpDown;
+            break;
+        }
+    }
+    for (IOCRhythmObject* r : std::as_const(RhythmObjects)) r->SetUpDown(UpDown);
+    QPointF First(RhythmObjects.first()->BalkEnd());
+    QPointF Last(RhythmObjects.last()->BalkEnd());
+    QVector2D dir = (RhythmObjects.first()->ForceSlant == 0) ? QVector2D(Last - First) : QVector2D(1,0);
+    dir.normalize();
+    SlantFactor = -dir.y();
+    double addit = 0;
+    for (IOCRhythmObject* r : std::as_const(RhythmObjects)) {
+        const double balkheight = First.y() + (dir.y() * (r->BalkX - First.x()));
+        const double add1 = r->BalkEndY - balkheight;
+        if (add1 * UpDown < 0) {
+            if (add1 * UpDown < addit * UpDown) {
+                addit = add1;
+            }
+        }
+    }
+    First.setY(First.y() + addit);
+    for (IOCRhythmObject* r : std::as_const(RhythmObjects)) r->BalkEndY = First.y() + ((r->BalkX - First.x()) * dir.y());
+}
+
+void OCBeamList::plBalk(const double Length, const double factor, const StemDirection UpDown, OCDraw &ScreenObj)
+{
+    QPainterPath p(QPointF(0,0));
+    p.lineTo(QPointF(Length, factor * Length) / ScreenObj.ScreenSize);
+    p.lineTo(QPointF(Length, (factor * Length) + (-UpDown * BeamThickness)) / ScreenObj.ScreenSize);
+    p.lineTo(QPointF(0, -UpDown*BeamThickness) / ScreenObj.ScreenSize);
+    p.lineTo(0,0);
+    ScreenObj.translatePath(p);
+    ScreenObj.plTextPath(p,true);
+    ScreenObj.move(0, (BeamSpace + BeamThickness) * UpDown);
+}
+
+void OCBeamList::plBeam(const QPointF& p1, const QPointF& p2, const StemDirection UpDown, const int NumOfBeams, OCDraw &ScreenObj)
+{
+    QPainterPath b(QPointF(0,0));
+    for (int i = 0; i <= NumOfBeams - 1; i++)
     {
-        if (RhythmObjectList.last()->Props.ForceUpDown == 0)
+        QPainterPath p(QPointF(0,0));
+        p.lineTo(QPointF(p2.x() - p1.x(),p1.y() - p2.y()) / ScreenObj.ScreenSize);
+        p.lineTo(QPointF(p2.x() - p1.x(),(p1.y() - p2.y()) + (-UpDown * BeamThickness)) / ScreenObj.ScreenSize);
+        p.lineTo(QPointF(0, -UpDown * BeamThickness) / ScreenObj.ScreenSize);
+        p.lineTo(0,0);
+        b.addPath(p.translated(QPointF(0,(BeamThickness + BeamSpace) * i * -UpDown) / ScreenObj.ScreenSize));
+    }
+    ScreenObj.moveTo(p1);
+    ScreenObj.translatePath(b);
+    ScreenObj.plTextPath(b,true);
+}
+
+void OCBeamList::plleftsubbalk(const int num, const int commonbalk, const int Length, const int prevnum, const StemDirection UpDown, const double factor, int cbld, OCDraw &ScreenObj)
+{
+    const int len = qMin(96,Length);
+    for (int i = 1; i <= num; i++)
+    {
+        if (i <= commonbalk)
         {
-            RhythmObjectList.last()->Props.ForceUpDown = UpDown;
+            ScreenObj.move(0, UpDown * (BeamThickness + BeamSpace));
+            if (i == prevnum) cbld = -len; // ': Slant = -6
+        }
+        else
+        {
+            if (cbld != 0)
+            {
+                plBalk(cbld, factor, UpDown, ScreenObj);
+            }
+            else
+            {
+                ScreenObj.move(0, UpDown * (BeamThickness + BeamSpace));
+            }
+            if (i == prevnum) cbld = -len;
         }
     }
 }
 
-void OCNoteList::FillLineNumsArray(QList<int>& LineNums)
+void OCBeamList::plrightsubbalk(const int num, const int commonbalk, const int Length, const int nextnum, const StemDirection UpDown, const double factor, int cbld, OCDraw &ScreenObj)
 {
-    if (RhythmObjectList.count())
+    const int len = qMin(96,Length);
+    for (int i = 1; i <= num; i++)
     {
-        RhythmObjectList.last()->FillLineNumsArray(LineNums);
+        if (i <= commonbalk)
+        {
+            ScreenObj.move(0, UpDown * (BeamThickness + BeamSpace));
+            if (i == nextnum) cbld = len;
+        }
+        else
+        {
+            plBalk(cbld, factor, UpDown, ScreenObj);
+            if (i == nextnum) cbld = len;
+        }
     }
 }
 
-void OCNoteList::MoveChord(const int factor)
+void OCBeamList::plotSubBeams(OCDraw &ScreenObj)
 {
-    if (RhythmObjectList.count())
+    for (int j = 0;j<RhythmObjects.size();j++)
     {
-        RhythmObjectList.last()->MoveChord(factor);
+        const IOCRhythmObject* r=RhythmObjects[j];
+        int LenLeft = 0;
+        int LenRight = 0;
+        int NumOfBeamsLeft = 0;
+        int NumOfBeamsRight = 0;
+        if (r != RhythmObjects.first())
+        {
+            NumOfBeamsLeft = RhythmObjects[j - 1]->NumOfBeams;
+            LenLeft = (r->BalkX - RhythmObjects[j - 1]->BalkX);
+        }
+        if (r != RhythmObjects.last())
+        {
+            NumOfBeamsRight = RhythmObjects[j + 1]->NumOfBeams;
+            LenRight = (RhythmObjects[j + 1]->BalkX - r->BalkX);
+        }
+        if ((LenRight == 0) && (r != RhythmObjects.first())) LenRight = LenLeft; // '(LenLeft * objarr[iTemp1]->Rounded) \ objarr[iTemp1 - 1]->Rounded
+        int NumOfSubBeamsRight = r->NumOfBeams;
+        int NumOfSubBeamsLeft = NumOfBeamsRight;
+        if (NumOfBeamsLeft >= r->NumOfBeams)
+        {
+            if (r->NumOfBeams <= NumOfBeamsRight)
+            {
+                NumOfSubBeamsRight = r->NumOfBeams;
+                NumOfSubBeamsLeft = r->NumOfBeams;
+            }
+        }
+        else
+        {
+            if (NumOfBeamsLeft < NumOfBeamsRight)
+            {
+                NumOfSubBeamsRight = NumOfBeamsLeft;
+                NumOfSubBeamsLeft = r->NumOfBeams;
+            }
+        }
+        if (NumOfSubBeamsRight)
+        {
+            ScreenObj.moveTo(r->BalkEnd()); // '- (84 * MinNumOfBeams * s->UpDown)
+            plleftsubbalk(NumOfSubBeamsRight, MinNumOfBeams, LenRight / 2 , NumOfBeamsLeft, RhythmObjects.first()->UpDown, SlantFactor, 0, ScreenObj);
+        }
+        if (NumOfSubBeamsLeft)
+        {
+            ScreenObj.moveTo(r->BalkEnd()); // '- (84 * MinNumOfBeams * s->UpDown)
+            plrightsubbalk(NumOfSubBeamsLeft, MinNumOfBeams, LenRight / 2 , NumOfBeamsRight, RhythmObjects.first()->UpDown, SlantFactor, LenRight, ScreenObj);
+        }
     }
 }
 
-const int OCNoteList::Moveaccidental(const int Notes, const int Accidentals) const
+void OCBeamList::plotMainBeam(OCDraw &ScreenObj)
 {
-    if (RhythmObjectList.count())
-    {
-        return RhythmObjectList.last()->Moveaccidental(Notes, Accidentals);
-    }
-    return 0;
+    plBeam(RhythmObjects.first()->directed(RhythmObjects.first()->BalkEnd(),LineHalfThickNess), RhythmObjects.last()->directed(RhythmObjects.last()->BalkEnd(),LineHalfThickNess), RhythmObjects.first()->UpDown, MinNumOfBeams, ScreenObj);
 }
+
+IOCRhythmObject::~IOCRhythmObject(){}

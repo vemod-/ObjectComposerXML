@@ -1,8 +1,13 @@
 #include "ctweaksystem.h"
 #include "ui_ctweaksystem.h"
+#include <QMenu>
+#include <QWidgetAction>
+#include "cpropertywindow.h"
+#include "ocsymbolscollection.h"
+//#include <QAction>
 
 CTweakSystem::CTweakSystem(QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(new Ui::CTweakSystem)
 {
     ui->setupUi(this);
@@ -12,13 +17,21 @@ CTweakSystem::CTweakSystem(QWidget *parent) :
     ui->LocationButtons->setFixedHeight(26);
     ui->LocationButtons->addButton("LocationBack","Previous Location",QIcon(":/24/24/locationback.png"));
     ui->LocationButtons->addButton("LocationForward","Next Location",QIcon(":/24/24/locationforward.png"));
-    connect(ui->LocationButtons,SIGNAL(buttonClicked(int)),this,SLOT(LocationClicked(int)));
-    connect(ui->ScoreView,SIGNAL(ActiveStaffChange(int)),this,SLOT(FillVoicesCombo(int)));
-    connect(ui->VoiceCombo,SIGNAL(currentIndexChanged(int)),this,SLOT(SelectVoice(int)));
-    connect(ui->ScoreView,SIGNAL(NavigationForwardClicked()),this,SLOT(NextSystem()));
-    connect(ui->ScoreView,SIGNAL(NavigationBackClicked()),this,SLOT(PrevSystem()));
-    connect(ui->ScoreView,SIGNAL(NavigationEndClicked()),this,SLOT(LastSystem()));
-    connect(ui->ScoreView,SIGNAL(NavigationHomeClicked()),this,SLOT(FirstSystem()));
+    ui->propertiesButton->setIcon(QIcon(":/mini/mini/properties.png"));
+    connect(ui->LocationButtons,qOverload<int>(&QMacButtons::buttonClicked),this,&CTweakSystem::LocationClicked);
+    connect(ui->ScoreView,&ScoreViewXML::StaffIndexChanged,this,&CTweakSystem::FillVoicesCombo);
+    connect(ui->VoiceCombo,qOverload<int>(&QComboBox::currentIndexChanged),this,&CTweakSystem::SelectVoice);
+    connect(ui->propertiesButton,&QToolButton::clicked,this,&CTweakSystem::ShowProperties);
+    connect(ui->ScoreView,&ScoreViewXML::NavigationForwardClicked,this,&CTweakSystem::NextSystem);
+    connect(ui->ScoreView,&ScoreViewXML::NavigationBackClicked,this,&CTweakSystem::PrevSystem);
+    connect(ui->ScoreView,&ScoreViewXML::NavigationEndClicked,this,&CTweakSystem::LastSystem);
+    connect(ui->ScoreView,&ScoreViewXML::NavigationHomeClicked,this,&CTweakSystem::FirstSystem);
+
+    connect(ui->acceptButton,&QAbstractButton::clicked,this,&CTweakSystem::Accept);
+    connect(ui->ScoreView,&ScoreViewXML::accepted,this,&CTweakSystem::Accept);
+    connect(ui->ScoreView,&ScoreViewXML::PropertiesPopup,this,&CTweakSystem::PopupProperties);
+
+    ui->ScoreView->grabKeyboard();
 }
 
 CTweakSystem::~CTweakSystem()
@@ -47,45 +60,55 @@ void CTweakSystem::SelectVoice(int Voice)
 
 void CTweakSystem::FillLabel()
 {
-    ui->label->setText("Page "+QString::number(m_ActivePage+1) + " - System "+QString::number(m_ActiveSystem+1) + " - Bar " + QString::number(ui->ScoreView->StartBar()+1) + " - "+ ui->ScoreView->StaffName(ui->ScoreView->ActiveStaff()) + " - Voice "+QString::number(ui->ScoreView->ActiveVoice()+1));
+    ui->label->setText("Page "+QString::number(m_ActiveLocation.Page+1) + " - System "+QString::number(m_ActiveLocation.System+1) + " - Bar " + QString::number(ui->ScoreView->StartBar()+1) + " - "+ ui->ScoreView->StaffName(ui->ScoreView->ActiveStaffId()) + " - Voice "+QString::number(ui->ScoreView->ActiveVoice()+1));
 }
 
-void CTweakSystem::Fill(XMLScoreWrapper& Score, CLayout *Layout, int ActivePage, int ActiveSystem)
+void CTweakSystem::Fill(XMLScoreWrapper& Score, const int activeLayoutIndex, const LayoutLocation& l, const double zoom)
 {
-    m_Layout=Layout;
-    m_ActivePage=ActivePage;
-    m_ActiveSystem=ActiveSystem;
+    m_Layout=Score.Layout(activeLayoutIndex);
+    m_ActiveLayout=activeLayoutIndex;
+    m_ActiveLocation=l;
     ui->ScoreView->SetXML(Score);
+    //qDebug() << ui->ScoreView->Size() << m_Layout.Options.scaleSize() << m_Layout.Options.size() << m_Layout.Options.scoreType() << m_Layout.Options.layoutZoom() << zoom;
+    //ui->ScoreView->XMLScore.setOptions(m_Layout.Options);
+    //ui->ScoreView->XMLScore.ScoreOptions.copy(m_Layout.Options);
+    ui->ScoreView->setActiveOptions(m_Layout.Options);
     ui->ScoreView->setLocked(false);
-    ui->ScoreView->setFollowResize(false);
-    ui->ScoreView->setNavigationVisible(true);
-    ui->ScoreView->setSize(Layout->Options.ScaleSize*2.0);
+    ui->ScoreView->setFollowResize(ScoreViewXML::PageSizeFixed);
+    ui->ScoreView->setNavigationVisible(false);
+    ui->ScoreView->setSize(12);
     Paint();
+    ui->ScoreView->setZoom(zoom * (ui->ScoreView->Size() / m_Layout.Options.scaleSize()));
+    ui->ScoreView->setFixedSize(QSizeF(ui->ScoreView->sceneRect().size() * ui->ScoreView->getZoom() * 1.02).toSize());
     ui->ScoreView->adjustSize();
     ui->FadingWidget->adjustSize();
     ui->FadingWidget->setFixedSize(ui->FadingWidget->size());
-    FillVoicesCombo(ui->ScoreView->ActiveStaff());
+    FillVoicesCombo(ui->ScoreView->ActiveStaffId());
+}
+
+QPointF CTweakSystem::sysPos()
+{
+    return ui->ScoreView->systemRect().topLeft() * ui->ScoreView->getZoom();
 }
 
 void CTweakSystem::Paint()
 {
-    CLayoutSystem* sys=m_Layout->ActivePage->ActiveSystem;
-    ui->ScoreView->setActiveTemplate(&(sys->Template));
-    ui->ScoreView->setStartBar(sys->StartBar);
-    ui->ScoreView->setEndBar(sys->EndBar);
-    ui->ScoreView->SetSystemLength(sys->Syslen);
-    ui->ScoreView->setActiveStaff(XMLScoreWrapper::AllTemplateIndex(&sys->Template,0));
+    const XMLLayoutSystemWrapper& sys=m_Layout.XMLSystem(m_ActiveLocation);
+    ui->ScoreView->setActiveTemplate(sys.Template);
+    ui->ScoreView->setStartBar(sys.startBar());
+    ui->ScoreView->setEndBar(sys.endBar());
+    ui->ScoreView->SetSystemLength(int(sys.sysLen()));
+    ui->ScoreView->setActiveStaffId(sys.Template.staffId(0));
     ui->ScoreView->Paint(tsReformat);
-    ui->LocationButtons->setEnabled(0,(m_ActivePage>0) || (m_ActiveSystem>0));
-    ui->LocationButtons->setEnabled(1,(m_ActivePage<m_Layout->NumOfPages()-1) || (m_ActiveSystem<m_Layout->NumOfSystems(m_ActivePage)-1));
+    ui->LocationButtons->setEnabled(0,!m_ActiveLocation.isFirstSystem());
+    ui->LocationButtons->setEnabled(1,!m_Layout.isLastSystem(m_ActiveLocation));
     FillLabel();
 }
 
-void CTweakSystem::GetResult(int &Page, int &System, XMLScoreWrapper& Score)
+void CTweakSystem::GetResult(LayoutLocation& l, XMLScoreWrapper& Score)
 {
-    Page=m_ActivePage;
-    System=m_ActiveSystem;
-    Score.replaceScore(ui->ScoreView->XMLScore.Score()->clone());
+    l = m_ActiveLocation;
+    Score.replaceScore(ui->ScoreView->XMLScore.Score);
 }
 
 void CTweakSystem::LocationClicked(int value)
@@ -96,66 +119,90 @@ void CTweakSystem::LocationClicked(int value)
 
 void CTweakSystem::NextSystem()
 {
-    ui->FadingWidget->setTransitionType(QFadingWidget::PagingForward);
+    ui->FadingWidget->setTransitionType(QFadingWidget::PageForward);
     ui->FadingWidget->prepare();
-    if (m_ActivePage==m_Layout->NumOfPages()-1)
+    if (m_Layout.isLastSystem(m_ActiveLocation))
     {
-        if (m_ActiveSystem==m_Layout->NumOfSystems(m_ActivePage)-1) return;
+        ui->FadingWidget->clear();
+        return;
     }
-    if (m_ActiveSystem>=m_Layout->NumOfSystems(m_ActivePage)-1)
-    {
-        m_ActivePage++;
-        m_ActiveSystem=0;
-    }
-    else
-    {
-        m_ActiveSystem++;
-    }
-    m_Layout->setActiveObjects(m_ActivePage,m_ActiveSystem);
+    m_Layout.nextSystem(m_ActiveLocation);
     Paint();
     ui->FadingWidget->fade();
 }
 
 void CTweakSystem::PrevSystem()
 {
-    ui->FadingWidget->setTransitionType(QFadingWidget::PagingBack);
+    ui->FadingWidget->setTransitionType(QFadingWidget::PageBack);
     ui->FadingWidget->prepare();
-    if (m_ActivePage==0)
+    if (m_ActiveLocation.isFirstSystem())
     {
-        if (m_ActiveSystem==0) return;
+        ui->FadingWidget->clear();
+        return;
     }
-    if (m_ActiveSystem==0)
-    {
-        m_ActivePage--;
-        m_ActiveSystem=m_Layout->NumOfSystems(m_ActivePage)-1;
-    }
-    else
-    {
-        m_ActiveSystem--;
-    }
-    m_Layout->setActiveObjects(m_ActivePage,m_ActiveSystem);
+    m_Layout.prevSystem(m_ActiveLocation);
     Paint();
     ui->FadingWidget->fade();
 }
 
 void CTweakSystem::LastSystem()
 {
-    ui->FadingWidget->setTransitionType(QFadingWidget::PagingForward);
+    ui->FadingWidget->setTransitionType(QFadingWidget::CoverRight);
     ui->FadingWidget->prepare();
-    m_ActivePage=m_Layout->NumOfPages()-1;
-    m_ActiveSystem=m_Layout->NumOfSystems(m_ActivePage)-1;
-    m_Layout->setActiveObjects(m_ActivePage,m_ActiveSystem);
+    m_Layout.lastSystem(m_ActiveLocation);
     Paint();
     ui->FadingWidget->fade();
 }
 
 void CTweakSystem::FirstSystem()
 {
-    ui->FadingWidget->setTransitionType(QFadingWidget::PagingBack);
+    ui->FadingWidget->setTransitionType(QFadingWidget::UncoverLeft);
     ui->FadingWidget->prepare();
-    m_ActivePage=0;
-    m_ActiveSystem=0;
-    m_Layout->setActiveObjects(m_ActivePage,m_ActiveSystem);
+    m_ActiveLocation.Page=0;
+    m_ActiveLocation.System=0;
     Paint();
     ui->FadingWidget->fade();
+}
+
+void CTweakSystem::PopupProperties(QPoint p)
+{
+    QMenu* d = new QMenu(this);
+    d->setAttribute(Qt::WA_DeleteOnClose);
+    QWidgetAction* a = new QWidgetAction(this);
+    CPropertyWindow* w = new CPropertyWindow(d);
+    a->setDefaultWidget(w);
+    d->addAction(a);
+    connect(w,&CPropertyWindow::Changed,this,&CTweakSystem::ChangeProperty);
+    w->Fill(ui->ScoreView->CurrentSymbol(),ui->ScoreView->ActiveVoice());
+    w->show();
+    w->updateGeometry();
+    w->setFixedSize(w->contentSize());
+    d->setFixedSize(w->size()+QSize(10,10));
+    d->popup(p);
+}
+
+void CTweakSystem::ChangeProperty(QString Name, QVariant Value, bool Custom)
+{
+    if (Custom)
+    {
+        OCRefreshMode RefreshMode;
+        XMLSimpleSymbolWrapper s=ui->ScoreView->CurrentSymbol();
+        if (!OCSymbolsCollection::editevent(s,RefreshMode,this)) return;
+        ui->ScoreView->Paint(RefreshMode);
+        for (CPropertyWindow* w : (const QList<CPropertyWindow*>)findChildren<CPropertyWindow*>()) w->UpdateProperties(ui->ScoreView->CurrentSymbol(),ui->ScoreView->ActiveVoice());
+    }
+    else
+    {
+        for (const int& i : ui->ScoreView->Cursor.SelectedPointers())
+        {
+            XMLSimpleSymbolWrapper s=ui->ScoreView->GetSymbol(i);
+            OCSymbolsCollection::ChangeProperty(s,Name,Value);
+        }
+        if (Name=="Pitch") ui->ScoreView->sound();
+        ui->ScoreView->Paint(tsReformat);
+    }
+}
+
+void CTweakSystem::ShowProperties() {
+    PopupProperties(mapToGlobal(ui->propertiesButton->pos()));
 }

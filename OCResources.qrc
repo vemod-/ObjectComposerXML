@@ -66,6 +66,14 @@
         <file>ocicon.png</file>
         <file>mac.qss</file>
         <file>qspinner.gif</file>
+        <file>OCFMAC.TTF</file>
+        <file>grey-paper-texture.jpg</file>
+        <file>wood-texture.jpg</file>
+        <file>lightpaperfibers.png</file>
+        <file>mini/mixer.png</file>
+        <file>Leland.otf</file>
+        <file>loading.gif</file>
+        <file>midi_instruments_controllers.xml</file>
     </qresource>
     <qresource prefix="/24">
         <file>24/back.png</file>
@@ -83,6 +91,13 @@
         <file>24/audio-volume-low.png</file>
         <file>24/locationback.png</file>
         <file>24/locationforward.png</file>
+        <file>rhythmpatternplay24.png</file>
+        <file>rhythmpatternsave24.png</file>
+        <file>rhythmpatternok24.png</file>
+        <file>rhythmpatternpause24.png</file>
+        <file>rhythmpatternrecord24.png</file>
+        <file>rhythmpatterncancel24.png</file>
+        <file>rhythmpatternmenu24.png</file>
     </qresource>
     <qresource prefix="/Notes">
         <file>Notes/dot.png</file>
@@ -181,6 +196,9 @@
         <file>Notes/4.png</file>
         <file>Notes/5.png</file>
         <file>Notes/6.png</file>
+        <file>Notes/barline.png</file>
+        <file>Notes/dotdot1.png</file>
+        <file>Notes/grace.png</file>
     </qresource>
     <qresource prefix="/bars">
         <file>bars/black.png</file>
@@ -214,6 +232,10 @@
         <file>patterns/42.png</file>
         <file>patterns/51.png</file>
         <file>patterns/61.png</file>
+        <file>patterns/23.png</file>
+        <file>patterns/13.png</file>
+        <file>patterns/03.png</file>
+        <file>patterns/33.png</file>
     </qresource>
     <qresource prefix="/mini">
         <file>mini/add.png</file>
@@ -249,5 +271,10 @@
         <file>mini/fast_forward.png</file>
         <file>mini/rewind.png</file>
         <file>mini/back.png</file>
+        <file>mini/mixer.png</file>
+        <file>mini/properties.png</file>
+        <file>mini/bars.png</file>
+        <file>mini/list.png</file>
+        <file>mini/write.png</file>
     </qresource>
 </RCC>

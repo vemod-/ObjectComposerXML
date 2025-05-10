@@ -15,7 +15,7 @@ public:
         MacRubberbandYellow=0,
         MacRubberbandHaircross=1
     };
-    QMacRubberband(QRubberBand::Shape shape,MacRubberbandTypes Type,QWidget* parent=0);
+    QMacRubberband(QRubberBand::Shape shape,MacRubberbandTypes Type,QWidget* parent=nullptr);
     void showAnimated();
     void hideAnimated();
 protected:
@@ -29,7 +29,7 @@ class QHoverRubberband : public QRubberBand
 {
     Q_OBJECT
 public:
-    QHoverRubberband(QRubberBand::Shape shape,QWidget* parent=0);
+    QHoverRubberband(QRubberBand::Shape shape,QWidget* parent=nullptr);
     void show(int Opacity=40);
     //void show();
     void hide();
@@ -37,9 +37,9 @@ protected:
     virtual void paintEvent(QPaintEvent *event);
 private:
     QTimeLine* animation;
-    float m_Opacity;
-    int m_DefaultOpacity;
-    bool m_Hiding;
+    double m_Opacity;
+    int m_DefaultOpacity=0;
+    bool m_Hiding=false;
 private slots:
     void TimeStep(int Step);
     void TimeFinished();

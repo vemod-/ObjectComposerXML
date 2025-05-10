@@ -5,70 +5,154 @@
 #include <QListWidgetItem>
 #include "scoreviewxml.h"
 #include "layoutviewxml.h"
-#include "cpropertywindow.h"
-#include "cbarwindow.h"
-#include "cmusictree.h"
 #include "ocpiano.h"
-#include "cstaffsdialog.h"
-#include "clayoutwizard.h"
 #include "qmacsplitter.h"
+#include <QMenu>
+#include <QTableWidgetItem>
+#include "ocplaycontrol.h"
+//#include "../SoftSynthsWidgets/ceditmenu.h"
+#include "../SoftSynthsWidgets/cprojectapp.h"
+#include "ocsymbolscollection.h"
+
+#define apptitle "Object Composer XML"
+#define _DocumentPath QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/Object Composer/"
 
 namespace Ui {
     class CScoreDoc;
 }
 
-class CScoreDoc : public QWidget
+class CScoreDoc : public QGraphicsView, public IFileDocument//, public IEditDocument
 {
     Q_OBJECT
 
 public:
-    explicit CScoreDoc(QWidget *parent = 0);
+    explicit CScoreDoc(QWidget* mainWindow, QWidget *parent = nullptr);
     ~CScoreDoc();
     ScoreViewXML* sv;
     LayoutViewXML* lv;
-    CPropertyWindow* pw;
-    CBarWindow* bw;
-    CMusicTree* mt;
     OCPiano* pno;
-    QString Path;
-    void fillStaffsCombo();
-    void fillVoicesCombo();
-    void Load(QString Path);
+    OCPlayControl* playControl;
+    CMIDI2wav* MIDI2wav;
+    ImportResult Load(QString Path);
+    bool Save(QString Path);
     void SetXML(XMLScoreWrapper& Doc);
-    QList<QPair<int,int> > SelectionList;
+    void SetXML(QDomLiteDocument* Doc);
+    void SaveOptions() const;
+    void LoadOptions();
+    void ActivateDoc();
+    OCSelectionList SelectionList;
     int SelectionStaff;
     int SelectionBar;
+    const OCVoiceLocation MarkToVoiceLocation(const int MarkIndex) const;
     void UpdateLayoutList();
-    void Undo();
-    void Redo();
-    QString UndoText();
-    QString RedoText();
-    const int GetView() const;
+    void serialize(QDomLiteElement* xml) const;
+    void unserialize(const QDomLiteElement* xml);
+    bool canCopy();
+    void UpdateStatus();
+    int GetView() const;
     QMacSplitter* spSidebar;
-    bool Dirty;
-    QList<SymbolSearchLocation> SearchResult;
+    //bool Dirty;
+    OCBarSymbolLocationList SearchResult;
     int SearchIndex;
+    ImportResult lastImport;
+    bool isClosed = true;
+    double GetZoom() const;
+
+    CMainMenu* MainMenu;
+
+    QMenu* mainMenu;
+
+    QMenu* printMenu;
+    QAction* actionPrintPreview;
+    QAction* actionPrint;
+    QAction* actionPrintSetup;
+
+    //CEditMenu* m_EditMenu;
+
+    //QMenu* EditMenu;
+    QAction* actionProperties;
+    QAction* actionVoiceList;
+    QAction* actionBarMap;
+    QAction* actionResetPositions;
+    QMenu* rhythmMenu;
+    QAction* actionTriolize;
+    QAction* actionDottify;
+    QAction* actionDoubleDottify;
+    QAction* actionStraighten;
+
+    //QMenu* ViewMenu;
+    QAction* actionScore;
+    QAction* actionLayouts;
+
+    QMenu* ScoreMenu;
+    QAction* actionSwipeBack;
+    QAction* actionSwipeForward;
+    QAction* actionSwipeFirst;
+    QAction* actionSwipeLast;
+
+    QAction* actionAddStaff;
+    QAction* actionDeleteStaff;
+    QAction* actionMoveStaffUp;
+    QAction* actionMoveStaffDown;
+    QAction* actionAddVoice;
+    QAction* actionDeleteVoice;
+
+    QMenu* menuGotoVoice();
+
+    QAction* actionSettings;
+    QMenu* LayoutsMenu;
+    QMenu* LayoutMenu;
+    QAction* actionAutoadjustAll;
+    QAction* actionReformat;
+    QAction* actionReformatFromHere;
+    QAction* actionStretchFromHere;
+    QAction* actionCompressFromHere;
+    QAction* actionFitSystems;
+    QAction* actionFitSystemsFromHere;
+
+    QMenu* PageMenu;
+    QAction* actionSystemFromNextPage;
+    QAction* actionSystemToNextPage;
+    QAction* actionFitSystemsOnPage;
+
+    QMenu* SystemMenu;
+    QAction* actionBarFromNextSystem;
+    QAction* actionBarToNextSystem;
+    QAction* actionAddBarReformatFromHere;
+    QAction* actionRemoveBarReformatFromHere;
+    QAction* actionToggleNames;
+    QAction* actionEditStaffs;
+    QAction* actionSystemResetPositions;
+
+    QAction* actionLayoutSettings;
+
+    QAction* actionLayoutLayout;
+    QAction* actionLayoutPage;
+    QAction* actionLayoutSystem;
+
+    QAction* RightSideButton;
+
+    //QMenu* ToolBarActions;
 public slots:
     void SetStatusLabel(QString text);
-    void setActiveStaff(const int Staff);
+    void setActiveStaffId(const int Staff);
     void setActiveVoice(const int Voice);
-    void UpdateStaffsCombo();
+    void setBar(int Bar, int Staff, int Voice);
     void SetCurrentLayout(const int Index);
-    void SetCurrentLayout();
+    void SetCurrentLayout(QTableWidgetItem* item);
     void NextLayout();
     void PrevLayout();
     void InitLayout(const int Index);
     bool AddLayout();
     void EditLayout();
     void DeleteLayout();
-    void MakeBackup(const QString& text);
+    void UpdateScoreView();
     void UpdateLayoutView();
-    void SetView(const int View);
+    void SetView(const int View, bool silent=false);
     void ShowStaffsDialog();
     void ZoomIn();
     void ZoomOut();
-    void SetZoom(const int Zoom);
-    const int GetZoom() const;
+    void SetZoom(const double Zoom);
     void SwipeForward();
     void SwipeBack();
     void Forward();
@@ -79,74 +163,155 @@ public slots:
     void SwipeFinish();
     void PageSetup();
     void Print();
+    void ExportPDF(const QString& pdfPath);
+    void ExportMXL(const QString& mxlPath);
+    void ExportMusicXML(const QString& mxlPath);
     void PrintPreview();
     void BarToNext();
     void BarFromNext();
+    void BarToNextReformat();
+    void BarFromNextReformat();
     void SystemToNext();
     void SystemFromNext();
     void ToggleNames();
     void EditSystem();
     void FitMusic();
     void FitPages(const int StartPage);
+    void FitFromHere();
+    void FitAll();
     void ResetSystem();
-    void ReformatLayout(const int StartPage, const int StartSystem, const int Stretch=0);
+    void ReformatLayout(const LayoutLocation& StartLocation, const int Stretch=0);
+    void ReformatLayoutFromStart();
+    void ReformatFromHere();
+    void StretchFromHere();
+    void CompressFromHere();
     void AutoAdjust();
-    void PasteXML(XMLSimpleSymbolWrapper& Symbol, QString UndoText, bool Finished);
-    void PasteXML(XMLSimpleSymbolWrapper& Symbol, QString UndoText, OCRefreshMode RefreshMode);
-    void PasteDuratedXML(XMLSimpleSymbolWrapper& Symbol, QString UndoText, OCRefreshMode RefreshMode);
+    void PasteSymbol(XMLSimpleSymbolWrapper& Symbol, QString UndoText, bool Finished);
+    void PasteSymbol(XMLSimpleSymbolWrapper& Symbol, QString UndoText);
+    void PasteDuratedSymbol(XMLSimpleSymbolWrapper& Symbol, QString UndoText);
     void OverwriteProperty(QString Name, QVariant Value, QString UndoText, bool Finished);
     void SetDurated();
     void TweakSystem();
-    void search(const QString& SearchTerm);
+    void search(const QString SearchTerm);
     void doSearch(const QString& SearchTerm);
     void searchNext();
     void searchPrev();
+    void gotoBar(const int Bar);
+    void gotoSymbol(const OCSymbolLocation& Symbol);
+    void UpdateBW();
+    void UpdatePW();
+    void ShowContextPopup(QPoint Pos);
+    void ShowLayoutPopup(QPoint Pos);
+    void ShowLayoutLayoutPopup();
+    void ShowLayoutPagePopup();
+    void ShowLayoutSystemPopup();
+
+    void PropertiesMenu();
+    void VoiceListMenu();
+    void BarMapMenu();
+    void PopupProperties(QPoint p);
+    void PopupVoiceList(QPoint p);
+    void PopupBarMap(QPoint p);
+    void UpdateTree();
+    void UpdateSV(OCRefreshMode RefreshMode=tsReformat);
+    void ResetPositions();
+    void Triolize();
+    void Dottify();
+    void DoubleDottify();
+    void Straighten();
+    void SelectFromStart();
+    void SelectToEnd();
+    void SelectAll();
+    void DeleteDoc() override;
+    void CopyDoc(QDomLiteElement* xml) override;
+    void PasteDoc(const QDomLiteElement* xml) override;
+    void SwapForward();
+    void SwapBack();
+    void showLayouts();
+    void showScore();
+    void addStaff();
+    void addVoice();
+    void moveStaffUp();
+    void moveStaffDown();
+    void deleteStaff();
+    void deleteVoice();
+private slots:
+    void SVChanged();
+    void BarChanged();
+    void PWChanged(OCRefreshMode refreshMode);
+    void ChangeProperty(QString Name, QVariant Value, bool Custom);
+    void BarSelectionChanged(QRect Selection);
+    void TreeSelectionChanged();
+    void TreeItemsRearranged(QList<int> itemOrder);
+    void ScoreSelectionChanged();
+    void DeleteItem(int Pointer);
+    void toggleView();
+    void RequestMidiFile(QString &path, int& bar, CMIDI2wav::PlayLocation mode, QStringList &TrackIDs);
 protected:
-    virtual void closeEvent(QCloseEvent *event);
-    virtual bool event(QEvent *event);
+    void closeEvent(QCloseEvent *event) override;
+    bool event(QEvent *event) override;
 signals:
     void MidiMessage(std::vector<unsigned char>* msg);
     void Close(CScoreDoc* document,bool &Cancel);
-    void Changed();
-    void StaffChanged();
-    void ScoreChanged();
-    void LayoutsChanged();
+    void ZoomChanged(double Zoom);
 private slots:
-    void UpdateLayoutTab(int i);
+    void ToggleLayoutSidebar();
+    void staffConfigChanged();
     void RenameItem(QTableWidgetItem* item);
     void LocationBack();
     void LocationForward();
     void SaveLocation();
-    void showLayouts();
-    void showScore();
-    void DeStyleSearchCombo();
-    void StyleSearchCombo();
+    void destyleSearchCombo();
+    void styleSearchCombo();
+    void deleteVoiceSearch();
+    void deleteSearch();
+    void searchMenuPopup(QPoint pos);
+    void NoteOnOff(bool On, int Pitch, int MixerTrack, OCMIDIVars MIDIInfo);
 private:
-    struct ScoreLocation
-    {
-        int StartBar;
-        int Staff;
-        int Voice;
-    };
     Ui::CScoreDoc *ui;
     void UpdateXML();
-    void UpdateAll();
+    OCSymbolsCollection SC;
     void prepareFade();
     int LocationIndex;
     void UpdateLocationButtons();
     bool SearchComboVisible;
-    QString LocationString(const ScoreLocation* sl);
-    QList<ScoreLocation> Locations;
+    const QString LocationString(const OCBarSymbolLocation& sl) const;
+    OCBarSymbolLocationList Locations;
     QList<QWidget*> DuratedGridWidgets;
     QSplitter* spMain;
-    QSplitter* spBottom;
-    QSplitter* spRight;
     int currentpitch;
-    QDomLiteDocument m_XMLScoreBackup;
-    int UndoIndex;
     QToolButton* tbAddLayout;
-    QList<int> ZoomList;
     int m_View;
+    QMenu* searchMenu;
+    QAction* deleteVoiceSearchAction;
+    QAction* deleteSearchAction;
+public:
+    void NewDoc() override;
+    void OpenDoc(QString Path) override;
+    void WizardDoc() override;
+    void SaveDoc(QString path) override;
+    void UpdateAppTitle();
+    void undoSerialize(QDomLiteElement* xml) const override;
+    void undoUnserialize(const QDomLiteElement* xml) override;
+    void CloseDoc() override;
+
+    QAction* actionExportMIDI;
+    QAction* actionExportAudio;
+    QAction* actionExportPDF;
+    QAction* actionExportMXL;
+    QAction* actionExportMusicXML;
+    QAction* actionPreferences;
+
+    void ShowPresets();
+    void ExportMidi();
+    void ExportWave();
+    void ExportPDFDialog();
+    void ExportMXLDialog();
+    void ExportMusicXMLDialog();
+protected:
+    void Render(QString path);
+private:
+    QWidget* m_MainWindow;
 };
 
 #endif // CSCOREDOC_H

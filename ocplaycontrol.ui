@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -26,7 +26,16 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <property name="spacing">
@@ -47,7 +56,16 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <property name="spacing">
@@ -89,7 +107,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/volume_down.png</normaloff>:/mini/mini/volume_down.png</iconset>
             </property>
             <property name="transparent" stdset="0">
@@ -131,7 +149,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/mini/mini/volume_up.png</normaloff>:/mini/mini/volume_up.png</iconset>
             </property>
             <property name="transparent" stdset="0">
@@ -174,6 +192,11 @@
           </item>
           <item>
            <widget class="QSlider" name="seekSlider">
+            <property name="font">
+             <font>
+              <strikeout>false</strikeout>
+             </font>
+            </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -239,7 +262,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="ObjectComposerXML.qrc">
+             <iconset resource="Resources.qrc">
               <normaloff>:/24/24/play.png</normaloff>:/24/24/play.png</iconset>
             </property>
             <property name="iconSize">
@@ -283,7 +306,7 @@
           <string>...</string>
          </property>
          <property name="icon">
-          <iconset resource="ObjectComposerXML.qrc">
+          <iconset resource="Resources.qrc">
            <normaloff>:/mini/mini/round_delete-white.png</normaloff>:/mini/mini/round_delete-white.png</iconset>
          </property>
          <property name="iconSize">
@@ -311,7 +334,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="ObjectComposerXML.qrc"/>
+  <include location="Resources.qrc"/>
  </resources>
  <connections/>
 </ui>

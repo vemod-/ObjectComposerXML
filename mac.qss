@@ -1,7 +1,7 @@
 QToolTip
 {
-	background-color:#444;
-	opacity:215;
+	/*background-color:#444;*/
+	background-color:rgba(0,0,0,70%);
 	color:#eee;
 	border:2px outset #666;
 	padding:0px;
@@ -9,7 +9,7 @@ QToolTip
 	border-radius:5px;
 	font-size:13pt;
 }
-
+/*
 QProgressBar
 {
 	background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #eee, stop: 0.4999 #bbb, stop: 0.5 #afafaf, stop: 1 #989898 );
@@ -26,7 +26,7 @@ QProgressBar::chunk
 	border: 1px outset #666;
 	border-radius:5px;
 }
-
+*/
 QSlider::groove:horizontal 
 {
 	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(50, 50, 50, 255), stop:1 rgba(200, 200, 200, 255));
@@ -86,31 +86,31 @@ QSlider::handle:horizontal
 }
 
 #OCPlayControl #volumeSlider QSlider::groove:horizontal {
-	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255));
-	height: 5px;
-	border: 1px inset #555;
-	border-radius: 3px;
+        background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(255, 255, 255, 255));
+        height: 5px;
+        border: 1px inset #555;
+        border-radius: 3px;
 }
 
 #OCPlayControl #volumeSlider QSlider::sub-page:horizontal {
-	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(150, 150, 150, 255), stop:1 rgba(50, 50, 50, 255));
-	border: 1px inset #555;
-	border-radius: 3px;
+        background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(150, 150, 150, 255), stop:1 rgba(50, 50, 50, 255));
+        border: 1px inset #555;
+        border-radius: 3px;
 }
 
 #OCPlayControl #volumeSlider QSlider::add-page:horizontal {
-	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(100, 100, 100, 255), stop:1 rgba(150, 150, 150, 255));
-	border: 1px inset #555;
-	border-radius: 3px;
+        background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(100, 100, 100, 255), stop:1 rgba(150, 150, 150, 255));
+        border: 1px inset #555;
+        border-radius: 3px;
 }
 
 #OCPlayControl #volumeSlider QSlider::handle:horizontal {
 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fff, stop:1 #999);
-	border: 1px solid #888;
-	width: 9px;
-	margin-top: -3px;
-	margin-bottom: -3px;
-	border-radius: 5px;
+        border: 1px solid #888;
+        width: 9px;
+        margin-top: -3px;
+        margin-bottom: -3px;
+        border-radius: 5px;
 }
 
 #OCPlayControl QFrame#frameOuter
@@ -228,10 +228,10 @@ QHeaderView::section:vertical
 /*
 --------------------------------------------------------------------------------------------
 */
-    
+
 QMenu
 {
-	background-color:black;
+	background-color:rgba(0,0,0,70%);
 	border:2px outset #666;
 	border-radius:6px;
 	margin:0px;
@@ -284,7 +284,7 @@ OCNoteToolbox, #PnoScroll
 	background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ddd, stop: 0.3999 #bbb, stop: 0.4 #afafaf, stop: 1 #989898 );
 }
 
-#StatusBar, QToolBar
+CStatusBar
 {
         background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ddd, stop: 0.3999 #bbb, stop: 0.4 #afafaf, stop: 1 #989898 );
         border:none;
@@ -292,6 +292,13 @@ OCNoteToolbox, #PnoScroll
         border-top-color: #666666;
         border-top-style: solid;
 }
+
+CToolBar
+{
+        background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ddd, stop: 0.3999 #bbb, stop: 0.4 #afafaf, stop: 1 #989898 );
+        border:none;
+}
+
 
 //QToolBar
 //{

@@ -18,12 +18,11 @@ CEditSystem::~CEditSystem()
 void CEditSystem::Validate(QListWidgetItem* item)
 {
     Q_UNUSED(item);
-    QListWidget* lw=findChild<QListWidget*>();
-    QDialogButtonBox* bb=findChild<QDialogButtonBox*>();
+    auto bb=findChild<QDialogButtonBox*>();
     QPushButton* pb = bb->button(QDialogButtonBox::Ok);
-    for (int i=0;i<lw->count();i++)
+    for (int i=0;i<ui->staffList->count();i++)
     {
-        QListWidgetItem* im=lw->item(i);
+        QListWidgetItem* im=ui->staffList->item(i);
         if (im->checkState()==Qt::Checked)
         {
             pb->setEnabled(true);
@@ -33,37 +32,34 @@ void CEditSystem::Validate(QListWidgetItem* item)
     pb->setEnabled(false);
 }
 
-void CEditSystem::Fill(QDomLiteElement *LayoutTemplate, QDomLiteElement *SystemTemplate)
+void CEditSystem::Fill(const XMLTemplateWrapper& LayoutTemplate, const XMLTemplateWrapper& SystemTemplate, const XMLScoreWrapper& XMLScore)
 {
-    QListWidget* lw=findChild<QListWidget*>();
-    for (int i=0;i<LayoutTemplate->childCount();i++)
+    for (int StaffPos=0;StaffPos<LayoutTemplate.staffCount();StaffPos++)
     {
-        QListWidgetItem* item=new QListWidgetItem(XMLScoreWrapper::StaffName(LayoutTemplate,i));
+        const int StaffIndex=LayoutTemplate.staffId(StaffPos);
+        QListWidgetItem* item=new QListWidgetItem(XMLScore.StaffName(StaffIndex));
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-        int index=XMLScoreWrapper::AllTemplateIndex(LayoutTemplate,i);
         item->setCheckState(Qt::Unchecked);
-        for (int j=0;j<SystemTemplate->childCount();j++)
+        for (int j=0;j<SystemTemplate.staffCount();j++)
         {
-            if (XMLScoreWrapper::AllTemplateIndex(SystemTemplate,j) == index) item->setCheckState(Qt::Checked);
+            if (SystemTemplate.staffId(j) == StaffIndex) item->setCheckState(Qt::Checked);
         }
-        lw->addItem(item);
-        connect(lw,SIGNAL(itemChanged(QListWidgetItem*)),this,SLOT(Validate(QListWidgetItem*)));
+        ui->staffList->addItem(item);
+        connect(ui->staffList,&QListWidget::itemChanged,this,&CEditSystem::Validate);
     }
-    Validate(lw->item(0));
+    Validate(ui->staffList->item(0));
 }
 
-void CEditSystem::GetTemplate(QDomLiteElement *LayoutTemplate, QDomLiteElement *SystemTemplate)
+void CEditSystem::GetTemplate(const XMLTemplateWrapper& LayoutTemplate, XMLTemplateWrapper& SystemTemplate)
 {
-    QListWidget* lw=findChild<QListWidget*>();
-    SystemTemplate->clearChildren();
-    for (int i=0;i<lw->count();i++)
+    SystemTemplate.clear();
+    for (int i=0;i<ui->staffList->count();i++)
     {
-        QListWidgetItem* item=lw->item(i);
+        QListWidgetItem* item=ui->staffList->item(i);
         if (item->checkState()==Qt::Checked)
         {
-            SystemTemplate->appendClone(LayoutTemplate->childElement(i));
+            SystemTemplate.addChild(LayoutTemplate.staff(i));
         }
     }
-    //UpdateIndexes(SystemTemplate);
-    XMLScoreWrapper::ValidateBrackets(SystemTemplate);
+    SystemTemplate.validateBrackets();
 }

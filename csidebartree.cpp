@@ -9,15 +9,22 @@ CSidebarTree::CSidebarTree(QWidget *parent) :
     ui(new Ui::CSidebarTree)
 {
     ui->setupUi(this);
-    InternalMoveEvent* ItemMoved=new InternalMoveEvent;
+    header()->setFixedHeight(tablerowheight);
+    setAutoFillBackground(true);
+    setAttribute(Qt::WA_MacShowFocusRect, false);
+    setIndentation(12);
+    setColumnCount(3);
+    setUniformRowHeights(true);
+    //setAnimated(true);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setAnimated(false);
+    auto ItemMoved=new InternalMoveEvent;
     installEventFilter(ItemMoved);
     connect(ItemMoved,SIGNAL(ItemMoved()),this,SLOT(itemMoved()));
     connect(ItemMoved,SIGNAL(DragEnter()),this,SLOT(dragEnter()));
     //connect(this,SIGNAL(itemClicked(QTreeWidgetItem*,int)),this,SLOT(ItemClicked(QTreeWidgetItem*,int)));
     //connect(this,SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),this,SLOT(ItemClicked(QTreeWidgetItem*,int)));
-    MouseEvents* ev=new MouseEvents;
-    viewport()->installEventFilter(ev);
-    connect(ev,SIGNAL(MouseRelease(QMouseEvent*)),this,SLOT(MouseRelease(QMouseEvent*)));
+    viewport()->installEventFilter(this);
     isDrag=false;
 }
 
@@ -110,7 +117,7 @@ QTreeWidgetItem* CSidebarTree::createProjectDocumentItem(const QFileInfo& fi, co
         }
         else
         {
-            documentItem->setTextColor(0,Qt::gray);
+            documentItem->setForeground(0,Qt::gray);
             documentItem->setData(0,SDI_Action,SBA_None);
             documentItem->setToolTip(0,"<b>"+fi.filePath()+"</b> does not exist");
         }
@@ -152,7 +159,7 @@ QTreeWidgetItem* CSidebarTree::createFileItem(const QFileInfo& fi, const int i)
     }
     else
     {
-        fileItem->setTextColor(0,Qt::gray);
+        fileItem->setForeground(0,Qt::gray);
         fileItem->setData(0,SDI_Action,SBA_None);
         fileItem->setData(2,SDI_Action,SBA_RemoveFromRecent);
         fileItem->setToolTip(0,"<b>"+fi.filePath()+"</b> does not exist");
@@ -179,7 +186,7 @@ void CSidebarTree::RebuildProjects(QList<OCProject*>& Projects)
     Projects.clear();
     for(int i=0;i<projectsItem->childCount();i++)
     {
-        OCProject* p=new OCProject;
+        auto p=new OCProject;
         p->Name=projectsItem->child(i)->text(0);
         for (int j=0;j<projectsItem->child(i)->childCount();j++)
         {
@@ -238,11 +245,11 @@ void CSidebarTree::Fill(QStackedWidget* docsWidget, QList<OCProject*>& Projects,
     QTreeWidgetItem* projectsItem=createStandardItem(tr("Projects"),":/ocgrey.png");
     projectsItem->setFlags(Qt::ItemIsEnabled);
     libraryItem->addChild(projectsItem);
-    for (int i=0;i<Projects.count();i++)
+    for (int i=0;i<Projects.size();i++)
     {
-        QTreeWidgetItem* projectItem=createProjectItem(i,Projects[i]->Name,Projects[i]->Files.count());
+        QTreeWidgetItem* projectItem=createProjectItem(i,Projects[i]->Name,Projects[i]->Files.size());
         projectsItem->addChild(projectItem);
-        for (int j=0;j<Projects[i]->Files.count();j++)
+        for (int j=0;j<Projects[i]->Files.size();j++)
         {
             QString s=Projects[i]->Files[j];
             projectItem->addChild(createProjectDocumentItem(QFileInfo(s),i,j,Projects[i]->Name,OpenDocs.indexOf(s)));
@@ -257,12 +264,12 @@ void CSidebarTree::Fill(QStackedWidget* docsWidget, QList<OCProject*>& Projects,
     openDocumentsItem->setExpanded(true);
     for (int j=0;j<docsWidget->count();j++)
     {
-        CScoreDoc* doc=(CScoreDoc*)docsWidget->widget(j);
+        auto doc=dynamic_cast<CScoreDoc*>(docsWidget->widget(j));
         QFileInfo fi(doc->windowTitle());
         QTreeWidgetItem* documentItem=createOpenDocumentItem(fi,j,docsWidget->count());
         openDocumentsItem->addChild(documentItem);
         documentItem->setExpanded(true);
-        for (int i=0;i<doc->lv->NumOfLayouts();i++)
+        for (int i=0;i<doc->lv->layoutCount();i++)
         {
             documentItem->addChild(createLayoutItem(fi,i,j,doc->lv->LayoutName(i)));
         }
@@ -271,7 +278,7 @@ void CSidebarTree::Fill(QStackedWidget* docsWidget, QList<OCProject*>& Projects,
     addTopLevelItem(recentDocumentsItem);
     recentDocumentsItem->setExpanded(true);
     int i=0;
-    foreach(QString s,RecentFiles)
+    for (const QString& s : RecentFiles)
     {
         QFileInfo fi(s);
         if (!OpenDocs.contains(fi.filePath()))
@@ -313,24 +320,28 @@ void CSidebarTree::SetSelected(const int docIndex, const int LayoutIndex, const 
     setUpdatesEnabled(true);
 }
 
-void CSidebarTree::MouseRelease(QMouseEvent *event)
+bool CSidebarTree::eventFilter(QObject *obj, QEvent *event)
 {
-    if (event->button() & Qt::LeftButton)
+    if(event->type() == QEvent::MouseButtonRelease)
     {
-        //qDebug() << event;
-        QTreeWidgetItem* i=this->itemAt(this->mapFromGlobal(QCursor::pos()));
-        int Col=this->columnAt(this->mapFromGlobal(QCursor::pos()).x());
-        if (i)
+        auto e = static_cast<QMouseEvent*>(event);
+        if (e->button() & Qt::LeftButton)
         {
-            if (this->indexOfTopLevelItem(i) == -1)
+            //qDebug() << event;
+            QTreeWidgetItem* i=this->itemAt(this->mapFromGlobal(QCursor::pos()));
+            int Col=this->columnAt(this->mapFromGlobal(QCursor::pos()).x());
+            if (i)
             {
-                //i->setSelected(true);
-                if (i->isFirstColumnSpanned()) Col=0;
-                this->SelectItem(i,Col);
+                if (this->indexOfTopLevelItem(i) == -1)
+                {
+                    //i->setSelected(true);
+                    if (i->isFirstColumnSpanned()) Col=0;
+                    this->SelectItem(i,Col);
+                }
             }
         }
     }
-
+    return QObject::eventFilter(obj, event);
 }
 
 void CSidebarTree::SelectItem(QTreeWidgetItem *item, int col)
@@ -345,8 +356,8 @@ void CSidebarTree::SelectItem(QTreeWidgetItem *item, int col)
 const SidebarItem CSidebarTree::GetItem(QTreeWidgetItem *item, const int Col)
 {
     SidebarItem i;
-    i.itemType=(SidebarDocumentTypes)(item->data(0,SDI_ItemType).toInt());
-    i.a=(SidebarActions)(item->data(Col,SDI_Action).toInt());
+    i.itemType=SidebarDocumentTypes(item->data(0,SDI_ItemType).toInt());
+    i.a=SidebarActions(item->data(Col,SDI_Action).toInt());
     i.itemIndex=item->data(0,SDI_ItemIndex).toInt();
     i.openIndex=item->data(0,SDI_OpenIndex).toInt();
     i.parentIndex=item->data(0,SDI_ParentIndex).toInt();

@@ -1,6 +1,6 @@
 #include "cbarwindow.h"
 #include "ui_cbarwindow.h"
-#include "mouseevents.h"
+#include "qmactreewidget.h"
 
 CBarWindow::CBarWindow(QWidget *parent) :
     QWidget(parent),
@@ -10,26 +10,22 @@ CBarWindow::CBarWindow(QWidget *parent) :
     setAutoFillBackground(true);
     table=new QTableWidget(0,0,this);
     table->setAutoFillBackground(true);
-    table->setEditTriggers(0);
+    table->setEditTriggers(QFlag(0));
     table->setSelectionMode(QAbstractItemView::ContiguousSelection);
     table->setSelectionBehavior(QAbstractItemView::SelectItems);
     table->setShowGrid(false);
     table->setIconSize(QSize(25,18));
     table->horizontalHeader()->setFixedHeight(tablerowheight);
-    //table->verticalHeader()->setResizeMode(QHeaderView::Fixed);
-    //table->horizontalHeader()->setResizeMode(QHeaderView::Fixed);
 
-    QGridLayout* layout=new QGridLayout;
-    layout->setMargin(0);
+    auto layout=new QGridLayout;
+    layout->setContentsMargins(0,0,0,0);
     layout->setVerticalSpacing(0);
     layout->addWidget(table,0,0);
     setLayout(layout);
-    connect(table,SIGNAL(cellDoubleClicked(int,int)),this,SLOT(Edit(int,int)));
-    connect(table->verticalHeader(),SIGNAL(sectionDoubleClicked(int)),this,SLOT(SelectVoice(int)));
-    connect(table,SIGNAL(itemSelectionChanged()),this,SLOT(Select()));
-    MouseEvents* ev=new MouseEvents;
-    table->viewport()->installEventFilter(ev);
-    connect(ev,SIGNAL(MouseRelease(QMouseEvent*)),this,SLOT(MouseRelease(QMouseEvent*)));
+    connect(table,&QTableWidget::cellDoubleClicked,this,&CBarWindow::Edit);
+    connect(table->verticalHeader(),&QHeaderView::sectionDoubleClicked,this,&CBarWindow::SelectVoice);
+    connect(table,&QTableWidget::itemSelectionChanged,this,&CBarWindow::Select);
+    table->viewport()->installEventFilter(this);
 }
 
 CBarWindow::~CBarWindow()
@@ -39,17 +35,31 @@ CBarWindow::~CBarWindow()
     delete ui;
 }
 
-void CBarWindow::MouseRelease(QMouseEvent* event)
+bool CBarWindow::eventFilter(QObject *obj, QEvent *event)
 {
-    if (event->button() & Qt::RightButton)
+    if (event->type() == QEvent::Wheel)
     {
-        emit Popup(this->cursor().pos());
+        table->viewport()->repaint();
     }
+    else if (event->type() == QEvent::MouseButtonRelease)
+    {
+        auto e = static_cast<QMouseEvent*>(event);
+        if (e->button() & Qt::RightButton)
+        {
+            emit Popup(QCursor::pos());
+        }
+        if (!table->selectedRanges().empty())
+        {
+            QTableWidgetSelectionRange r=table->selectedRanges().at(0);
+            if ((r.columnCount() > 1) || (r.rowCount() > 1)) emit Popup(QCursor::pos());
+        }
+    }
+    return QObject::eventFilter(obj, event);
 }
 
 void CBarWindow::Select()
 {
-    if (table->selectedRanges().count())
+    if (!table->selectedRanges().empty())
     {
         QTableWidgetSelectionRange r=table->selectedRanges().at(0);
         QRect s(r.leftColumn(),r.topRow(),r.columnCount(),r.rowCount());
@@ -65,7 +75,7 @@ void CBarWindow::SelectAll()
 
 void CBarWindow::SelectToEnd()
 {
-    if (table->selectedRanges().count())
+    if (!table->selectedRanges().empty())
     {
         QTableWidgetSelectionRange r=table->selectedRanges().at(0);
         QTableWidgetSelectionRange r1(r.topRow(),r.leftColumn(),r.bottomRow(),table->columnCount()-1);
@@ -76,7 +86,7 @@ void CBarWindow::SelectToEnd()
 
 void CBarWindow::SelectFromStart()
 {
-    if (table->selectedRanges().count())
+    if (!table->selectedRanges().empty())
     {
         QTableWidgetSelectionRange r=table->selectedRanges().at(0);
         QTableWidgetSelectionRange r1(r.topRow(),0,r.bottomRow(),r.rightColumn());
@@ -87,19 +97,32 @@ void CBarWindow::SelectFromStart()
 
 void CBarWindow::Edit(int Row, int Col)
 {
-    emit BarChanged(Col,BarMap.Voices.at(Row).Staff,BarMap.Voices.at(Row).Voice);
+    emit BarChanged(Col,BarMap.StaffNum(Row),BarMap.VoiceNum(Row));
     table->clearSelection();
     table->item(Row,Col)->setSelected(true);
+    static_cast<QWidget*>(parent())->hide();
 }
 
 void CBarWindow::SelectVoice(int Row)
 {
-    emit BarChanged(0,BarMap.Voices.at(Row).Staff,BarMap.Voices.at(Row).Voice);
+    emit BarChanged(0,BarMap.StaffNum(Row),BarMap.VoiceNum(Row));
     table->clearSelection();
     table->selectRow(Row);
+    static_cast<QWidget*>(parent())->hide();
 }
 
-void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
+QSize CBarWindow::contentSize()
+{
+    int w = table->verticalHeader()->width() + (table->frameWidth()*2); // +4 seems to be needed
+    for (int i = 0; i < table->columnCount(); i++)
+        w += table->columnWidth(i); // seems to include gridline (on my machine)
+    int h = table->horizontalHeader()->height() + (table->frameWidth()*2);
+    for (int i = 0; i < table->rowCount(); i++)
+        h += table->rowHeight(i);
+    return QSize(w, h);
+}
+
+void CBarWindow::Fill(OCBarMap& barmap, const OCBarLocation& BarVoiceLocation, const int BarCount)
 {
     BarMap=barmap;
     table->blockSignals(true);
@@ -108,7 +131,7 @@ void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
     table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     table->hide();
     table->clear();
-    if (barmap.Voices.count()==0)
+    if (barmap.isEmpty())
     {
         table->setRowCount(0);
         table->setColumnCount(0);
@@ -116,7 +139,7 @@ void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
     else
     {
         table->setColumnCount(barmap.BarCountAll()+1);
-        table->setRowCount(barmap.Voices.count());
+        table->setRowCount(barmap.voiceCount());
         QStringList hh;
         for (int i=0;i<table->columnCount()-1;i++)
         {
@@ -126,17 +149,9 @@ void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
         hh.append(QString());
         table->setHorizontalHeaderLabels(hh);
         QStringList vh;
-        for (int i=0;i<barmap.Voices.count();i++)
+        for (int i=0;i<barmap.voiceCount();i++)
         {
-            OCBarWindowVoice& bwv=barmap.Voices[i];
-            if (bwv.NumOfVoices>1)
-            {
-                vh.append(bwv.Name+" ("+QString::number(bwv.Voice+1)+")");
-            }
-            else
-            {
-                vh.append(bwv.Name);
-            }
+            vh.append(barmap.voiceCaption(i));
             table->setRowHeight(i,tablerowheight);
         }
         table->setVerticalHeaderLabels(vh);
@@ -144,26 +159,13 @@ void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
         {
             for (int j=0; j<table->rowCount(); j++)
             {
-                QTableWidgetItem* item=new QTableWidgetItem;
-                OCBarWindowVoice& bwv=barmap.Voices[j];
-                if (i<bwv.Bars.count())
+                auto item=new QTableWidgetItem;
+                //const OCBarWindowVoice& bwv=barmap.Voice(j);
+                if (i<barmap.barCount(j))
                 {
-                    const OCBarWindowBar& bwb=bwv.Bars[i];
-                    item->setToolTip(
-                                vh[j]+"\n"+tr("Bar")
-                                     +" "+ QString::number(i+1) +"\n"
-                                     +tr("Meter")+" "+bwb.MeterText
-                                     //+"\nNotes "+QString::number(bwb.Notes)
-                                    //+"\nPointer "+QString::number(bwb.Pointer)
-                                     + "\n" + (bwb.IsFullRest ? "Rest only":"Notes "+QString::number(bwb.Notes))
-                                     //+"\nFullRest"+QString::number(bwb.IsFullRest)
-                                     //+"\nFullRestOnly"+QString::number(bwb.IsFullRestOnly)
-                                     //+"\nKeyChange"+QString::number(bwb.KeyChangeOnOne)
-                                     //+"\nClefChange"+QString::number(bwb.ClefChangeOnOne)
-                                     //+"\nMasterStuff"+QString::number(bwb.MasterStuff)
-                            );
+                    item->setToolTip(vh[j]+barmap.tooltipText(j,i));
                     QString IconPath=":/bars/bars/";
-                    switch (IntDiv(bwb.Density,4))
+                    switch (IntDiv(barmap.density(j,i),4))
                     {
                     case 0:
                         IconPath+="white";
@@ -180,31 +182,23 @@ void CBarWindow::Fill(OCBarMap& barmap, int StartBar, int Staff, int Voice)
                     default:
                         IconPath+="black";
                     }
-                    if ((i==bwv.Bars.count()-1) && (bwv.Incomplete)) IconPath+="i";
+                    if ((i==barmap.barCount(j)-1) && (barmap.isIncomplete(j))) IconPath+="i";
                     item->setIcon(QIcon(IconPath+".png"));
                 }
+                if ((i >= BarVoiceLocation.Bar) && (i < BarVoiceLocation.Bar + BarCount)) item->setBackground(Qt::lightGray);
                 table->setItem(j,i,item);
             }
         }
     }
     table->adjustSize();
     table->horizontalHeader()->setStretchLastSection(true);
-    int voiceNum=barmap.BarMapIndex(Staff, Voice);
-    //VoiceList.indexOf(qMakePair(Staff,Voice));
-    QTableWidgetItem* selitem=0;
-    selitem=table->item(voiceNum,StartBar);
-    if (selitem != 0)
+    int voiceNum=barmap.BarMapIndex(BarVoiceLocation);
+    QTableWidgetItem* selItem=nullptr;
+    selItem=table->item(voiceNum,BarVoiceLocation.Bar);
+    if (selItem != nullptr)
     {
-        selitem->setSelected(true);
-        table->scrollToItem(selitem,QAbstractItemView::PositionAtCenter);
-        /*
-        if ((sv->StartBar()*table->columnWidth(0))+table->verticalHeader()->width()>table->width())
-        {
-            QRect r=table->viewport()->geometry();
-            r.moveTo((sv->StartBar()*table->columnWidth(0))+table->verticalHeader()->width(),0);
-            table->viewport()->setGeometry(r);
-        }
-        */
+        selItem->setSelected(true);
+        table->scrollToItem(selItem,QAbstractItemView::PositionAtCenter);
     }
     table->show();
     table->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);

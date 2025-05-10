@@ -17,7 +17,7 @@ public:
     };
     ArrowDirection arrowDirection();
     void setArrowDirection(ArrowDirection ad);
-    QAppleArrowButton(QWidget* parent=0);
+    QAppleArrowButton(QWidget* parent=nullptr);
 protected:
     void paintEvent(QPaintEvent * event);
 private:

@@ -4,6 +4,7 @@
 #include <QSplitter>
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
+#include <QSettings>
 //#include "qpicframe.h"
 
 class QMacSplitterHandle : public QSplitterHandle
@@ -19,25 +20,25 @@ class QMacSplitter : public QSplitter
 {
     Q_OBJECT
 public:
-    QMacSplitter(QWidget* parent=0);
-    QMacSplitter(Qt::Orientation o,QWidget* parent=0);
+    QMacSplitter(QWidget* parent=nullptr);
+    QMacSplitter(Qt::Orientation o,QWidget* parent=nullptr);
     QSplitterHandle *createHandle();
     void collapse(int index);
     void expand();
     bool isCollapsed();
-    void Load(QString Tag);
-    void Save(QString Tag);
+    void Load(const QString& Tag, QSettings& s);
+    void Save(const QString& Tag, QSettings& s);
 protected:
-    int collapseIndex;
+    int collapseIndex=0;
     //int collapseSize;
 private:
-    QParallelAnimationGroup* anim;
-    QPropertyAnimation* a1;
-    QPropertyAnimation* a2;
-    int expandedSize;
+    QParallelAnimationGroup* anim=nullptr;
+    QPropertyAnimation* a1=nullptr;
+    QPropertyAnimation* a2=nullptr;
+    int expandedSize=0;
     QSize expandedMaxSize;
     QSize expandedMinSize;
-    int expandIndex;
+    int expandIndex=0;
     void init();
 private slots:
     void animationFinished();

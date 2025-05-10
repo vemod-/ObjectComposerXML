@@ -1,14 +1,16 @@
-#include "QToolButtonGrid.h"
+#include "qtoolbuttongrid.h"
+#include "ocsymbolscollection.h"
+#include <QGuiApplication>
 
 QToolButtonGrid::QToolButtonGrid(QWidget *parent) :
     QWidget(parent)
 {
     frame=new QFrame(this);
     layout=new QGridLayout(frame);
-    layout->setMargin(2);
+    layout->setContentsMargins(2,2,2,2);
     layout->setVerticalSpacing(1);
     layout->setHorizontalSpacing(1);
-    TreeItem=0;
+    TreeItem=nullptr;
 }
 
 QToolButtonGrid::~QToolButtonGrid()
@@ -29,7 +31,7 @@ QToolButton* QToolButtonGrid::AddButton(const QString& Name, const QString& Tool
     b->setCheckable(Selectable);
     Buttons.append(b);
     Names.append(Name);
-    connect(b,SIGNAL(pressed()),this,SLOT(wasClicked()));
+    connect(b,&QAbstractButton::pressed,this,&QToolButtonGrid::wasClicked);
     return b;
 }
 
@@ -65,7 +67,7 @@ void QToolButtonGrid::ShowButtons()
     int RowCounter=0;
     frame->hide();
     layout->setRowMinimumHeight(0,ButtonGridSize);
-    foreach(QToolButton* b,Buttons)
+    for (QToolButton* b : std::as_const(Buttons))
     {
         layout->addWidget(b,RowCounter,ColumnCounter);
         if (RowCounter==0) layout->setColumnMinimumWidth(ColumnCounter,ButtonGridSize);
@@ -85,20 +87,20 @@ void QToolButtonGrid::ShowButtons()
     ColumnCounter++;
     frame->move(0,-2);
     frame->setBaseSize(ColumnCounter*(ButtonGridSize+1),RowCounter*(ButtonGridSize+1));
-    if (TreeItem != 0) TreeItem->setSizeHint(0,QSize(ColumnCounter*(ButtonGridSize+1),RowCounter*(ButtonGridSize+1)));
+    if (TreeItem != nullptr) TreeItem->setSizeHint(0,QSize(ColumnCounter*(ButtonGridSize+1),RowCounter*(ButtonGridSize+1)));
     frame->show();
 }
 
 void QToolButtonGrid::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
-    foreach(QToolButton* b,Buttons) layout->removeWidget(b);
+    for (QToolButton* b : std::as_const(Buttons)) layout->removeWidget(b);
     ShowButtons();
 }
 
 void QToolButtonGrid::wasClicked()
 {
-    for (int i=0;i<Buttons.count();i++)
+    for (int i=0;i<Buttons.size();i++)
     {
         if (Buttons[i]->isDown())
         {
@@ -108,12 +110,12 @@ void QToolButtonGrid::wasClicked()
     }
 }
 
-const bool QToolButtonGrid::IsSelected(const int Index)
+bool QToolButtonGrid::IsSelected(const int Index)
 {
     return Buttons[Index]->isChecked();
 }
 
-const bool QToolButtonGrid::IsSelected(const QString& Name)
+bool QToolButtonGrid::IsSelected(const QString& Name)
 {
     return IsSelected(Names.indexOf(Name));
 }
@@ -145,7 +147,7 @@ void CSymbolToolGrid::wasClicked1(int Button)
 */
 CPropertiesToolGrid::CPropertiesToolGrid(QWidget *parent) : QToolButtonGrid(parent)
 {
-    connect(this,SIGNAL(ButtonClicked(int)),this,SLOT(wasClicked1(int)));
+    connect(this,qOverload<int>(&QToolButtonGrid::ButtonClicked),this,&CPropertiesToolGrid::wasClicked1);
 }
 
 void CPropertiesToolGrid::AddModifierButton(const QString& Name, const QString& Tooltip, const QIcon& Icon)
@@ -154,7 +156,7 @@ void CPropertiesToolGrid::AddModifierButton(const QString& Name, const QString& 
     p->ismodifier=true;
     ButtonProps.append(p);
     QToolButtonGrid::AddButton(Name,Tooltip,Icon);
-    Buttons[Buttons.count()-1]->setCheckable(true);
+    Buttons[Buttons.size()-1]->setCheckable(true);
 }
 
 void CPropertiesToolGrid::AddModifierButton(const QString& Name, const QString& Tooltip, const QString& Text, const QFont& Font)
@@ -163,33 +165,36 @@ void CPropertiesToolGrid::AddModifierButton(const QString& Name, const QString& 
     p->ismodifier=true;
     ButtonProps.append(p);
     QToolButtonGrid::AddButton(Name,Tooltip,Text,Font);
-    Buttons[Buttons.count()-1]->setCheckable(true);
+    Buttons[Buttons.size()-1]->setCheckable(true);
 }
 
-void CPropertiesToolGrid::AddButton(const QString& SymbolName)
+void CPropertiesToolGrid::AddButton(const QString& SymbolName, const QString& Filter)
 {
     for (int i=0;i<OCSymbolsCollection::ButtonCount(SymbolName);i++)
     {
         OCToolButtonProps* p=OCSymbolsCollection::ButtonProps(SymbolName,i);
-        if (p->ismodifier)
+        if (p->category==Filter)
         {
-            AddModifierButton(p->modifierProperty,p->tooltip,p->buttonText,QFont(p->fontname,p->fontsize,p->fontbold,p->fontitalic));
-        }
-        else
-        {
-            if (!p->ishidden)
+            if (p->ismodifier)
             {
-                ButtonProps.append(p);
-                if (!p->iconpath.isEmpty())
+                AddModifierButton(p->modifierProperty,p->tooltip,p->buttonText,QFont(p->fontname,int(p->fontsize),p->fontbold,p->fontitalic));
+            }
+            else
+            {
+                if (!p->ishidden)
                 {
-                    QToolButtonGrid::AddButton(p->classname,p->tooltip,QIcon(p->iconpath));
-                }
-                else
-                {
-                    QFont f(p->fontname,p->fontsize);
-                    f.setBold(p->fontbold);
-                    f.setItalic(p->fontitalic);
-                    QToolButtonGrid::AddButton(p->classname,p->tooltip,p->buttonText,f);
+                    ButtonProps.append(p);
+                    if (!p->iconpath.isEmpty())
+                    {
+                        QToolButtonGrid::AddButton(p->classname,p->tooltip,QIcon(p->iconpath));
+                    }
+                    else
+                    {
+                        QFont f(p->fontname,int(p->fontsize));
+                        f.setBold(p->fontbold);
+                        f.setItalic(p->fontitalic);
+                        QToolButtonGrid::AddButton(p->classname,p->tooltip,p->buttonText,f);
+                    }
                 }
             }
         }
@@ -200,11 +205,11 @@ void CPropertiesToolGrid::wasClicked1(int Button)
 {
     OCToolButtonProps* b=ButtonProps[Button];
     if (b->ismodifier) return;
-    XMLSimpleSymbolWrapper s=OCSymbolsCollection::GetSymbol(b->classname,b->buttonindex);
+    XMLSimpleSymbolWrapper s=OCSymbolsCollection::GetDefaultSymbol(b->classname,b->buttonindex);
     if (!b->modifierProperty.isEmpty())
     {
-        QToolButton* ModifierButton=0;
-        for (int i=0;i<ButtonProps.count();i++)
+        QToolButton* ModifierButton=nullptr;
+        for (int i=0;i<ButtonProps.size();i++)
         {
             if (ButtonProps[i]->ismodifier)
             {
@@ -215,9 +220,13 @@ void CPropertiesToolGrid::wasClicked1(int Button)
                 }
             }
         }
-        if (ModifierButton != 0)
+        if (ModifierButton != nullptr)
         {
-            if (OCSymbolsCollection::PropetyExists(s.name(), b->modifierProperty)) s.setAttribute(b->modifierProperty,ModifierButton->isChecked());
+            if (ModifierButton->isChecked() || QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier))
+            {
+                if (OCSymbolsCollection::PropetyExists(s.name(), b->modifierProperty)) s.setAttribute(b->modifierProperty,true);
+                ModifierButton->setChecked(false);
+            }
         }
     }
     if (b->customdialog)
@@ -225,13 +234,13 @@ void CPropertiesToolGrid::wasClicked1(int Button)
         OCRefreshMode RefreshMode=b->refreshmode;
         if (OCSymbolsCollection::editevent(s,RefreshMode,this))
         {
-            emit PasteXML(s,Names[Button],RefreshMode);
+            emit PasteXML(s,Names[Button]);
         }
         Buttons[Button]->setDown(false);
     }
     else
     {
-        emit PasteXML(s,Names[Button],b->refreshmode);
+        emit PasteXML(s,Names[Button]);
     }
 }
 

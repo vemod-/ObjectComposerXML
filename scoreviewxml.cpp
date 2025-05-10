@@ -545,12 +545,12 @@ void ScoreViewXML::selectPrevSymbolExtend()
 void ScoreViewXML::selectNextSymbol()
 {
     SelectRubberband->hide();
-    if (Cursor.currentPointer()+1 < VoiceLen())
+    if (Cursor.currentPointer() < VoiceLen())
     {
-        Cursor.SetPos(Cursor.currentPointer()+1,VoiceLen());
+        Cursor.SetPos(Cursor.currentPointer() + 1, VoiceLen());
         if ((Cursor.currentPointer() >= findPointerToBar(StartBar() + BarsActuallyDisplayed()).Pointer) && (FollowResize()==PageSizeFollowsResize))
         {
-            setStartBar(StartBar()+BarsActuallyDisplayed());
+            setStartBar(StartBar() + BarsActuallyDisplayed());
             Paint(tsNavigate);
             emit BarChanged();
         }

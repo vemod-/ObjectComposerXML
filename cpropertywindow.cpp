@@ -79,14 +79,14 @@ void CPropertyWindow::NumberChanged(int Value)
 
 void CPropertyWindow::NumberChanged()
 {
-    auto sb=dynamic_cast<QSpinBox*>(table->itemWidget(editRow,1));
-    NumberChanged(sb->value());
+    auto sb = dynamic_cast<QSpinBox*>(table->itemWidget(editRow,1));
+    if (sb) NumberChanged(sb->value());
 }
 
 void CPropertyWindow::SliderChanged()
 {
-    auto sl=dynamic_cast<QSlider*>(table->itemWidget(editRow,1));
-    NumberChanged(sl->value());
+    auto sl = dynamic_cast<QSlider*>(table->itemWidget(editRow,1));
+    if (sl) NumberChanged(sl->value());
 }
 
 void CPropertyWindow::TextChanged(const QString& Value)
@@ -100,8 +100,8 @@ void CPropertyWindow::TextChanged(const QString& Value)
 
 void CPropertyWindow::TextChanged()
 {
-    auto le=dynamic_cast<QLineEdit*>(table->itemWidget(editRow,1));
-    TextChanged(le->text());
+    auto le = dynamic_cast<QLineEdit*>(table->itemWidget(editRow,1));
+    if (le) TextChanged(le->text());
 }
 
 void CPropertyWindow::CustomChanged()

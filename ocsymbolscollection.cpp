@@ -106,7 +106,7 @@ OCSymbolsCollection::OCSymbolsCollection()
                     painter.setPen(Qt::black);
                     painter.setBrush(Qt::black);
                     painter.setFont(QFont(tbp->fontname,int(tbp->fontsize),tbp->fontbold,tbp->fontitalic));
-                    painter.drawText(QRect(0,0,24,24),tbp->buttonText,QTextOption(Qt::AlignHCenter | Qt::AlignVCenter));
+                    painter.drawText(QRect(0,0,24,24),tbp->buttonText,QTextOption(Qt::AlignCenter));
                     l.append(QIcon(pm));
                 }
                 if (!tbp->category.isEmpty())
@@ -986,11 +986,13 @@ OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& Scre
     }
     for (uint i = 0; i < AntalFasteFortegn; i++)
     {
-        ScreenObj.moveTo(Pos.x() + (i * AccidentalSpace) , Pos.y() + (Acc[i] * 12) + 162);
+        //ScreenObj.moveTo(Pos.x() + (i * AccidentalSpace) , Pos.y() + (Acc[i] * 12) + 162);
+        ScreenObj.moveTo(Pos.x() + (i * AccidentalSpace) , Pos.y() + (Acc[i] * 12) + 12);
         if (KBFlagFaste == 1)
         {
 #ifndef __Lelandfont
-            l.append(ScreenObj.plLet(OCTTFFlat, 0));
+            ScreenObj.move(0,48);
+            l.append(ScreenObj.plChar(OCTTFFlat, 0));
 #else
             ScreenObj.move(-12,-118);
             l.append(ScreenObj.plLet(LelandFlat, 0));
@@ -999,7 +1001,7 @@ OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& Scre
         else
         {
 #ifndef __Lelandfont
-            l.append(ScreenObj.plLet(OCTTFSharp, 0));
+            l.append(ScreenObj.plChar(OCTTFSharp, 0));
 #else
             ScreenObj.move(-12,-118);
             l.append(ScreenObj.plLet(LelandSharp, 0));
@@ -1283,7 +1285,7 @@ void CAccent::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCoun
 
 OCGraphicsList CAccent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    if (UpDown == 1) SignsUp ++;
+    if (UpDown == 1) SignsUp++;
     PrintProps.moveTo(0, (12 * 12) + (UpDown * 14 * 12), ScreenObj);
     return ScreenObj.plLet(OCTTFAccent, PrintProps.size(), 1200, Qt::AlignHCenter);
 }
@@ -1424,60 +1426,68 @@ void CAccidental::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Si
 OCGraphicsList CAccidental::plLeftParanthesis(OCDraw& ScreenObj)
 {
     OCGraphicsList l;
-    ScreenObj.move(-132,-150);
-    l.append(ScreenObj.plLet("(",0,"Arial",false,false,156));
-    ScreenObj.move(72,150);
+    //ScreenObj.move(-132,-150);
+    ScreenObj.move(-12 * 12, 0);
+    l.append(ScreenObj.plLet("(",0,"Arial",false,false,156,Qt::AlignCenter));
+    ScreenObj.move(12 * 12, 0);
+    //ScreenObj.move(72,150);
     return l;
 }
 
 OCGraphicsList CAccidental::PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& ScreenObj)
 {
-    PrintProps.moveTo(ScreenObj);
     OCGraphicsList l;
+    PrintProps.moveTo(ScreenObj);
     const bool Paranthsis = XMLBoolValue("Parentheses");
+    if (Paranthsis) {
+        ScreenObj.move(-9 * 12, 0);
+        ScreenObj.move(-9 * 12, 0, PrintProps.size());
+        l.append(ScreenObj.plLet("(",PrintProps.size(),"Arial",false,false,156,Qt::AlignCenter));
+        PrintProps.moveTo(ScreenObj);
+        ScreenObj.move(-36,0,PrintProps.size());
+    }
+    ScreenObj.move(-9 * 12, 0);
     switch (XMLIntValue("AccidentalSign"))
     {
     case 0:
-        ScreenObj.move(-11 * 12, 150);
-        if (Paranthsis) l.append(plLeftParanthesis(ScreenObj));
+        //ScreenObj.move(-11 * 12, 150);
+        ScreenObj.move(0,48,PrintProps.size());
 #ifndef __Lelandfont
-        l.append(ScreenObj.plLet(OCTTFFlat, PrintProps.size()));
+        l.append(ScreenObj.plChar(OCTTFFlat, PrintProps.size()));
 #else
         ScreenObj.move(-12,-118);
         l.append(ScreenObj.plLet(LelandFlat, PrintProps.size()));
 #endif
         break;
     case 1:
-        ScreenObj.move(-12 * 12, 150);
-        if (Paranthsis) l.append(plLeftParanthesis(ScreenObj));
+        //ScreenObj.move(-12 * 12, 150);
 #ifndef __Lelandfont
-        l.append(ScreenObj.plLet(OCTTFSharp, PrintProps.size()));
+        l.append(ScreenObj.plChar(OCTTFSharp, PrintProps.size()));
 #else
         ScreenObj.move(-12,-118);
         l.append(ScreenObj.plLet(LelandSharp, PrintProps.size()));
 #endif
         break;
     case 2:
-        ScreenObj.move(-17 * 12, 150);
-        if (Paranthsis) l.append(plLeftParanthesis(ScreenObj));
-        l.append(ScreenObj.plLet(OCTTFDoubleFlat, PrintProps.size()));
+        //ScreenObj.move(-17 * 12, 150);
+        ScreenObj.move(12, 48,PrintProps.size());
+        l.append(ScreenObj.plChar(OCTTFDoubleFlat, PrintProps.size()));
         break;
     case 3:
-        ScreenObj.move(-14 * 12, 150);
-        if (Paranthsis) l.append(plLeftParanthesis(ScreenObj));
-        l.append(ScreenObj.plLet(OCTTFDoubleSharp, PrintProps.size()));
+        //ScreenObj.move(-14 * 12, 150);
+        l.append(ScreenObj.plChar(OCTTFDoubleSharp, PrintProps.size()));
         break;
     case 4:
-        ScreenObj.move(-12 * 12, 150);
-        if (Paranthsis) l.append(plLeftParanthesis(ScreenObj));
-        l.append(ScreenObj.plLet(OCTTFOpl, PrintProps.size()));
+        //ScreenObj.move(-12 * 12, 150);
+        l.append(ScreenObj.plChar(OCTTFOpl, PrintProps.size()));
         break;
     }
     if (Paranthsis)
     {
         PrintProps.moveTo(ScreenObj);
-        ScreenObj.move(-144,0);
-        l.append(ScreenObj.plLet(")",0,"Arial",false,false,156));
+        ScreenObj.move(-9 * 12, 0);
+        ScreenObj.move(12,0,PrintProps.size());
+        l.append(ScreenObj.plLet(")",PrintProps.size(),"Arial",false,false,156,Qt::AlignCenter));
     }
     return l;
 }
@@ -1498,8 +1508,7 @@ void CBowing::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsT
 
 OCGraphicsList CBowing::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(OCTTFBowing0 + XMLIntValue("Bowing") + 1)), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
 }
 
@@ -1518,8 +1527,7 @@ void CBartokP::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Signs
 
 OCGraphicsList CBartokP::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(uint(OCTTFBartok))), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
 }
 
@@ -1539,8 +1547,7 @@ void CFingering::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Sig
 
 OCGraphicsList CFingering::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     OCGraphicsList l;
 #ifndef __Lelandfont
     if (XMLIntValue("Finger")==6)
@@ -1765,9 +1772,8 @@ bool CDobbel::BeginningOfNote() { return (XMLIntValue("Timing")==1); }
 
 OCGraphicsList CDobbel::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     OCGraphicsList l;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
     if (XMLIntValue("Direction")==1)
     {
         l.append(ScreenObj.plLet(OCTTFDobbelDown, PrintProps.size(), 1200, Qt::AlignHCenter));
@@ -2449,10 +2455,9 @@ void CMordent::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCou
 
 OCGraphicsList CMordent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     int SignChar=OCTTFMordent;
     if (XMLIntValue("Range")>0) SignChar=OCTTFPraltrill;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(SignChar)), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
 }
 
@@ -2903,8 +2908,7 @@ void CStopped::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Signs
 
 OCGraphicsList CStopped::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
 #ifndef __Lelandfont
     return ScreenObj.plLet(MakeUnicode(QChar(uint(OCTTFStopped))), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
 #else
@@ -2916,7 +2920,7 @@ OCGraphicsList CStopped::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& S
 
 QList<OCToolButtonProps*> CHarmonic::CreateButtons()
 {
-    CreateButton("Note","Wingdings 2",10,QChar(0XF09A),false,false);
+    CreateButton("Note",WingDingsName,10,QChar(uint(WDCircle)),false,false);
     return m_ButtonList;
 }
 
@@ -2927,11 +2931,10 @@ void CHarmonic::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Sign
 
 OCGraphicsList CHarmonic::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
 #ifndef __Lelandfont
     ScreenObj.move(0,-16 * 12);
-    return ScreenObj.plLet(QChar(0XF09A), PrintProps.size(), "Wingdings 2", false, false, 96, Qt::AlignHCenter);
+    return ScreenObj.plChar(WDCircle, PrintProps.size(),96, WingDingsName, false, Qt::AlignHCenter);
 #else
     ScreenObj.move(-24,-144);
     return ScreenObj.plLet(LelandStopped, PrintProps.size());
@@ -3184,7 +3187,7 @@ void CTrill::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsTo
 
 OCGraphicsList CTrill::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
-    SignsUp++;
+    MoveToSignUp(UpDown,SignsUp,ScreenObj);
     int Sign=OCTTFTrill;
     switch (XMLIntValue("TrillType"))
     {
@@ -3195,7 +3198,6 @@ OCGraphicsList CTrill::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& Scr
         Sign=OCTTFTrillSharp;
         break;
     }
-    PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(Sign)), PrintProps.size(), OCTTFname, false, false, 1200);
 }
 

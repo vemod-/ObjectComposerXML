@@ -16,6 +16,7 @@
 #define midifl "/Users/Shared/oc.mid"
 #define settingsfile "../OCstuff.xml"
 #define OCTTFname "Object Composer"
+#define WingDingsName "Wingdings 2"
 #define BeamThickness 48
 #define BeamSpace 24
 #define HelpLineHalfWidth 84
@@ -335,6 +336,12 @@ enum OCRefreshMode
 };
 
 //#define __Lelandfont
+enum WingDings {
+    WDDot = 0xF098,
+    WDX = 0xF0CF,
+    WDDiamond = 0xF0AF,
+    WDCircle = 0xF09A
+};
 
 enum OCTTF
 {
@@ -806,9 +813,9 @@ public:
     {
         OCGraphicsList l;
         //move(offsetX-36,offsetY,Size);
-        //l.append(plLet(".",Size,"Courier new",false,false,100,Qt::AlignCenter | Qt::AlignHCenter));
+        //l.append(plLet(".",Size,"Courier new",false,false,100,Qt::AlignCenter));
         move(offsetX,offsetY,Size);
-        l.append(plLet(QChar(0xF098),SignSize,"Wingdings 2",false,false,24,Qt::AlignCenter | Qt::AlignHCenter));
+        l.append(plChar(WDDot,SignSize,24,WingDingsName,false));
         move(-offsetX,-offsetY,Size);
         //move(-(offsetX-36),-(offsetY),Size);
         return l;
@@ -835,6 +842,10 @@ public:
     inline const OCGraphicsList plLet(const OCTTF letter, const int SignSize, const double FontSize=1200, const Qt::Alignment Align=Qt::AlignLeft)
     {
         return plLet(QChar(uint(letter)),SignSize,OCTTFname,false,false,FontSize,Align);
+    }
+    inline const OCGraphicsList plChar(const uint ch, const int SignSize, const double FontSize = 1200, const QString FontName = OCTTFname, const bool FontBold = false, const Qt::Alignment Align = Qt::AlignCenter)
+    {
+        return plLet(QChar(ch),SignSize,FontName,FontBold,false,FontSize,Align);
     }
 #ifdef __Lelandfont
     inline const OCGraphicsList plLet(const Leland letter, const int SignSize, const double FontSize=LelandDefaultSize, const Qt::Alignment Align=Qt::AlignLeft)

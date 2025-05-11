@@ -359,7 +359,7 @@ protected:
                 f.setBold(p->fontbold);
                 f.setItalic(p->fontitalic);
                 ScreenObj.move(8*12,8*12);
-                l.append(ScreenObj.plLet(p->buttonText,0,f, Qt::AlignHCenter | Qt::AlignVCenter));
+                l.append(ScreenObj.plLet(p->buttonText,0,f, Qt::AlignCenter));
                 if ((ScreenObj.col == activestaffcolor) || (ScreenObj.col == inactivestaffcolor)) {
                     QGraphicsPathItem* i = (QGraphicsPathItem*)l.first();
                     i->setOpacity(0.6);
@@ -407,6 +407,10 @@ public:
     }
     virtual OCGraphicsList PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& /*ScreenObj*/){
         return OCGraphicsList();
+    }
+    virtual void MoveToSignUp(StemDirection UpDown, int & SignsUp , OCDraw& ScreenObj) {
+        SignsUp++;
+        PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
     }
     virtual void DuringNote(OCMIDIFile& /*MFile*/, int /*Pitch*/, int& /*LastTime*/, int /*Tick*/, int /*PlayTime*/, OCPlayBackVarsType &/*TemPlay*/){}
     virtual void BeforeNote(const XMLSymbolWrapper& /*XMLNote*/, int& /*PlayDynam*/, int& /*Pitch*/, int& /*endPitch*/, OCPlayBackVarsType &/*TemPlay*/){}

@@ -238,7 +238,7 @@ public:
         Size = Symbol.size();
     }
     inline void moveTo(OCDraw& ScreenObj) const { ScreenObj.moveTo(CenterX, CenterY); }
-    void plot(const int ClusterSize, const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray& FrameList, const OCGraphicsList& tie, OCDraw& ScreenObj);
+    void plot(const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray& FrameList, const OCGraphicsList& tie, OCDraw& ScreenObj);
     double sized(const double val) {
         if (Size == 0) return val;
         return DoubleDiv(val ,SizeFactor(Size));

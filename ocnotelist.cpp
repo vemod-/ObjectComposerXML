@@ -585,7 +585,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
             bool IsWrap=((Beat == Meter) & (Bar == BarsToPrint - 1));
             t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
         }
-        CurrentNote.plot(Size, UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
+        CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
     else {
         if (CurrentNote.NoteType==tstiedgracenote)
@@ -604,7 +604,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
             }
             t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
         }
-        CurrentNote.plot(CurrentNote.Size, UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
+        CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
 }
 
@@ -796,7 +796,7 @@ const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList
     l.append(ScreenObj.line(lineL, 0, lineUD * 36));
     l.append(ScreenObj.line(lineR, 0, lineUD * 36));
     ScreenObj.moveTo(center);
-    l.append(ScreenObj.plLet(QString::number(TupletCaption).trimmed(), Size, "times new roman", true, true, 132,Qt::AlignHCenter | Qt::AlignVCenter));
+    l.append(ScreenObj.plLet(QString::number(TupletCaption).trimmed(), Size, "times new roman", true, true, 132,Qt::AlignCenter));
     return l;
 }
 
@@ -1014,7 +1014,7 @@ void OCNoteList::ApplyAccidentals(OCStaffAccidentals& StaffAccidentals)
 
 //--------------------------------------------------------------------------
 
-void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray &FrameList, const OCGraphicsList& tie, OCDraw &ScreenObj)
+void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray &FrameList, const OCGraphicsList& tie, OCDraw &ScreenObj)
 {
     if (ScreenObj.canColor())
     {
@@ -1028,34 +1028,44 @@ void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColo
     switch (AccidentalSymbol)
     {
     case accFlat:
-        ScreenObj.move(sized((-11 * 12) + FortegnAddX), 150);
+        //ScreenObj.move(sized((-11 * 12) + FortegnAddX), 150);
+        ScreenObj.move(sized(-9 * 12) + FortegnAddX,sized(48));
 #ifndef __Lelandfont
-        a.append(ScreenObj.plLet(OCTTFFlat, Size));
+        //a.append(ScreenObj.plLet(OCTTFFlat, Size));
+        a.append(ScreenObj.plChar(OCTTFFlat, Size));
 #else
         ScreenObj.move(-12,-118);
         a.append(ScreenObj.plLet(LelandFlat, Size));
 #endif
         break;
     case accSharp:
-        ScreenObj.move(sized((-13 * 12) + FortegnAddX), 150);
+        //ScreenObj.move(sized((-13 * 12) + FortegnAddX), 150);
+        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
 #ifndef __Lelandfont
-        a.append(ScreenObj.plLet(OCTTFSharp, Size));
+        //a.append(ScreenObj.plLet(OCTTFSharp, Size));
+        a.append(ScreenObj.plChar(OCTTFSharp, Size));
 #else
         ScreenObj.move(-12,-118);
         a.append(ScreenObj.plLet(LelandSharp, Size));
 #endif
         break;
     case accDoubleFlat:
-        ScreenObj.move(sized((-17 * 12) + FortegnAddX), 150);
-        a.append(ScreenObj.plLet(OCTTFDoubleFlat, Size));
+        ScreenObj.move(sized(-9 * 12) + FortegnAddX,sized(48));
+        //ScreenObj.move(sized((-17 * 12) + FortegnAddX), 150);
+        a.append(ScreenObj.plChar(OCTTFDoubleFlat, Size));
+        //a.append(ScreenObj.plLet(OCTTFDoubleFlat, Size));
         break;
     case accDoubleSharp:
-        ScreenObj.move(sized((-14 * 12) + FortegnAddX), 150);
-        a.append(ScreenObj.plLet(OCTTFDoubleSharp, Size));
+        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
+        //ScreenObj.move(sized((-14 * 12) + FortegnAddX), 150);
+        //a.append(ScreenObj.plLet(OCTTFDoubleSharp, Size));
+        a.append(ScreenObj.plChar(OCTTFDoubleSharp, Size));
         break;
     case accNatural:
-        ScreenObj.move(sized(FortegnAddX - 12 * 12), 150);
-        a.append(ScreenObj.plLet(OCTTFOpl, Size));
+        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
+        //ScreenObj.move(sized(FortegnAddX - 12 * 12), 150);
+        //a.append(ScreenObj.plLet(OCTTFOpl, Size));
+        a.append(ScreenObj.plChar(OCTTFOpl, Size));
         break;
     case accNone:
         break;
@@ -1065,12 +1075,13 @@ void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColo
     if ((CenterY % 96) != 0) ScreenObj.move(0,48);
     l.append(OCNoteList::PlotDot(NoteVal, UnderTriplet, 4, ScreenObj));
     moveTo(ScreenObj);
+    ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
     if (NoteHeadType == 0) {
-        ScreenObj.move(0,77);
+        //ScreenObj.move(0,77);
     #ifdef __Lelandfont
         ScreenObj.move(-60,-41);
     #endif
-        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
+        ScreenObj.move(58,0,Size);
         switch (NoteVal)
         {
         case 168:
@@ -1078,7 +1089,7 @@ void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColo
         case 96:
         case 64:
     #ifndef __Lelandfont
-            l.append(ScreenObj.plLet(OCTTFNoteWhole, ClusterSize, 612));
+            l.append(ScreenObj.plChar(OCTTFNoteWhole, Size, 624));
     #else
             l.append(ScreenObj.plLet(LelandNoteWhole, ClusterSize));
     #endif
@@ -1088,30 +1099,28 @@ void CNoteHead::plot(const int ClusterSize, const bool UnderTriplet, const QColo
         case 72:
         case 84:
     #ifndef __Lelandfont
-            l.append(ScreenObj.plLet(OCTTFNoteHalf, ClusterSize, 612));
+            l.append(ScreenObj.plChar(OCTTFNoteHalf, Size, 624));
     #else
             l.append(ScreenObj.plLet(LelandNoteHalf, ClusterSize));
     #endif
             break;
         default:
     #ifndef __Lelandfont
-            l.append(ScreenObj.plLet(OCTTFNoteQuarter, ClusterSize, 612));
+            l.append(ScreenObj.plChar(OCTTFNoteQuarter, Size, 624));
     #else
             l.append(ScreenObj.plLet(LelandNoteQuarter, ClusterSize));
     #endif
         }
     }
     else if (NoteHeadType == 1) {
-        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
-        ScreenObj.move(-24,0,ClusterSize);
-        l.append(ScreenObj.plLet(QChar(0xF0CF),ClusterSize,"Wingdings 2",true,false,132,Qt::AlignCenter | Qt::AlignHCenter));
+        ScreenObj.move(-28,0,Size);
+        l.append(ScreenObj.plChar(WDX,Size,138,WingDingsName,true));
     }
     else if (NoteHeadType == 2) {
-        ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
-        ScreenObj.move(-14,-2,ClusterSize);
-        l.append(ScreenObj.plLet(QChar(0xF0AF),ClusterSize,"Wingdings 2",true,false,108,Qt::AlignCenter | Qt::AlignHCenter));
-        ScreenObj.move(4,4,ClusterSize);
-        l.append(ScreenObj.plLet(QChar(0xF0AF),ClusterSize,"Wingdings 2",true,false,108,Qt::AlignCenter | Qt::AlignHCenter));
+        ScreenObj.move(-14,-2,Size);
+        l.append(ScreenObj.plChar(WDDiamond,Size,108,WingDingsName,true));
+        ScreenObj.move(4,4,Size);
+        l.append(ScreenObj.plChar(WDDiamond,Size,108,WingDingsName,true));
     }
     FrameList.AppendAccidentalGroup(ScreenObj.MakeGroup(l),ScreenObj.MakeGroup(a),ScreenObj.MakeGroup(tie),Location);
     ScreenObj.col = TrackColor;

@@ -891,9 +891,10 @@ OCKeyAccidental CKey::AccidentalFlag(int Key)
 
 OCGraphicsList CKey::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    OCGraphicsList l=plotKey(Symbol.getIntVal("Key")-6,Symbol.move(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, false, true) + 180),0),voiceVars.clef(),ScreenObj);
-    if ((CountIt.isFirstBeat()) && (!CountIt.isFirstBar()))
-    {
+    OCGraphicsList l;
+    const int MoveX = (CountIt.isFirstBeatOfFirstBar()) ? 180 : 120;
+    l=plotKey(Symbol.getIntVal("Key")-6,Symbol.move(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, false, true) + MoveX),0),voiceVars.clef(),ScreenObj);
+    if (CountIt.isFirstBeat() && !CountIt.isFirstBar()) {
         ScreenObj.moveTo(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, true, true) + 216), ScoreStaffHeight);
         l.append(ScreenObj.line(0,-ScoreStaffLinesHeight));
     }
@@ -902,7 +903,7 @@ OCGraphicsList CKey::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageB
 
 OCGraphicsList CKey::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    plotKey(Symbol.getIntVal("Key")-6, Symbol.move(ScreenObj.spaceX(BarList.paddingRight(true, false, true))-(12*4),0),voiceVars.clef(),ScreenObj);
+    plotKey(Symbol.getIntVal("Key")-6, Symbol.move(ScreenObj.spaceX(BarList.paddingRight(true, false, true))+(12*2),0),voiceVars.clef(),ScreenObj);
     ScreenObj.moveTo(ScreenObj.spaceX(BarList.systemLength()-(LineHalfThickNess*6)), ScoreStaffHeight);
     ScreenObj.line(0,-ScoreStaffLinesHeight);
     return OCGraphicsList();

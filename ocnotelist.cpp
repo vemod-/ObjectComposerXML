@@ -927,7 +927,7 @@ const OCGraphicsList OCNoteList::PlotLengths(const int Sign, const QPointF& Pos,
     else if (Sign == 1)
     {
         ScreenObj.move(FnSize(-5 * 12,Size), UpDown * 10 * 12);
-        l.append(ScreenObj.line(FnSize(120,Size),0));
+        l.append(ScreenObj.line(FnSize(120,Size),0,1.4));
     }
     return l;
 }

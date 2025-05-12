@@ -815,7 +815,7 @@ public:
         //move(offsetX-36,offsetY,Size);
         //l.append(plLet(".",Size,"Courier new",false,false,100,Qt::AlignCenter));
         move(offsetX,offsetY,Size);
-        l.append(plChar(WDDot,SignSize,24,WingDingsName,false));
+        l.append(plChar(WDDot,SignSize,24,WingDingsName));
         move(-offsetX,-offsetY,Size);
         //move(-(offsetX-36),-(offsetY),Size);
         return l;

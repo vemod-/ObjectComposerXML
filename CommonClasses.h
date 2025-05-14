@@ -4,12 +4,12 @@
 #define expressiondefault 116
 #define BarLeftMargin 204
 #define BarRightMargin 48
-#define ScoreLeftMargin (18*12)
+#define ScoreLeftMargin 216 // 18*12
 #define ScoreStaffHeight 1200
 #define ScoreStaffLinesHeight 384
-#define ScoreTopSymbolY ScoreStaffHeight+(20*12)
-#define ScoreBottomSymbolY (42*12)
-#define ScoreTempoY (44 * 12) + ScoreStaffHeight
+#define ScoreTopSymbolY (ScoreStaffHeight + 240) // 20*12
+#define ScoreBottomSymbolY 504 // 42*12
+#define ScoreTempoY (528 + ScoreStaffHeight) // 44*!2
 #define maxticks 255
 #define vorschlagLength 30
 
@@ -1312,7 +1312,7 @@ public:
             return Switch(Scale[0],noteAccSharp,noteAccDoubleFlat,noteAccNone);
         case 1:
             return Switch(Scale[1],noteAccDoubleSharp,noteAccFlat,noteAccSharp);
-        case noteAccDoubleSharp:
+        case 2:
             return Switch(Scale[2],noteAccDoubleSharp,noteAccDoubleFlat,noteAccNone);
         case 3:
             return Switch(Scale[3],noteAccSharp,noteAccDoubleFlat,noteAccFlat);

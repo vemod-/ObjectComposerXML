@@ -51,7 +51,7 @@ void CAccidentalsPiano::DrawKey(const int Pitch, const bool Pressed)
     QFont F(font());
     F.setPointSizeF(16);
     QFontMetrics fm(F);
-    QString txt=Chromatic[uint(Pitch)][Keys[uint(Pitch)]];
+    QString txt = Chromatic[uint(Pitch)][Keys[uint(Pitch)]];
     if (IsBlackKey(Pitch))
     {
         DrawBlackKey(Pos,Pressed);

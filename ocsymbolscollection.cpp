@@ -62,7 +62,7 @@ OCSymbolsCollection::OCSymbolsCollection()
         Symbols.insert("Comma", new CComma);
         Symbols.insert("BartokPizz", new CBartokP);
         Symbols.insert("Bowing", new CBowing);
-        Symbols.insert("Accidental", new CAccidental);
+        //Symbols.insert("Accidental", new CAccidental);
         Symbols.insert("Trill", new CTrill);
         Symbols.insert("Glissando", new CGliss);
         Symbols.insert("Tremolo", new CTremolo);
@@ -927,24 +927,70 @@ void CKey::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool
 
 void CKey::fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars)
 {
+    /*
+    Chromatic[0] = QStringList({"C", "B#", "Dbb"});
+    Chromatic[1] = QStringList({"C#", "Bx", "Db"});
+    Chromatic[2] = QStringList({"D", "Cx", "Ebb"});
+    Chromatic[3] = QStringList({"Eb", "D#", "Fbb"});
+    Chromatic[4] = QStringList({"E", "Dx", "Fb"});
+    Chromatic[5] = QStringList({"F", "E#", "Gbb"});
+    Chromatic[6] = QStringList({"F#", "Ex", "Gb"});
+    Chromatic[7] = QStringList({"G", "Fx", "Abb"});
+    Chromatic[8] = QStringList({"Ab", "G#", QString()});
+    Chromatic[9] = QStringList({"A", "Gx", "Bbb"});
+    Chromatic[10] = QStringList({"Bb", "A#", "Cbb"});
+    Chromatic[11] = QStringList({"B", "Ax", "Cb"});
+
+     */
     voiceVars.setKey(Symbol);
-    std::array<int,12> s = {{0}};
-    if (voiceVars.key() < 0)
-    {
-        s = {{0,2,0,0,0,0,2,0,0,0,0,0}};
+
+    switch (voiceVars.key()) {
+    case -6: // Gb - eb
+        voiceVars.Scale = {0,2,0,0,2,0,2,0,0,2,0,2};
+        break;
+    case -5: // Db - bb
+        voiceVars.Scale = {0,2,0,0,2,0,2,0,0,0,0,2};
+        break;
+    case -4: // Ab - f
+        voiceVars.Scale = {0,2,0,0,0,0,2,0,0,0,0,2};
+        break;
+    case -3: // Eb - c
+        voiceVars.Scale = {0,2,0,0,0,0,2,0,0,0,0,0};
+        break;
+    case -2: // Bb - g
+        voiceVars.Scale = {0,2,0,0,0,0,0,0,0,0,0,0};
+        break;
+    case -1: // F - d
+        voiceVars.Scale = {0,0,0,0,0,0,0,0,0,0,0,0};
+        break;
+    case 0: // C - a
+        voiceVars.Scale = {0,0,0,0,0,0,0,0,1,0,0,0};
+        break;
+    case 1: // G - e
+        voiceVars.Scale = {0,0,0,1,0,0,0,0,1,0,0,0};
+        break;
+    case 2: // D - b
+        voiceVars.Scale = {0,0,0,1,0,0,0,0,1,0,1,0};
+        break;
+    case 3: // A - f#
+        voiceVars.Scale = {0,0,0,1,0,1,0,0,1,0,1,0};
+        break;
+    case 4: // E - c#
+        voiceVars.Scale = {1,0,0,1,0,1,0,0,1,0,1,0};
+        break;
+    case 5: // B - g#
+        voiceVars.Scale = {1,0,0,1,0,1,0,1,1,0,1,0};
+        break;
+    case 6: // F# - d#
+        voiceVars.Scale = {1,0,1,1,0,1,0,1,1,0,1,0};
     }
-    if (voiceVars.key() > 0)
-    {
-        s = {{0,0,0,1,0,0,0,0,1,0,1,0}};
-    }
-    voiceVars.Scale=s;
 }
 
 OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& ScreenObj)
 {
     OCKeyAccidental KBFlagFaste=AccidentalFlag(Key);
     uint AntalFasteFortegn=NumOfAccidentals(Key);
-    std::array<int,7> Acc={{99 ,87 ,103 ,91 ,79 ,95 ,83}};
+    std::array<int,7> Acc={99 ,87 ,103 ,91 ,79 ,95 ,83};
     OCGraphicsList l;
     if (AntalFasteFortegn == 0) return l;
     if (KBFlagFaste == keyAccSharps)
@@ -953,16 +999,16 @@ OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& Scre
         {
         case 0:
         case 1:
-            Acc = {{99 ,87 ,103 ,91 ,79 ,95 ,83}};
+            Acc = {99 ,87 ,103 ,91 ,79 ,95 ,83};
             break;
         case 2:
-            Acc = {{91 ,79 ,95 ,83 ,99 ,87 ,103}};
+            Acc = {91 ,79 ,95 ,83 ,99 ,87 ,103};
             break;
         case 3:
-            Acc = {{95 ,83 ,99 ,87 ,103 ,91 ,79}};
+            Acc = {95 ,83 ,99 ,87 ,103 ,91 ,79};
             break;
         case 4:
-            Acc = {{103 ,91 ,79 ,95 ,83 ,99 ,87}};
+            Acc = {103 ,91 ,79 ,95 ,83 ,99 ,87};
             break;
         }
     }
@@ -972,16 +1018,16 @@ OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& Scre
         {
         case 0:
         case 1:
-            Acc = {{83 ,95 ,79 ,91 ,75 ,87 ,71}};
+            Acc = {83 ,95 ,79 ,91 ,75 ,87 ,71};
             break;
         case 2:
-            Acc = {{75 ,87 ,71 ,83 ,67 ,79 ,63}};
+            Acc = {75 ,87 ,71 ,83 ,67 ,79 ,63};
             break;
         case 3:
-            Acc = {{79 ,91 ,75 ,87 ,71 ,83 ,67}};
+            Acc = {79 ,91 ,75 ,87 ,71 ,83 ,67};
             break;
         case 4:
-            Acc = {{87 ,99 ,83 ,95 ,79 ,91 ,75}};
+            Acc = {87 ,99 ,83 ,95 ,79 ,91 ,75};
             break;
         }
     }
@@ -1407,7 +1453,7 @@ OCProperties* Cfz::GetDefaultProperties(int Button)
 }
 
 
-
+/*
 QList<OCToolButtonProps*> CAccidental::CreateButtons()
 {
     CreateButton("Note",":/Notes/Notes/flat.png",false,tsRedrawActiveStave,"Add Flat","Parentheses");
@@ -1435,7 +1481,7 @@ OCGraphicsList CAccidental::plLeftParanthesis(OCDraw& ScreenObj)
     return l;
 }
 
-OCGraphicsList CAccidental::PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsList CAccidental::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     OCGraphicsList l;
     PrintProps.moveTo(ScreenObj);
@@ -1492,7 +1538,7 @@ OCGraphicsList CAccidental::PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/
     }
     return l;
 }
-
+*/
 
 
 QList<OCToolButtonProps*> CBowing::CreateButtons()

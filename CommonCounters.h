@@ -14,6 +14,7 @@ public:
     int TickCounter = 0;
     int TripletCount = 0;
     int TripletStart = 0;
+    bool TupletTriplet = false;
     int RhythmObjectIndex = 0;
     int CurrentTicks = 0;
     int CurrentTicksRounded = 0;
@@ -117,6 +118,7 @@ public:
         TupletActualTicks = TupletCount;
         TupletCount = TicksToCount;
         TupletMax = TupletCount;
+        tupletTripletFlip(XMLSymbol);
     }
     inline void reset() {
         factor = 1;
@@ -125,6 +127,7 @@ public:
         TupletCount = 0;
         TickCounter = 0;
         TripletCount = 0;
+        TupletTriplet = false;
     }
     inline void playFlip(const int ticks) {
         CurrentTicks = ticks;
@@ -155,16 +158,36 @@ public:
     inline bool isFirstBar() { return (BarCounter == 0); }
     inline bool isFirstBeatOfFirstBar() { return (isFirstBeat() && isFirstBar()); }
     inline bool tripletFlip(const XMLSymbolWrapper& Symbol) {
-        if (Symbol.triplet()) {
+        if (TupletTriplet) {
+            TripletCount += CurrentTicksRounded;
+            const bool retval = isStraight(TripletCount) & (TupletCount <= CurrentTicks);
+            if (retval) {
+                TupletTriplet = false;
+            }
+            return retval;
+        }
+        else if (Symbol.triplet()) {
             if (TripletCount == 0) TripletStart = RhythmObjectIndex;
             TripletCount += Symbol.ticks();
         }
         else {
             if (TripletCount > 0) TripletCount += Symbol.ticks();
         }
-        return isStraight(TripletCount);
+        const bool retval = isStraight(TripletCount);
+        return retval;
     }
-    inline bool underTriplet() { return (TripletCount != 0); }
+    inline void tupletTripletFlip(const XMLSymbolWrapper& Symbol) {
+        if (isTriplet(Symbol.getIntVal("TupletValue"))) {
+            if (TripletCount == 0) TripletStart = RhythmObjectIndex;
+            //TripletCount += Symbol.ticks();
+            TupletTriplet = true;
+        }
+        else {
+            //if (TripletCount > 0) TripletCount += Symbol.ticks();
+        }
+        //return isStraight(TripletCount);
+    }
+    inline bool underTriplet() { return ((TripletCount != 0) & (isOne(factor))); }
     inline bool underTuplet() { return !isOne(factor); }
     static inline bool isDotted(const int val) {
         switch (val)

@@ -147,10 +147,12 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
                 ScreenObj.col = VoiceColor;
                 CountIt.flip(Symbol.ticks());
                 NoteList.plot(CountIt.RhythmObjectIndex, CountIt, VoiceLocation, BarList, VoiceColor, FrameList, ScreenObj);
+                bool tuplettriplet = CountIt.TupletTriplet;
                 if (CountIt.tripletFlip(Symbol))
                 {
                     ScreenObj.setcol(QColor(unselectablecolor));
-                    OCNoteList::PlotTuplet(NoteList.CreateList(CountIt.TripletStart, CountIt.TripletCount - CountIt.CurrentTicks), 3, QPointF(0,0), 0, ScreenObj);
+                    OCRhythmObjectList l;
+                    OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.TripletStart,CountIt.RhythmObjectIndex), 3, QPointF(0,0), 0, ScreenObj, int(tuplettriplet) * 96);
                     ScreenObj.col = VoiceColor;
                     CountIt.TripletCount = 0;
                 }

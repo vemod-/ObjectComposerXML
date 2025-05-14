@@ -127,7 +127,9 @@ protected:
         m_PropColl.appendList("NoteType", "Returns/sets the Type of a Note. The Type can be Single Note or Compound Note, and notes can be Tied.", QStringList{"Note", "Tied Note", "Chord Note", "Tied Chord Note","Grace Note","Tied Grace Note"},0,false ,"" , "Appearance");
         m_PropColl.appendList("NoteHeadType","Returns/sets the Shape of the Note head.",{"Normal","X","Diamond"},0,false,"","Appearance");
         m_PropColl.appendNumber("Pitch", 0, 127, "Returns/sets the Pitch of a Note in MIDI key numbers.",false ,"" , "Appearance");
-        m_PropColl.appendNumber("AccidentalLeft", -32000, 32000, "Returns/sets the distance between an Accidentals default horizontal position and it's current horizontal position.",false ,"" , "Position");
+        m_PropColl.appendNumber("AccidentalLeft", -32000, 32000, "Returns/sets the distance between an Accidentals default horizontal position and it's current horizontal position.",false ,"" , "Accidental");
+        m_PropColl.appendList("AccidentalType","Returns/sets the type of Accidental.",{"Auto","Hidden","b","#","bb","x","nat"}, 0, false,"", "Accidental");
+        m_PropColl.appendBool("AccidentalParentheses", "Returns/sets Parentheses around the Accidentals", false ,"" , "Accidental");
         m_PropColl.appendNumber("TieTop", -32000, 32000, "Returns/sets the distance between a Ties default vertical position and it's current vertical position.",false ,"" , "Position");
         m_ButtonProperty = "NoteValue";
     }
@@ -553,7 +555,7 @@ protected:
         FPcount=0;
     }
 };
-
+/*
 class CAccidental :public CVisibleSymbol
 {
 public:
@@ -579,7 +581,7 @@ protected:
         m_ButtonProperty="AccidentalSign";
     }
 };
-
+*/
 class CBowing :public CVisibleSymbol
 {
 public:
@@ -1271,10 +1273,7 @@ public:
     {
         if (d==2) return OCNoteList::SlurDown;
         if (d==1) return OCNoteList::SlurUp;
-        QAverage<int> Average;
-        for (const IOCRhythmObject* r : l) Average.append(r->AverageY);
-        if (Average.average() > (86 * 12)) return OCNoteList::SlurUp;
-        return OCNoteList::SlurDown;
+        return (l.stemUp()) ? OCNoteList::SlurUp : OCNoteList::SlurDown;
     }
 protected:
     void buildProperties()

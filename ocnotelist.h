@@ -213,7 +213,7 @@ public:
     int PitchCode;
     int NoteVal;
     int Left;
-    int AccidentalLeft;
+    int AccidentalLeft = 0;
     int TieTop;
     int Size;
     int Marked;
@@ -223,6 +223,8 @@ public:
     int LineNum = 0;
     int NoteHeadType = 0;
     OCAccidentalSymbols AccidentalSymbol = accNone;
+    int AccidentalType = 0;
+    bool AccidentalParentheses;
     inline CNoteHead(const XMLSymbolWrapper &Symbol, const OCSymbolLocation& L, const int M)
     {
         Marked=M;
@@ -234,6 +236,8 @@ public:
         NoteVal = Symbol.ticks();
         Left = int(Symbol.pos().x());
         AccidentalLeft = Symbol.getIntVal("AccidentalLeft");
+        AccidentalType = Symbol.getIntVal("AccidentalType");
+        AccidentalParentheses = Symbol.getBoolVal("AccidentalParentheses");
         TieTop = Symbol.getIntVal("TieTop");
         Size = Symbol.size();
     }
@@ -315,6 +319,14 @@ public:
     }
     OCRhythmObjectList createList(const int FirstNote, const int Ticks) {
         return OCRhythmObjectList(*this,FirstNote,Ticks);
+    }
+    int averageY() const {
+        QAverage<int> Average;
+        for (const IOCRhythmObject* r : *this) Average.append(r->AverageY);
+        return Average.average();
+    }
+    bool stemUp() const {
+        return (averageY() > 84 * 12);
     }
     bool isWrapRight;
 };
@@ -407,14 +419,12 @@ class OCBeamList
 public:
     inline OCBeamList(){}
     OCRhythmObjectList RhythmObjects;
-    QAverage<int> Average;
     inline void append(IOCRhythmObject* r);
     inline bool isEmpty() const { return RhythmObjects.isEmpty(); }
     inline void clear() {
         RhythmObjects.clear();
         MinNumOfBeams = 1;
         SlantFactor = 0;
-        Average.clear();
     }
     int MinNumOfBeams = 1;
     double SlantFactor = 0;
@@ -443,6 +453,11 @@ private:
     QList<OCBeamList> BeamLists;
     //void FillBeamLists();
 public:
+    const OCRhythmObjectList ListFromTo(const int FirstNote, const int LastNote) {
+        OCRhythmObjectList l;
+        for (int i = FirstNote; i <= LastNote; i++) l.append(RhythmObjectList[i]);
+        return l;
+    }
     const OCRhythmObjectList CreateList(const int FirstNote, const int Ticks)
     {
         return RhythmObjectList.createList(FirstNote,Ticks);
@@ -465,7 +480,7 @@ public:
     void CreateBeamLists();
     void plot(const int FirstNote, OCPrintCounter& CountIt, const OCVoiceLocation& VoiceLocation, const OCPageBarList& BarList, const QColor& TrackColor, OCFrameArray& FrameList, OCDraw& ScreenObj);
     void PlotBeams(const QColor& TrackColor, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj);
+    static const OCGraphicsList PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj, const int YOffset = 0);
     static const OCGraphicsList PlotSlur(const OCRhythmObjectList& SlurList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
     static const OCGraphicsList PlotHairPin(const OCRhythmObjectList& HPList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
     static const OCGraphicsList PlotDot(const int Value, const bool UnderTriplet, const int Size, OCDraw& ScreenObj);

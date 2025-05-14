@@ -66,6 +66,10 @@ void OCStaffAccidentals::Process(OCOneOctaveFlagsArray& WasHere, const OCScaleAr
                 //flat or sharp
                 setNoteAccidental(WasHere,item,AccSign);
             }
+            else if ((AccSign == noteAccDoubleFlat) || (AccSign == noteAccDoubleSharp)) {
+                //flat or sharp
+                setNoteAccidental(WasHere,item,AccSign);
+            }
         }
         else
         {
@@ -730,7 +734,7 @@ void OCNoteList::CreateBeamLists()
 void OCNoteList::plot(const int FirstNote, OCPrintCounter& CountIt, const OCVoiceLocation& VoiceLocation, const OCPageBarList& BarList, const QColor& TrackColor, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
     if (FirstNote >= RhythmObjectList.size()) return;
-    IOCRhythmObject* s=RhythmObjectList[FirstNote];
+    IOCRhythmObject* s = RhythmObjectList[FirstNote];
     int NextHeight = 86 * 12;
     double NextX = BarList.systemLength() + 144;
     if (s != RhythmObjectList.last())
@@ -774,7 +778,7 @@ void OCNoteList::PlotBeams(const QColor& TrackColor, OCDraw& ScreenObj)
     for (OCBeamList& l : BeamLists) l.plot(ScreenObj);
 }
 
-const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj, const int YOffset)
 {
     OCGraphicsList l;
     if (TupletList.isEmpty()) return l;
@@ -785,9 +789,9 @@ const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList
     if (NoteL->UpDown != NoteR->UpDown) {
         lineR.setY(NoteR->BalkBeginY - NoteL->directed(108));
     }
-    lineL += Pos;
-    lineR += Pos;
     const int lineUD = NoteL->UpDown;
+    lineL += Pos - QPointF(0,lineUD * YOffset);
+    lineR += Pos - QPointF(0,lineUD * YOffset);
     const QPointF center = (lineL + lineR) / 2.0;
     QVector2D dir(lineR - lineL);
     dir.normalize();
@@ -1023,13 +1027,37 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
             ScreenObj.col = (ScreenObj.Cursor->SelCount()==0) ? markedcolor : selectedcolor;
         }
     }
-    moveTo(ScreenObj);
     OCGraphicsList a;
-    switch (AccidentalSymbol)
+    int AccSign = AccidentalSymbol;
+    if (AccidentalType > 0) {
+        AccSign = AccidentalType - 1;
+    }
+    if (AccSign != accNone) {
+        if (AccidentalParentheses) {
+            moveTo(ScreenObj);
+            ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
+            ScreenObj.move((-9 * 12), 0, Size);
+            if (AccSign == accDoubleFlat) ScreenObj.move(sized(-3 * 12),0);
+            if (AccSign == accFlat) ScreenObj.move(sized(12),0);
+            a.append(ScreenObj.plLet("(",Size,"Arial",false,false,156,Qt::AlignCenter));
+            moveTo(ScreenObj);
+            ScreenObj.move(sized(-9 * 12) + FortegnAddX, 0);
+            ScreenObj.move(12, 0, Size);
+            a.append(ScreenObj.plLet(")",Size,"Arial",false,false,156,Qt::AlignCenter));
+            moveTo(ScreenObj);
+            ScreenObj.move(sized(-12 * 12) + FortegnAddX,0);
+            if (AccSign == accFlat) ScreenObj.move(sized(12),0);
+        }
+        else {
+            moveTo(ScreenObj);
+            ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
+        }
+    }
+    switch (AccSign)
     {
     case accFlat:
         //ScreenObj.move(sized((-11 * 12) + FortegnAddX), 150);
-        ScreenObj.move(sized(-9 * 12) + FortegnAddX,sized(48));
+        ScreenObj.move(0,sized(48));
 #ifndef __Lelandfont
         //a.append(ScreenObj.plLet(OCTTFFlat, Size));
         a.append(ScreenObj.plChar(OCTTFFlat, Size));
@@ -1040,7 +1068,6 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
         break;
     case accSharp:
         //ScreenObj.move(sized((-13 * 12) + FortegnAddX), 150);
-        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
 #ifndef __Lelandfont
         //a.append(ScreenObj.plLet(OCTTFSharp, Size));
         a.append(ScreenObj.plChar(OCTTFSharp, Size));
@@ -1050,19 +1077,17 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
 #endif
         break;
     case accDoubleFlat:
-        ScreenObj.move(sized(-9 * 12) + FortegnAddX,sized(48));
+        ScreenObj.move(0,sized(48));
         //ScreenObj.move(sized((-17 * 12) + FortegnAddX), 150);
         a.append(ScreenObj.plChar(OCTTFDoubleFlat, Size));
         //a.append(ScreenObj.plLet(OCTTFDoubleFlat, Size));
         break;
     case accDoubleSharp:
-        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
         //ScreenObj.move(sized((-14 * 12) + FortegnAddX), 150);
         //a.append(ScreenObj.plLet(OCTTFDoubleSharp, Size));
         a.append(ScreenObj.plChar(OCTTFDoubleSharp, Size));
         break;
     case accNatural:
-        ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
         //ScreenObj.move(sized(FortegnAddX - 12 * 12), 150);
         //a.append(ScreenObj.plLet(OCTTFOpl, Size));
         a.append(ScreenObj.plChar(OCTTFOpl, Size));
@@ -1137,15 +1162,13 @@ void OCBeamList::append(IOCRhythmObject *r)
         if (r->NumOfBeams < MinNumOfBeams) MinNumOfBeams = r->NumOfBeams;
     }
     RhythmObjects.append(r);
-    Average.append(r->AverageY);
 }
 
 void OCBeamList::CalcBalk()
 {
     if (RhythmObjects.first()->NumOfForcedBeams > MinNumOfBeams) MinNumOfBeams = RhythmObjects.first()->NumOfForcedBeams;
     if ((RhythmObjects.first()->ForceBeamIndex == 1) && (MinNumOfBeams == 0)) MinNumOfBeams = 1;
-    StemDirection UpDown = StemDown;
-    if (Average.average() > (86 * 12)) UpDown = StemUp;
+    StemDirection UpDown = (RhythmObjects.stemUp()) ? StemUp : StemDown;
     for (const IOCRhythmObject* r : std::as_const(RhythmObjects)) {
         if (r->ForceUpDown != 0) {
             UpDown = r->ForceUpDown;

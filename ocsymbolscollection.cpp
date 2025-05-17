@@ -694,7 +694,7 @@ void CTuplet::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, b
 
 OCGraphicsList CTuplet::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    return OCNoteList::PlotTuplet(NoteList.CreateList(CountIt.RhythmObjectIndex, CountIt.TupletMax), CountIt.TupletCaption, Symbol.pos(), Symbol.size(), ScreenObj);
+    return OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.CurrentIndex, CountIt.CurrentIndex + CountIt.TupletCounter.NumOfNotes - 1), CountIt.TupletCounter.Fraction.num, Symbol.pos(), Symbol.size(), ScreenObj,int(CountIt.TupletCounter.ContainsTriplet) * 96);
 }
 
 
@@ -2238,7 +2238,7 @@ OCProperties* CHairpin::GetDefaultProperties(int Button)
 
 OCGraphicsList CHairpin::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    return OCNoteList::PlotHairPin(NoteList.CreateList(CountIt.RhythmObjectIndex,Symbol.ticks()), Symbol, false, ScreenObj);
+    return OCNoteList::PlotHairPin(NoteList.CreateList(CountIt.CurrentIndex,Symbol.ticks()), Symbol, false, ScreenObj);
 }
 
 OCGraphicsList CHairpin::plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj)
@@ -2932,7 +2932,7 @@ void CDurSlur::AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType &vo
 */
 OCGraphicsList CDurSlur::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    const OCRhythmObjectList slurlist = NoteList.CreateList(CountIt.RhythmObjectIndex,Symbol.ticks());
+    const OCRhythmObjectList slurlist = NoteList.CreateList(CountIt.CurrentIndex,Symbol.ticks());
     return OCNoteList::PlotSlur(slurlist, Symbol, false, ScreenObj);
 }
 

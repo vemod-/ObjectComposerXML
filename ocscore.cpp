@@ -21,7 +21,7 @@ void CVoice::plotMasterStuff(OCPageBarList& BarList, const QColor& VoiceColor, O
             if (Symbol.IsRestOrValuedNote())
             {
                 CountIt.flip(Symbol.ticks());
-                XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.TickCounter)) + BarX;
+                XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.Counter.TickCounter)) + BarX;
                 if (XFysic > ScreenObj.spaceX(BarList.systemLength())) break;
                 CountIt.DecrementFlip();
                 //CountIt.flip1(Ticks);
@@ -88,7 +88,7 @@ void CVoice::formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScor
         if (Symbol.IsRestOrValuedNote())
         {
             CountIt.flip(Symbol.ticks());
-            BarList.setMinimum(b.currentBar, CountIt.CurrentTicksRounded, CountIt.TickCounter - CountIt.CurrentTicksRounded);
+            BarList.setMinimum(b.currentBar, CountIt.Counter.CurrentTicksRounded, CountIt.Counter.TickCounter - CountIt.Counter.CurrentTicksRounded);
             CountIt.DecrementFlip();
             //CountIt.flip1(Ticks);
         }
@@ -146,19 +146,18 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             {
                 ScreenObj.col = VoiceColor;
                 CountIt.flip(Symbol.ticks());
-                NoteList.plot(CountIt.RhythmObjectIndex, CountIt, VoiceLocation, BarList, VoiceColor, FrameList, ScreenObj);
-                bool tuplettriplet = CountIt.TupletTriplet;
-                if (CountIt.tripletFlip(Symbol))
+                //CountIt.tripletFlip(Symbol);
+                NoteList.plot(CountIt.CurrentIndex, CountIt, VoiceLocation, BarList, VoiceColor, FrameList, ScreenObj);
+                //CountIt.tripletFlip(Symbol);
+                if (CountIt.tripletEnd())
                 {
                     ScreenObj.setcol(QColor(unselectablecolor));
                     OCRhythmObjectList l;
-                    OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.TripletStart,CountIt.RhythmObjectIndex), 3, QPointF(0,0), 0, ScreenObj, int(tuplettriplet) * 96);
+                    OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.TripletCounter.FirstTripletIndex,CountIt.CurrentIndex), 3, QPointF(0,0), 0, ScreenObj, CountIt.TripletCounter.TupletTriplet * 96);
                     ScreenObj.col = VoiceColor;
-                    CountIt.TripletCount = 0;
                 }
-                NoteList.plotsigns(CountIt.RhythmObjectIndex, SignsToPrint, FrameList, ScreenObj);
+                NoteList.plotsigns(CountIt.CurrentIndex, SignsToPrint, FrameList, ScreenObj);
                 CountIt.DecrementFlip();
-                //CountIt.flip1(Ticks);
             }
             else
             {
@@ -171,7 +170,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             ScreenObj.col = VoiceColor;
             SignCol = VoiceColor;
             CountIt.FilePointer++;
-            XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.TickCounter)) + BarX;
+            XFysic = ScreenObj.spaceX(BarList.calcX(CountIt.barCount(), CountIt.Counter.TickCounter)) + BarX;
             if (CountIt.newBar(CountIt.Meter)) break;
         }
         if (CountIt.barCount() >= BarList.barsToPrint() - 1) break;
@@ -385,14 +384,15 @@ int CVoice::findBarPlayChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voic
         const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.Pointer, CountIt.PlayMeter);
         if (Symbol.IsRestOrValuedNote())
         {
-            CountIt.playFlip(Symbol.ticks());
+            //CountIt.playFlip(Symbol.ticks());
+            CountIt.flip(Symbol.ticks());
             if (Symbol.isAudible())
             {
                 SignsToPlay.PlayAfterNote(Symbol, CountIt);
-                SignsToPlay.decrement(CountIt.CurrentTicks);
+                SignsToPlay.decrement(CountIt.Counter.CurrentTicks);
                 if (CountIt.Accel != 0)
                 {
-                    CountIt.AccelCounter += CountIt.CurrentTicks;
+                    CountIt.AccelCounter += CountIt.Counter.CurrentTicks;
                 }
                 else
                 {
@@ -626,7 +626,7 @@ int CVoice::playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsAr
                 NotesToPlay.sort();
                 int NoteOnPitch = NotesToPlay.pitch(NotesToPlay.size()-1);
                 int NoteOffPitch = NoteOnPitch;
-                int ThisVelocity = CountIt.Currentdynam + int(CountIt.crescendo) + (5 - int(((CountIt.TickCounter / 10) * 8) / CountIt.PlayMeter));
+                int ThisVelocity = CountIt.Currentdynam + int(CountIt.crescendo) + (5 - int((CountIt.Counter.TickCounter * 8) / CountIt.PlayMeter));
                 playExprClear(CountIt, MFile, SignsToPlay);
                 SignsToPlay.PlayBeforeNote(Symbol, ThisVelocity, NoteOnPitch, NoteOffPitch, CountIt);
                 ThisVelocity = qBound<int>(0, ThisVelocity, 127);
@@ -660,10 +660,11 @@ int CVoice::playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsAr
                     }
                 }
 
-                CountIt.playFlip(Symbol.ticks());
-                const int NoteTime = calcNoteTime(Symbol, CountIt.CurrentTicksRounded, CountIt, SignsToPlay) - VorschlagCount;
+                //CountIt.playFlip(Symbol.ticks());
+                CountIt.flip(Symbol.ticks());
+                const int NoteTime = calcNoteTime(Symbol, CountIt.PlayCounter.CurrentTicksRounded, CountIt, SignsToPlay) - VorschlagCount;
                 CountIt.VoicedTime = CountIt.CurrentDelta + NoteTime;
-                CountIt.CurrentDelta += (CountIt.CurrentTicksRounded - VorschlagCount) + SignsToPlay.value("Fermata", "Duration");
+                CountIt.CurrentDelta += (CountIt.PlayCounter.CurrentTicksRounded - VorschlagCount) + SignsToPlay.value("Fermata", "Duration");
                 CountIt.VorschlagNotes.clear();
 
                 playDuringNote(SignsToPlay, Symbol, CountIt.VoicedTime, NoteOnPitch, MFile, CountIt, NoteTime);
@@ -678,15 +679,16 @@ int CVoice::playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsAr
 
                 playNotesOff(NotesToPlay, CountIt.VoicedTime, MFile, CountIt, SignsToPlay.exist("Pedal"));
                 playDuringPause(SignsToPlay,NoteOnPitch,MFile,CountIt);
-                SignsToPlay.decrement(CountIt.CurrentTicks);
+                SignsToPlay.decrement(CountIt.Counter.CurrentTicks);
             }
             else
             {
                 //'It's a Pause
-                CountIt.playFlip(Symbol.ticks());
-                CountIt.CurrentDelta += CountIt.CurrentTicksRounded + SignsToPlay.value("Fermata", "Duration");
+                //CountIt.playFlip(Symbol.ticks());
+                CountIt.flip(Symbol.ticks());
+                CountIt.CurrentDelta += CountIt.PlayCounter.CurrentTicksRounded + SignsToPlay.value("Fermata", "Duration");
                 playDuringPause(SignsToPlay,0,MFile,CountIt);
-                SignsToPlay.decrement(CountIt.CurrentTicks);
+                SignsToPlay.decrement(CountIt.Counter.CurrentTicks);
             }
             currentlen = CountIt.flip1();
             CountIt.Pointer++;
@@ -1112,7 +1114,7 @@ void CStaff::play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, c
             if (PlayCounters[i].isReady())
             {
                 MFile.setTrackNumber(MIDITrackNumber + i, PlayCounters[i].CurrentDelta);
-                if ((MIDITrackNumber + i == 0) && (PlayCounters[i].TickCounter == 0))
+                if ((MIDITrackNumber + i == 0) && (PlayCounters[i].isFirstBeat()))
                 {
                     const int b = barmap.GetBar(OCSymbolLocation(StaffLocation.StaffId,i,PlayCounters[i].Pointer)).Bar;
                     if (b < barmap.EndOfVoiceBar(OCVoiceLocation(StaffLocation.StaffId,i))) MFile.appendMetaEvent(0x07, "Bar " + QString::number(b));

@@ -244,7 +244,7 @@ void CPausesToPrint::plot(OCPrintCounter& CountIt, const int /*NextHeight*/, con
         {
             l.append(PrintPauseSign(NoteValue, ScreenObj));
             ScreenObj.moveTo(mCenterX + sized(12), mCenterY + 48);
-            l.append(OCNoteList::PlotDot(NoteValue, CountIt.underTriplet(), 4, ScreenObj));
+            l.append(OCNoteList::PlotDot(NoteValue, CountIt.isNormalTriplet(), 4, ScreenObj));
             if (ForceBeamIndex > 0)
             {
                 ScreenObj.moveTo(mCenterX, mCenterY + directed(96));
@@ -510,12 +510,12 @@ void CNotesToPrint::plot(OCPrintCounter& CountIt, const int NextHeight, const do
     {
         for (int i = 0; i < NoteHeadList.size(); i++)
         {
-            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.isNormalTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
             if ((i+1) * 2 >= NoteHeadList.size()) TieDirection = -1;
         }
         for (int i = 0; i < VorschlagList.size(); i++)
         {
-            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection, NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection, NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.isNormalTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
             //if ((i+1) * 2 >= NoteHeadList.size()) TieDirection = -1;
         }
     }
@@ -524,12 +524,12 @@ void CNotesToPrint::plot(OCPrintCounter& CountIt, const int NextHeight, const do
         for (int i = NoteHeadList.size() - 1; i >= 0; i--)
         {
             if ((i+1) * 2 <= NoteHeadList.size()) TieDirection = -1;
-            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            if (!NoteHeadList[i].Invisible) plotNote(NoteHeadList[i], TieDirection,NextHeight,NextX,BarsToPrint,CountIt.isNormalTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
         }
         for (int i = VorschlagList.size() - 1; i >= 0; i--)
         {
             //if ((i+1) * 2 <= VorschlagList.size()) TieDirection = -1;
-            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection,NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.underTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
+            if (!VorschlagList[i].Invisible) plotNote(VorschlagList[i], TieDirection,NoteHeadList.first().CenterY, NoteHeadList.first().CenterX,BarsToPrint,CountIt.isNormalTriplet(),TrackColor,CountIt.TieWrap,FrameList,ScreenObj); //GoSub 1630
         }
     }
     CNoteHead& CurrentNote = (UpDown == StemDown) ? NoteHeadList.first() : NoteHeadList.last();
@@ -636,7 +636,7 @@ IOCRhythmObject* OCNoteList::Append(const double XFysic, const XMLSymbolWrapper&
 
     s->Fill(VoiceLocation, XMLVoice, XFysic, CountIt, StaffAccidentals, Symbol, BarList, ScreenObj);
     RhythmObjectList.append(s);
-    if (CountIt.TickCounter == CountIt.CurrentTicksRounded)
+    if (CountIt.Counter.TickCounter == CountIt.Counter.CurrentTicksRounded)
     {
         if (Symbol.IsPitchedNote()) StaffAccidentals.AddIgnore(CountIt.Ties);
     }
@@ -669,7 +669,7 @@ IOCRhythmObject* OCNoteList::Append(const double XFysic, const XMLSymbolWrapper&
         s->PerformanceSignPos = art.XMLSymbol.pos();
         s->PerformanceSignSize = art.XMLSymbol.size();
     }
-    s->CenterNextXAdd = BarList.calcX(CountIt.barCount(),CountIt.CurrentTicksRounded);
+    s->CenterNextXAdd = BarList.calcX(CountIt.barCount(),CountIt.Counter.CurrentTicksRounded);
     return s;
 }
 

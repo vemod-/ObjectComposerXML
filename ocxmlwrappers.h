@@ -1366,11 +1366,37 @@ public:
         }
         Paste1Voice(v, SymbolLocation.Pointer, data);
     }
+    static void Clear1Voice(XMLVoiceWrapper& XMLVoice, const int pointer) {
+        /*
+        if (XMLVoice.XMLSimpleSymbol(pointer).IsValuedNote() && pointer > 0) {
+            int i = pointer;
+            XMLSimpleSymbolWrapper s = XMLVoice.XMLSimpleSymbol(--i);
+            while (!s.IsRestOrValuedNote() && i >= 0) {
+                if (s.IsCompoundNote()) {
+                    s.xml()->setAttribute("NoteType",s.xml()->attributeValueInt("NoteType") - 2);
+                    break;
+                }
+                s = XMLVoice.XMLSimpleSymbol(--i);
+            }
+        }
+*/      if (pointer >= XMLVoice.size()) return;
+        if (XMLVoice.XMLSimpleSymbol(pointer).IsValuedNote()) {
+            for (int i = pointer - 1; i >= 0; --i) {
+                const XMLSimpleSymbolWrapper s = XMLVoice.XMLSimpleSymbol(i);
+                if (s.IsRestOrValuedNote()) break;
+                if (s.IsCompoundNote()) {
+                    s.xml()->setAttribute("NoteType", s.xml()->attributeValueInt("NoteType") - 2);
+                    break;
+                }
+            }
+        }
+        XMLVoice.deleteChild(pointer);
+    }
     static void Clear1Voice(XMLVoiceWrapper& XMLVoice, const OCSymbolRange& SymbolRange) {
-        for (int i = SymbolRange.End; i >= SymbolRange.Start; i--) XMLVoice.deleteChild(i);
+        for (int i = SymbolRange.End; i >= SymbolRange.Start; i--) Clear1Voice(XMLVoice, i);
     }
     static void Clear1Voice(XMLVoiceWrapper& XMLVoice, const QVector<int>& Pointers) {
-        for(int i = Pointers.size()-1; i >= 0; i--) XMLVoice.deleteChild(Pointers[i]);
+        for(int i = Pointers.size()-1; i >= 0; i--) Clear1Voice(XMLVoice, Pointers[i]);
     }
     void Clear1Voice(const OCVoiceLocation& VoiceLocation, const OCSymbolRange& SymbolRange) {
         XMLVoiceWrapper v=Voice(VoiceLocation);

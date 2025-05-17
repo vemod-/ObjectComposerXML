@@ -147,8 +147,8 @@ public slots:
     void dottify(int factor = 0);
     void Delete(const OCVoiceLocation& VoiceLocation, const OCSymbolRange& SymbolRange);
     void Delete(const OCSymbolRange& SymbolRange);
-    void Delete(const OCVoiceLocation& VoiceLocation, OCPointerList& Pointers);
-    void Delete(OCPointerList& Pointers);
+    void Delete(const OCVoiceLocation& VoiceLocation, const OCPointerList& Pointers);
+    void Delete(const OCPointerList& Pointers);
     void Delete();
     void turnback();
     void turnpage();

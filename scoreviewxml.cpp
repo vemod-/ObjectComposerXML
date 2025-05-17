@@ -893,7 +893,7 @@ void ScoreViewXML::dottify(int factor)
 
 void ScoreViewXML::Delete(const OCVoiceLocation &VoiceLocation, const OCSymbolRange &SymbolRange)
 {
-    XMLScore.Clear1Voice(VoiceLocation, OCSymbolRange(SymbolRange.Start, qMin(SymbolRange.End,VoiceLen(VoiceLocation) - 1)));
+    XMLScore.Clear1Voice(VoiceLocation, SymbolRange);
     Cursor.SetPos(SymbolRange.Start,VoiceLen());
 }
 
@@ -902,16 +902,13 @@ void ScoreViewXML::Delete(const OCSymbolRange &SymbolRange)
     Delete(Cursor.location(),SymbolRange);
 }
 
-void ScoreViewXML::Delete(const OCVoiceLocation &VoiceLocation, OCPointerList &Pointers)
+void ScoreViewXML::Delete(const OCVoiceLocation &VoiceLocation, const OCPointerList &Pointers)
 {
-    if (Pointers.empty()) return;
-    while (Pointers.last() >= VoiceLen(VoiceLocation)) Pointers.removeLast();
     XMLScore.Clear1Voice(VoiceLocation, Pointers);
     Cursor.SetPos(Pointers.first(),VoiceLen());
-    //Cursor.MaxSel(VoiceLen());
 }
 
-void ScoreViewXML::Delete(OCPointerList &Pointers)
+void ScoreViewXML::Delete(const OCPointerList &Pointers)
 {
     Delete(Cursor.location(),Pointers);
 }

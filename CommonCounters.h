@@ -1,96 +1,147 @@
 #ifndef COMMONCOUNTERS_H
 #define COMMONCOUNTERS_H
 
-//#include "softsynthsdefines.h"
-//#include "CommonClasses.h"
-//#include <QDomLite>
-//#include <QList>
 #include "ocbarmap.h"
 
-class OCCounter
-{
+class CFraction {
 public:
-    double prevFactor = 1;
+    int num;  // numerator (täljare)
+    int den;  // denominator (nämnare)
+    CFraction(int numerator = 0, int denominator = 1) {
+        if (denominator == 0) throw std::invalid_argument("Nämnare kan inte vara 0!");
+        num = numerator;
+        den = denominator;
+    }
+    void reduce() {
+        int g = std::gcd(num, den);
+        num /= g;
+        den /= g;
+        if (den < 0) { num = -num; den = -den; } // Håll nämnaren positiv
+    }
+    CFraction reduced() const {
+        CFraction f(num,den);
+        f.reduce();
+        return f;
+    }
+    void reduceWith(int factor) {
+        if (factor == 0)
+            throw std::invalid_argument("Kan inte reducera med 0.");
+
+        num /= factor;
+        den /= factor;
+    }
+    CFraction reducedWith(int factor) const {
+        CFraction f(num/factor,den/factor);
+        f.reduce();
+        return f;
+    }
+    CFraction operator+(const CFraction& other) const {
+        return CFraction(num * other.den + other.num * den, den * other.den).reduced();
+    }
+    CFraction operator-(const CFraction& other) const {
+        return CFraction(num * other.den - other.num * den, den * other.den).reduced();
+    }
+    CFraction operator*(const CFraction& other) const {
+        return CFraction(num * other.num, den * other.den).reduced();
+    }
+    CFraction operator/(const CFraction& other) const {
+        if (other.num == 0) throw std::invalid_argument("Kan inte dividera med 0!");
+        return CFraction(num * other.den, den * other.num).reduced();
+    }
+    CFraction operator+(int value) const {
+        return *this + CFraction(value, 1);
+    }
+    CFraction operator-(int value) const {
+        return *this - CFraction(value, 1);
+    }
+    CFraction operator*(int value) const {
+        return CFraction(num * value, den);
+    }
+    CFraction operator/(int value) const {
+        if (value == 0) throw std::invalid_argument("Division med 0 är inte tillåten.");
+        return CFraction(num, den * value);
+    }
+    bool operator==(const CFraction& other) const {
+        return num == other.num && den == other.den;
+    }
+    bool operator!=(const CFraction& other) const {
+        return !(*this == other);
+    }
+    bool operator<(const CFraction& other) const {
+        return num * other.den < other.num * den;
+    }
+    bool operator<=(const CFraction& other) const {
+        return *this < other || *this == other;
+    }
+    bool operator>(const CFraction& other) const {
+        return !(*this <= other);
+    }
+    bool operator>=(const CFraction& other) const {
+        return !(*this < other);
+    }
+    double value() const {
+        return static_cast<double>(num) / den;
+    }
+    double reciprocalValue() const {
+        if (num == 0) throw std::domain_error("Reciprokt värde är inte definierat för 0.");
+        return static_cast<double>(den) / num;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const CFraction& f) {
+        return os << f.num << "/" << f.den;
+    }
+};
+
+class OCTickCounter {
+public:
+    OCTickCounter(double resolution = 1) : Resolution(resolution) {}
     int TickCounter = 0;
-    int TripletCount = 0;
-    int TripletStart = 0;
-    bool TupletTriplet = false;
-    int RhythmObjectIndex = 0;
     int CurrentTicks = 0;
     int CurrentTicksRounded = 0;
-    int TupletCaption = 1;
-    int TupletNormal = 0;
-    int TupletNumOfNotes = 0;
-    int TupletMax = 0;
-    int TupletActualTicks = 0;
-    bool Ready = false;
-    inline OCCounter(){}
-    inline OCCounter(const int StartBar) {
-        //reset();
-        BarCounter = StartBar;
+    void reset() {
+        Check = 0;
+        CheckInt = 0;
+        TickCounter = 0;
     }
-    inline void finish() {
-        m_Finished = true;
-    }
-    inline void unfinish() {
-        m_Finished = false;
-    }
-    inline bool isFinished() const {
-        return m_Finished;
-    }
-    inline bool isReady() {
-        return Ready = (CurrentLen == 0);
-    }
-    inline void getMin(int& Min) const {
-        if ((CurrentLen < Min) && (CurrentLen > 0))  Min = CurrentLen;
-    }
-    inline void decrement(const int ticks) {
-        if (CurrentLen > 0) CurrentLen -= ticks;
-    }
-    inline void setLen(const int ticks) {
-        CurrentLen=ticks;
-    }
-    inline void flip(const int ticks) {
-        CurrentTicks = ticks;
+    void flip(int ticks, double factor) {
+        CurrentTicks = ticks * Resolution;
         if (!isOne(factor)) {
-            Check += (ticks * factor);
+            Check += (CurrentTicks * factor);
             CurrentTicksRounded = (CheckInt + qRound(Check)) - TickCounter;
             TickCounter = CheckInt + qRound(Check);
         }
         else {
-            TickCounter += ticks;
-            CurrentTicksRounded = ticks;
+            TickCounter += CurrentTicks;
+            CurrentTicksRounded = CurrentTicks;
             CheckInt = TickCounter;
             Check = 0;
         }
-        prevFactor=factor;
     }
-    inline int flip1() {
-        RhythmObjectIndex++;
-        if (TupletCount > 0) {
-            TupletCount -= CurrentTicks;
-            if (TupletCount < 0) TupletCount=0;
-        }
-        else {
-            factor = 1;
-        }
-        return CurrentTicksRounded;
-    }
-    inline int flipAll(const int ticks) {
-        flip(ticks);
-        return flip1();
-    }
-    inline int flipAllDecrement(const int ticks) {
-        flip(ticks);
-        decrement(ticks);
-        return flip1();
+private:
+    int CheckInt = 0;
+    double Check = 0;
+    double Resolution = 1;
+};
+
+class OCTupletCounter
+{
+public:
+    int NumOfNotes = 0;
+    bool ContainsTriplet = false;
+    double Factor = 1;
+    double PrevFactor = 1;
+    CFraction Fraction = 1;
+    void reset() {
+        Factor = 1;
+        ContainsTriplet = false;
+        CountDown = 0;
+        Fraction = 1;
     }
     inline void tuplets(int SymbolIndex, const XMLVoiceWrapper& XMLVoice) {
         //'Seach for a tuplet group
         const XMLSymbolWrapper XMLSymbol = XMLVoice.XMLSymbol(SymbolIndex,0);
         int TicksToCount = XMLSymbol.ticks();
-        int ActualTicks=XMLSymbol.getIntVal("TupletValue");
-        int NumOfNotes=0;
+        int ActualTicks = XMLSymbol.getIntVal("TupletValue");
+        int NoteCount = 0;
         //'Point to next symbol
         SymbolIndex++;
         int ShortestValue = maxticks;
@@ -98,119 +149,99 @@ public:
             const XMLSymbolWrapper Symbol = XMLVoice.XMLSymbol(SymbolIndex,0);
             if (Symbol.IsRestOrValuedNote()) {
                 int NoteValue = Symbol.ticks();
-                TupletCount += NoteValue;
-                NumOfNotes++;
+                if (Symbol.isTriplet(Symbol.ticks())) ContainsTriplet = true;
+                CountDown += NoteValue;
+                NoteCount++;
                 if (ShortestValue > NoteValue) ShortestValue = NoteValue;
             }
-            if (TupletCount > TicksToCount) break;
+            if (CountDown > TicksToCount) break;
             SymbolIndex ++;
         }
         if (ShortestValue == 0) return;
-        while (!closeEnough<double>(DoubleDiv(TupletCount,ShortestValue),IntDiv(TupletCount,ShortestValue))) {
+        if (CountDown == 0) return;
+        while (CFraction(CountDown, ShortestValue).reduced().den != 1) {
             if ((ShortestValue == 1) || (ShortestValue == 3)) break;
-            ShortestValue = int(DoubleDiv(ShortestValue,2));
+            ShortestValue /= 2;
         }
-        if (TupletCount == 0) return;
-        TupletCaption = IntDiv(TupletCount,ShortestValue);
-        TupletNormal = IntDiv(ActualTicks,ShortestValue);
-        TupletNumOfNotes = NumOfNotes;
-        factor = DoubleDiv(ActualTicks,TupletCount);
-        TupletActualTicks = TupletCount;
-        TupletCount = TicksToCount;
-        TupletMax = TupletCount;
-        tupletTripletFlip(XMLSymbol);
+        const CFraction f{CountDown,ActualTicks};
+        Fraction = f.reducedWith(ShortestValue);
+        if (ContainsTriplet) Fraction.reduce();
+        Factor = f.reciprocalValue();
+        ActualTicks = CountDown;
+        NumOfNotes = NoteCount;
     }
-    inline void reset() {
-        factor = 1;
-        Check = 0;
-        CheckInt = 0;
-        TupletCount = 0;
-        TickCounter = 0;
+    bool isStart() {
+        return (CountDown == ActualTicks);
+    }
+    bool isEnd(int CurrentTicks) {
+        return (CountDown <= CurrentTicks);
+    }
+    void flip() { PrevFactor = Factor; }
+    void flip1(int ticks) {
+        if (CountDown > 0) {
+            CountDown -= ticks;
+            if (CountDown <= 0) {
+                CountDown = 0;
+                ContainsTriplet = false;
+                Factor = 1;
+            }
+        }
+    }
+    inline bool isTuplet() { return !isOne(Factor); }
+private:
+    int CountDown = 0;
+    int ActualTicks = 0;
+};
+
+class OCTripletCounter
+{
+public:
+    int FirstTripletIndex = 0;
+    bool TupletTriplet = false;
+    void reset() {
         TripletCount = 0;
         TupletTriplet = false;
     }
-    inline void playFlip(const int ticks) {
-        CurrentTicks = ticks;
-        if (!isOne(factor)) {
-            Check += (ticks * factor * 10);
-            CurrentTicksRounded = (CheckInt + qRound(Check)) - TickCounter;
-            TickCounter = CheckInt + qRound(Check);
-        }
-        else {
-            TickCounter += (ticks * 10);
-            CurrentTicksRounded = ticks * 10;
-            CheckInt = TickCounter;
-            Check = 0;
-        }
-    }
-    inline void barFlip() {
-        BarCounter++;
-        reset();
-    }
-    inline bool newBar(const int Meter) {
-        return (TickCounter >= Meter);
-    }
-    inline bool newBarPlay(const int Meter) {
-        return (IntDiv(TickCounter,10) >= Meter);
-    }
-    inline int barCount() const { return BarCounter; }
-    inline bool isFirstBeat() { return (TickCounter == 0); }
-    inline bool isFirstBar() { return (BarCounter == 0); }
-    inline bool isFirstBeatOfFirstBar() { return (isFirstBeat() && isFirstBar()); }
-    inline bool tripletFlip(const XMLSymbolWrapper& Symbol) {
-        if (TupletTriplet) {
-            TripletCount += CurrentTicksRounded;
-            const bool retval = isStraight(TripletCount) & (TupletCount <= CurrentTicks);
-            if (retval) {
-                TupletTriplet = false;
-            }
-            return retval;
-        }
-        else if (Symbol.triplet()) {
-            if (TripletCount == 0) TripletStart = RhythmObjectIndex;
-            TripletCount += Symbol.ticks();
-        }
-        else {
-            if (TripletCount > 0) TripletCount += Symbol.ticks();
-        }
-        const bool retval = isStraight(TripletCount);
-        return retval;
-    }
-    inline void tupletTripletFlip(const XMLSymbolWrapper& Symbol) {
-        if (isTriplet(Symbol.getIntVal("TupletValue"))) {
-            if (TripletCount == 0) TripletStart = RhythmObjectIndex;
-            //TripletCount += Symbol.ticks();
+    void beginTupletTriplet(const int TupletValue, const int CurrentIndex) {
+        if (isTriplet(TupletValue)) {
+            if (TripletCount == 0) FirstTripletIndex = CurrentIndex;
             TupletTriplet = true;
         }
+    }
+    inline void flip(const OCTickCounter& Counter, const int CurrentIndex) {
+        if (TupletTriplet) {
+            TripletCount += Counter.CurrentTicksRounded;
+        }
+        else if (isTriplet(Counter.CurrentTicks)) {
+            if (TripletCount == 0) FirstTripletIndex = CurrentIndex;
+            TripletCount += Counter.CurrentTicks;
+        }
         else {
-            //if (TripletCount > 0) TripletCount += Symbol.ticks();
+            if (TripletCount > 0) TripletCount += Counter.CurrentTicks;
         }
-        //return isStraight(TripletCount);
     }
-    inline bool underTriplet() { return ((TripletCount != 0) & (isOne(factor))); }
-    inline bool underTuplet() { return !isOne(factor); }
-    static inline bool isDotted(const int val) {
-        switch (val)
-        {
-        case 9:
-        case 18:
-        case 36:
-        case 72:
-        case 144:
-            return true;
+    inline void flip1(const bool tupletEnd) {
+        if (TupletTriplet) {
+            if (isStraight(TripletCount) && tupletEnd) {
+                TupletTriplet = false;
+                TripletCount = 0;
+            }
         }
-        return false;
+        else {
+            if (isStraight(TripletCount)) TripletCount = 0;
+        }
     }
-    static inline bool isDoubleDotted(const int val) {
-        switch (val)
-        {
-        case 21:
-        case 42:
-        case 84:
-        case 168:
-            return true;
+    inline bool isNormalTriplet() {return (TripletCount != 0) && (!TupletTriplet); }
+    inline bool isTupletTriplet() {return (TripletCount != 0) && (TupletTriplet); }
+    inline bool tripletStart(OCTickCounter& Counter) {
+        if (TupletTriplet) return (Counter.CurrentTicksRounded == TripletCount);
+        return (Counter.CurrentTicks == TripletCount);
+    }
+    inline bool tripletEnd(const bool tupletEnd) {
+        if (TupletTriplet) {
+            return (isStraight(TripletCount) && tupletEnd);
         }
-        return false;
+        return isStraight(TripletCount);
     }
     static inline bool isStraight(const int val) {
         switch (val)
@@ -241,6 +272,122 @@ public:
         }
         return false;
     }
+private:
+    int TripletCount = 0;
+};
+
+class OCCounter
+{
+public:
+    int CurrentIndex = 0;
+    OCTickCounter PlayCounter = OCTickCounter(10);
+    OCTickCounter Counter;
+    OCTupletCounter TupletCounter;
+    OCTripletCounter TripletCounter;
+    bool Ready = false;
+    inline OCCounter(){}
+    inline OCCounter(const int StartBar) {
+        BarCounter = StartBar;
+    }
+    inline void finish() {
+        m_Finished = true;
+    }
+    inline void unfinish() {
+        m_Finished = false;
+    }
+    inline bool isFinished() const {
+        return m_Finished;
+    }
+    inline bool isReady() {
+        return Ready = (CurrentLen == 0);
+    }
+    inline void getMin(int& Min) const {
+        if ((CurrentLen < Min) && (CurrentLen > 0))  Min = CurrentLen;
+    }
+    inline void decrementLen(const int ticks) {
+        if (CurrentLen > 0) CurrentLen -= ticks;
+    }
+    inline void setLen(const int ticks) {
+        CurrentLen = ticks;
+    }
+    inline void flip(const int ticks) {
+        PlayCounter.flip(ticks,TupletCounter.Factor);
+        Counter.flip(ticks,TupletCounter.Factor);
+        TripletCounter.flip(Counter,CurrentIndex);
+        TupletCounter.flip();
+    }
+    inline int flip1() {
+        TripletCounter.flip1(tupletEnd());
+        TupletCounter.flip1(Counter.CurrentTicks);
+        CurrentIndex++;
+        return Counter.CurrentTicksRounded;
+    }
+    inline int flipAll(const int ticks) {
+        flip(ticks);
+        return flip1();
+    }
+    inline int flipAllDecrement(const int ticks) {
+        flip(ticks);
+        decrementLen(ticks);
+        return flip1();
+    }
+    inline void tuplets(int SymbolIndex, const XMLVoiceWrapper& XMLVoice) {
+        //'Seach for a tuplet group
+        const XMLSymbolWrapper XMLSymbol = XMLVoice.XMLSymbol(SymbolIndex,0);
+        TupletCounter.tuplets(SymbolIndex,XMLVoice);
+        TripletCounter.beginTupletTriplet(XMLSymbol.getIntVal("TupletValue"),CurrentIndex);
+    }
+    inline void reset() {
+        PlayCounter.reset();
+        Counter.reset();
+        TupletCounter.reset();
+        TripletCounter.reset();
+    }
+    inline void barFlip() {
+        BarCounter++;
+        reset();
+    }
+    inline bool newBar(const int Meter) { return (Counter.TickCounter >= Meter); }
+    inline int barCount() const { return BarCounter; }
+    inline bool isFirstBeat() { return (Counter.TickCounter == 0); }
+    inline bool isFirstBar() { return (BarCounter == 0); }
+    inline bool isFirstBeatOfFirstBar() { return (isFirstBeat() && isFirstBar()); }
+    inline bool tripletStart() { return TripletCounter.tripletStart(Counter); }
+    inline bool tripletEnd() { return TripletCounter.tripletEnd(tupletEnd()); }
+    inline bool tupletStart() { return TupletCounter.isStart(); }
+    inline bool tupletEnd() { return TupletCounter.isEnd(Counter.CurrentTicks); }
+    inline bool isNormalTriplet() {return TripletCounter.isNormalTriplet(); }
+    inline bool isTupletTriplet() {return TripletCounter.isTupletTriplet(); }
+    inline bool isTuplet() { return TupletCounter.isTuplet(); }
+    static inline bool isDotted(const int val) {
+        switch (val)
+        {
+        case 9:
+        case 18:
+        case 36:
+        case 72:
+        case 144:
+            return true;
+        }
+        return false;
+    }
+    static inline bool isDoubleDotted(const int val) {
+        switch (val)
+        {
+        case 21:
+        case 42:
+        case 84:
+        case 168:
+            return true;
+        }
+        return false;
+    }
+    static inline bool isStraight(const int val) {
+        return OCTripletCounter::isStraight(val);
+    }
+    static inline bool isTriplet(const int val) {
+        return OCTripletCounter::isTriplet(val);
+    }
     static int calcTime(const XMLSimpleSymbolWrapper& symbol) {
         switch (symbol.getIntVal("TimeType"))
         {
@@ -254,49 +401,11 @@ public:
     }
 private:
     bool m_Finished = false;
-    double factor = 1;
-    double Check = 0;
-    int CheckInt = 0;
-    int TupletCount = 0;
+    //double TupletFactor = 1;
     int CurrentLen = 0;
     int BarCounter = 0;
 };
-/*
-class OCTimeCounter : public OCCounter {
-public:
-    OCTimeCounter() : OCCounter(){}
-    void setTime(const int ticks) {
-        CurrentMeter = ticks;
-    }
-    void setTime(const XMLSimpleSymbolWrapper& symbol) {
-        CurrentMeter = calcTime(symbol);
-    }
-    const XMLSymbolWrapper& getSymbol(const int x, const XMLVoiceWrapper& voice) {
-        static const XMLSymbolWrapper s = voice.XMLSymbol(x,CurrentMeter);
-        if (s.IsTuplet()) {
-            tuplets(x,voice);
-        }
-        else if (s.IsTime()) {
-            setTime(s);
-        }
-        return s;
-    }
-    const XMLSymbolWrapper& getSymbolFlip(const int x, const XMLVoiceWrapper& voice) {
-        const XMLSymbolWrapper& s = getSymbol(x,voice);
-        if (s.IsRestOrValuedNote()) flip(s.ticks());
-        return s;
-    }
-    const XMLSymbolWrapper& getSymbolFlipAll(const int x, const XMLVoiceWrapper& voice) {
-        const XMLSymbolWrapper& s = getSymbol(x,voice);
-        if (s.IsRestOrValuedNote()) flipAll(s.ticks());
-        return s;
-    }
-    bool newBar() {
-        return OCCounter::newBar(CurrentMeter);
-    }
-    int CurrentMeter = 96;
-};
-*/
+
 class CPageBarProps
 {
 public:
@@ -572,35 +681,23 @@ class CStaffCounter : public QList<T>
 public:
     int Min = 0;
     int BarCounter = 0;
-    //inline T& VoiceCounter(const int Voice) { return (*this)[Voice]; }
     int Beat = 0;
     inline CStaffCounter(const int NumOfTracks = 0) { (*this).resize(NumOfTracks); }
     inline ~CStaffCounter() {}
-    /*
-    inline void reset() {
-        for (T& c : (*this)) c.reset();
-        Min = 0;
-        BarCounter = 0;
-        didQuit = false;
-    }
-*/
     inline void flip() {
         Min = 32000;
         for (T& c : (*this)) c.getMin(Min);
         if (Min == 32000) Min = 0;
-        for (T& c : (*this)) c.decrement(Min);
+        for (T& c : (*this)) c.decrementLen(Min);
         Beat += Min;
     }
-    inline double min(const int Voice) const { return Min / (*this)[Voice].prevFactor; }
+    //inline double min(const int Voice) const { return Min / (*this)[Voice].prevFactor; }
     inline bool newBar(const int Meter) { return (*this)[shortestCount()].OCCounter::newBar(Meter); }
     inline void barFlip() {
         for (T& c : (*this)) c.barFlip();
         BarCounter = (*this)[shortestCount()].barCount();
         Beat = 0;
     }
-    //inline bool isReady(const int Voice) { return (*this)[Voice].isReady(); }
-    //inline bool wasReady(const int Voice) const { return (*this)[Voice].Ready; }
-    //inline bool isFinished(const int Voice) const { return (*this)[Voice].isFinished(); }
     inline bool isFinished() const {
         if (didQuit) return true;
         for (const T& c : (*this)) {
@@ -615,8 +712,6 @@ public:
         }
         return -1;
     }
-    //inline void setNewLen(const int Value, const int Voice) { (*this)[Voice].setLen(Value); }
-    inline bool newBarPlay(const int Meter) { return (*this)[shortestCount()].newBarPlay(Meter); }
 private:
     bool didQuit = false;
     inline int shortestCount() const
@@ -625,10 +720,10 @@ private:
         int TempCount = 1280000000;
         for (int i = 0; i < (*this).size(); i++) {
             const T& c = (*this)[i];
-            if (((c.barCount() * 500) + c.TickCounter < TempCount) && (!c.isFinished()))
+            if (((c.barCount() * 500) + c.Counter.TickCounter < TempCount) && (!c.isFinished()))
             {
                 RetVal = i;
-                TempCount = (c.barCount() * 500) + c.TickCounter;
+                TempCount = (c.barCount() * 500) + c.Counter.TickCounter;
             }
         }
         return RetVal;
@@ -646,7 +741,7 @@ public:
         OCCounter::tuplets(FilePointer,v);
     }
     inline int DecrementFlip() {
-        OCPrintVarsType::Decrement(CurrentTicks);
+        OCPrintVarsType::Decrement(Counter.CurrentTicks);
         return flip1();
     }
     inline bool valid(const int p) {
@@ -671,7 +766,10 @@ public:
     }
     void decrementFlip() {
         CStaffCounter::flip();
-        decrement();
+        for (int i = 0; i < size(); i++) {
+            if (!at(i).isFinished()) (*this)[i].Decrement(double(Min) / (*this)[i].TupletCounter.PrevFactor);
+        }
+        //decrementVars();
     }
     int key() {
         return firstValidVoice().key();
@@ -680,11 +778,13 @@ private:
     const OCPrintCounter& firstValidVoice() const {
         return at(CStaffCounter<OCPrintCounter>::firstValidVoice());
     }
-    void decrement() {
+    /*
+    void decrementVars() {
         for (int i = 0; i < size(); i++) {
-            if (!at(i).isFinished()) (*this)[i].Decrement(min(i));
+            if (!at(i).isFinished()) (*this)[i].Decrement(double(Min) / (*this)[i].prevFactor);
         }
     }
+*/
 };
 
 class OCPlayCounter : public OCCounter, public OCPlayBackVarsType
@@ -712,7 +812,7 @@ public:
         return at(CStaffCounter<OCPlayCounter>::firstValidVoice());
     }
     bool newBar() {
-        return CStaffCounter::newBarPlay(firstValidVoice().PlayMeter);
+        return CStaffCounter::newBar(firstValidVoice().PlayMeter);
     }
 };
 
@@ -740,8 +840,6 @@ public:
 
 class CNotesToPlay : private QList<PlayStates>
 {
-//private:
-//    QList<PlayStates> PlayStateList;
 public:
     int PortIt = 0;
     CNotesToPlay() {}// : PortIt(0) { clear(); }

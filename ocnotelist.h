@@ -121,8 +121,8 @@ public:
     {
         Size = Symbol.size();
         NoteValue = Symbol.ticks();
-        Rounded = CountIt.CurrentTicksRounded;
-        Beat = CountIt.TickCounter;
+        Rounded = CountIt.Counter.CurrentTicksRounded;
+        Beat = CountIt.Counter.TickCounter;
         Bar = CountIt.barCount();
         Meter = CountIt.Meter;
         FlipTie = CountIt.FlipTie;
@@ -455,7 +455,9 @@ private:
 public:
     const OCRhythmObjectList ListFromTo(const int FirstNote, const int LastNote) {
         OCRhythmObjectList l;
-        for (int i = FirstNote; i <= LastNote; i++) l.append(RhythmObjectList[i]);
+        for (int i = FirstNote; i <= LastNote; i++) {
+            if (i < RhythmObjectList.size()) l.append(RhythmObjectList[i]);
+        }
         return l;
     }
     const OCRhythmObjectList CreateList(const int FirstNote, const int Ticks)

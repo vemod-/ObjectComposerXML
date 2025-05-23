@@ -57,7 +57,7 @@ public:
     bool RemoveBar(const int System, const bool Top);
     void AdjustSystems(const int PageHeight, const double TitleHeight);
     void FormatTitle(const double TitleHeight);
-    void PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj);
+    void PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, const QString& LayoutName, OCDraw& ScreenObj);
     void Erase(const int System, QGraphicsScene* Scene);
     void EraseTitle(QGraphicsScene* Scene);
 private:

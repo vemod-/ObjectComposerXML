@@ -217,7 +217,7 @@ void CPausesToPrint::MoveChord(const int factor)
 void CPausesToPrint::plot(OCPrintCounter& CountIt, const int /*NextHeight*/, const double /*NextX*/, const int /*BarsToPrint*/, const QColor& TrackColor, const OCVoiceLocation& VoiceLocation, OCFrameArray& FrameList, OCDraw& ScreenObj)
 {
     int Pnt = CountIt.FilePointer;
-    ScreenObj.setcol(CountIt.FilePointer);
+    ScreenObj.setMarkedCol(CountIt.FilePointer);
     OCGraphicsList l;
     if (NumOfCompressed > 1) {
         CountIt.FilePointer = PointerAfterCompress;
@@ -244,7 +244,7 @@ void CPausesToPrint::plot(OCPrintCounter& CountIt, const int /*NextHeight*/, con
         {
             l.append(PrintPauseSign(NoteValue, ScreenObj));
             ScreenObj.moveTo(mCenterX + sized(12), mCenterY + 48);
-            l.append(OCNoteList::PlotDot(NoteValue, CountIt.isNormalTriplet(), 4, ScreenObj));
+            l.append(OCNoteList::PlotDot(NoteValue, CountIt.isNormalTriplet(), Size, 3, ScreenObj));
             if (ForceBeamIndex > 0)
             {
                 ScreenObj.moveTo(mCenterX, mCenterY + directed(96));
@@ -587,7 +587,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
                 TieLen = TieLen - 168;
             }
             bool IsWrap=((Beat == Meter) & (Bar == BarsToPrint - 1));
-            t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
+            t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, CurrentNote.TieCurve, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
         }
         CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
@@ -606,7 +606,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
                 ScreenObj.move(84, 0);
                 TieLen = TieLen - 168;
             }
-            t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
+            t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, CurrentNote.TieCurve, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
         }
         CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
@@ -784,8 +784,22 @@ const OCGraphicsList OCNoteList::PlotTuplet(const OCRhythmObjectList& TupletList
     if (TupletList.isEmpty()) return l;
     IOCRhythmObject* NoteL = TupletList.first();
     IOCRhythmObject* NoteR = TupletList.last();
-    QPointF lineL(NoteL->directed(NoteL->BalkEnd(),108));
-    QPointF lineR(NoteL->directed(NoteR->BalkEnd(),108));
+    double xL = NoteL->BalkX - 24;
+    double xR = NoteR->BalkX + 24;
+    for (IOCRhythmObject* r : TupletList) {
+        if (!r->IsPause) {
+            NoteL = r;
+            break;
+        }
+    }
+    for (int i = TupletList.size() - 1; i >= 0; i--) {
+        if (!TupletList[i]->IsPause) {
+            NoteR = TupletList.at(i);
+            break;
+        }
+    }
+    QPointF lineL(xL,NoteL->BalkEndY - NoteL->directed(108));
+    QPointF lineR(xR,NoteR->BalkEndY - NoteR->directed(108));
     if (NoteL->UpDown != NoteR->UpDown) {
         lineR.setY(NoteR->BalkBeginY - NoteL->directed(108));
     }
@@ -809,7 +823,8 @@ const OCGraphicsList OCNoteList::PlotSlur(const OCRhythmObjectList& SlurList, co
     const SlurTypes UpDown = CDurSlur::SlurDirection(XMLSymbol.getIntVal("Direction"),SlurList);
     const int Angle = XMLSymbol.getIntVal("Angle");
     const QPointF& Pos = XMLSymbol.pos();
-    const int Size = XMLSymbol.getIntVal("Curve");
+    const int Curve = XMLSymbol.getIntVal("Curve");
+    const double Weight = XMLSymbol.getIntVal("Weight") * 0.09;
     int WrapLeft=0;
     OCGraphicsList l;
     int WrapRight = 360;
@@ -818,14 +833,13 @@ const OCGraphicsList OCNoteList::PlotSlur(const OCRhythmObjectList& SlurList, co
     if (SlurList.isEmpty()) return l;
     if (!SlurList.isWrapRight) WrapRight=0;
 
-    //const double lastX = (SlurList.size() < 2) ? SlurList.first()->CenterX + SlurList.first()->CenterNextXAdd : SlurList.last()->CenterX + 24;
     const double lastX = SlurList.last()->CenterX + 24;
     QPointF SlurPos(SlurList.first()->CenterX - 60 - WrapLeft,SlurList.first()->SlurY(UpDown));
     const double Length = (lastX - SlurPos.x()) - 144 + WrapRight;
     const double SlurY1 = SlurList.last()->SlurY(UpDown);
     const double EndHeight = SlurPos.y() - SlurY1 - Angle;
     ScreenObj.moveTo(SlurPos + Pos);
-    l.append(OCTieWrap::plotSlur(QPointF(Length,EndHeight),UpDown,Size*4,ScreenObj));
+    l.append(OCTieWrap::plotSlur(QPointF(Length, EndHeight), UpDown, Curve * 4, Weight, ScreenObj));
     return l;
 }
 
@@ -879,41 +893,41 @@ const OCGraphicsList OCNoteList::PlotHairPin(const int Length, const int gap, co
     QPainterPath p(QPointF(0,0));
     if (IsDim)
     {
-        p.moveTo(0,DoubleDiv(-gap,2*ScreenObj.ScreenSize));
-        p.lineTo(DoubleDiv(Length,ScreenObj.ScreenSize),0);
-        p.lineTo(0,DoubleDiv(gap,2*ScreenObj.ScreenSize));
+        p.moveTo(ScreenObj.sized(0,-gap/2.0));
+        p.lineTo(ScreenObj.sized(Length,0));
+        p.lineTo(ScreenObj.sized(0,gap/2.0));
     }
     else
     {
-        p.moveTo(DoubleDiv(Length,ScreenObj.ScreenSize),DoubleDiv(-gap,2*ScreenObj.ScreenSize));
+        p.moveTo(ScreenObj.sized(Length,-gap/2.0));
         p.lineTo(0,0);
-        p.lineTo(DoubleDiv(Length,ScreenObj.ScreenSize),DoubleDiv(gap,2*ScreenObj.ScreenSize));
+        p.lineTo(ScreenObj.sized(Length,gap/2.0));
     }
     ScreenObj.translatePath(p);
-    l.append(ScreenObj.plTextPath(p,true,DoubleDiv(LineHalfThickNess * 3,ScreenObj.ScreenSize)));
+    l.append(ScreenObj.plTextPath(p,true,ScreenObj.sized(LineHalfThickNess * 3)));
     return l;
 }
 
-const OCGraphicsList OCNoteList::PlotDot(const int Value, const bool UnderTriplet, const int Size, OCDraw& ScreenObj)
+const OCGraphicsList OCNoteList::PlotDot(const int Value, const bool UnderTriplet, const int Size, const int SignSize, OCDraw& ScreenObj)
 {
     OCGraphicsList l;
     if (OCCounter::isDoubleDotted(Value))
     {
-        l.append(ScreenObj.plDot(Size,5*12,0,Size));
-        l.append(ScreenObj.plDot(Size,8*12,0,Size));
+        l.append(ScreenObj.plDot(SignSize,8 * 12,0,Size));
+        l.append(ScreenObj.plDot(SignSize,12 * 12,0,Size));
     }
     if (OCCounter::isDotted(Value))
     {
         if (!UnderTriplet)
         {
-            l.append(ScreenObj.plDot(Size,5*12,0,Size));
+            l.append(ScreenObj.plDot(SignSize,8 * 12,0,Size));
         }
     }
     if (OCCounter::isStraight(Value))
     {
         if (UnderTriplet)
         {
-            l.append(ScreenObj.plDot(Size,5*12,0,Size));
+            l.append(ScreenObj.plDot(SignSize,8 * 12,0,Size));
         }
     }
     return l;
@@ -943,7 +957,7 @@ const OCGraphicsList OCNoteList::PlotLengths(const IOCRhythmObject* Props, OCDra
 
 const OCGraphicsList OCNoteList::plFan(const double height, const StemDirection updown, const int repeat, const int Size, OCDraw& ScreenObj)
 {
-    QPainterPath b=FanPath((height/ScreenObj.ScreenSize)/SizeFactor(Size),StemDirection(-updown),repeat);
+    QPainterPath b=FanPath(ScreenObj.sized(height)/SizeFactor(Size),StemDirection(-updown),repeat);
     ScreenObj.translatePath(b);
     return ScreenObj.plTextPath(b,true);
 }
@@ -993,9 +1007,9 @@ void OCNoteList::plotsigns(const int FirstNote, OCPrintSignList& SignsToPrint, O
     if (r->IsPause) return;
     if (!r->IsSingleNoteWithTie)
     {
-        ScreenObj.setcol(QColor(unselectablecolor));
+        ScreenObj.setTempCol(QColor(unselectablecolor));
         PlotLengths(r,ScreenObj);
-        ScreenObj.resetcol();
+        ScreenObj.restoreCol();
     }
     int NextNoteX = r->CenterX + 432;
     if (r != RhythmObjectList.last()) NextNoteX = RhythmObjectList[FirstNote + 1]->CenterX;
@@ -1017,10 +1031,11 @@ void OCNoteList::ApplyAccidentals(OCStaffAccidentals& StaffAccidentals)
 }
 
 //--------------------------------------------------------------------------
+#define defaultaccdistance (-9*12)
 
 void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray &FrameList, const OCGraphicsList& tie, OCDraw &ScreenObj)
 {
-    if (ScreenObj.canColor())
+    if (ScreenObj.Cursor && ScreenObj.canColor())
     {
         if (Marked)
         {
@@ -1035,22 +1050,22 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
     if (AccSign != accNone) {
         if (AccidentalParentheses) {
             moveTo(ScreenObj);
-            ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
-            ScreenObj.move((-9 * 12), 0, Size);
-            if (AccSign == accDoubleFlat) ScreenObj.move(sized(-3 * 12),0);
+            ScreenObj.move(sized(defaultaccdistance) + FortegnAddX, 0);
+            ScreenObj.move((defaultaccdistance), 0, Size);
+            if (AccSign == accDoubleFlat) ScreenObj.move(sized(-3 * 12), 0);
             if (AccSign == accFlat) ScreenObj.move(sized(12),0);
             a.append(ScreenObj.plLet("(",Size,"Arial",false,false,156,Qt::AlignCenter));
             moveTo(ScreenObj);
-            ScreenObj.move(sized(-9 * 12) + FortegnAddX, 0);
+            ScreenObj.move(sized(defaultaccdistance) + FortegnAddX, 0);
             ScreenObj.move(12, 0, Size);
             a.append(ScreenObj.plLet(")",Size,"Arial",false,false,156,Qt::AlignCenter));
             moveTo(ScreenObj);
-            ScreenObj.move(sized(-12 * 12) + FortegnAddX,0);
+            ScreenObj.move(sized(defaultaccdistance + (-3*12)) + FortegnAddX, 0);
             if (AccSign == accFlat) ScreenObj.move(sized(12),0);
         }
         else {
             moveTo(ScreenObj);
-            ScreenObj.move(sized(-9 * 12) + FortegnAddX,0);
+            ScreenObj.move(sized(defaultaccdistance) + FortegnAddX, 0);
         }
     }
     switch (AccSign)
@@ -1096,9 +1111,9 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
         break;
     }
     OCGraphicsList l;
-    moveTo(ScreenObj);
-    if ((CenterY % 96) != 0) ScreenObj.move(0,48);
-    l.append(OCNoteList::PlotDot(NoteVal, UnderTriplet, 4, ScreenObj));
+    //moveTo(ScreenObj);
+    //if ((CenterY % 96) != 0) ScreenObj.move(0,36 * UpDown);
+    //l.append(OCNoteList::PlotDot(NoteVal, UnderTriplet, Size, 2, ScreenObj));
     moveTo(ScreenObj);
     ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
     if (NoteHeadType == 0) {
@@ -1106,7 +1121,7 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
     #ifdef __Lelandfont
         ScreenObj.move(-60,-41);
     #endif
-        ScreenObj.move(58,0,Size);
+        ScreenObj.move(58, 0, Size);
         switch (NoteVal)
         {
         case 168:
@@ -1114,7 +1129,13 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
         case 96:
         case 64:
     #ifndef __Lelandfont
+            moveTo(ScreenObj);
+            ScreenObj.move(12, 0, Size);
+            //ScreenObj.move((53 + sized(-53)) * -UpDown, 0);
+            ScreenObj.move(58, 0, Size);
+            //ScreenObj.move(sized(12), 0);
             l.append(ScreenObj.plChar(OCTTFNoteWhole, Size, 624));
+            ScreenObj.move(-12, 0, Size);
     #else
             l.append(ScreenObj.plLet(LelandNoteWhole, ClusterSize));
     #endif
@@ -1136,17 +1157,22 @@ void CNoteHead::plot(const bool UnderTriplet, const QColor& TrackColor, const in
             l.append(ScreenObj.plLet(LelandNoteQuarter, ClusterSize));
     #endif
         }
+        ScreenObj.move(-58, 0, Size);
     }
     else if (NoteHeadType == 1) {
         ScreenObj.move(-28,0,Size);
         l.append(ScreenObj.plChar(WDX,Size,138,WingDingsName,true));
+        ScreenObj.move(28,0,Size);
     }
     else if (NoteHeadType == 2) {
         ScreenObj.move(-14,-2,Size);
         l.append(ScreenObj.plChar(WDDiamond,Size,108,WingDingsName,true));
         ScreenObj.move(4,4,Size);
         l.append(ScreenObj.plChar(WDDiamond,Size,108,WingDingsName,true));
+        ScreenObj.move(10,-2,Size);
     }
+    if ((CenterY % 96) != 0) ScreenObj.move(0, 36);
+    l.append(OCNoteList::PlotDot(NoteVal, UnderTriplet, Size, 3, ScreenObj));
     FrameList.AppendAccidentalGroup(ScreenObj.MakeGroup(l),ScreenObj.MakeGroup(a),ScreenObj.MakeGroup(tie),Location);
     ScreenObj.col = TrackColor;
 }
@@ -1198,9 +1224,9 @@ void OCBeamList::CalcBalk()
 void OCBeamList::plBalk(const double Length, const double factor, const StemDirection UpDown, OCDraw &ScreenObj)
 {
     QPainterPath p(QPointF(0,0));
-    p.lineTo(QPointF(Length, factor * Length) / ScreenObj.ScreenSize);
-    p.lineTo(QPointF(Length, (factor * Length) + (-UpDown * BeamThickness)) / ScreenObj.ScreenSize);
-    p.lineTo(QPointF(0, -UpDown*BeamThickness) / ScreenObj.ScreenSize);
+    p.lineTo(ScreenObj.sized(Length, factor * Length));
+    p.lineTo(ScreenObj.sized(Length, (factor * Length) + (-UpDown * BeamThickness)));
+    p.lineTo(ScreenObj.sized(0, -UpDown*BeamThickness));
     p.lineTo(0,0);
     ScreenObj.translatePath(p);
     ScreenObj.plTextPath(p,true);
@@ -1213,11 +1239,11 @@ void OCBeamList::plBeam(const QPointF& p1, const QPointF& p2, const StemDirectio
     for (int i = 0; i <= NumOfBeams - 1; i++)
     {
         QPainterPath p(QPointF(0,0));
-        p.lineTo(QPointF(p2.x() - p1.x(),p1.y() - p2.y()) / ScreenObj.ScreenSize);
-        p.lineTo(QPointF(p2.x() - p1.x(),(p1.y() - p2.y()) + (-UpDown * BeamThickness)) / ScreenObj.ScreenSize);
-        p.lineTo(QPointF(0, -UpDown * BeamThickness) / ScreenObj.ScreenSize);
+        p.lineTo(ScreenObj.sized(p2.x() - p1.x(),p1.y() - p2.y()));
+        p.lineTo(ScreenObj.sized(p2.x() - p1.x(),(p1.y() - p2.y()) + (-UpDown * BeamThickness)));
+        p.lineTo(ScreenObj.sized(0, -UpDown * BeamThickness));
         p.lineTo(0,0);
-        b.addPath(p.translated(QPointF(0,(BeamThickness + BeamSpace) * i * -UpDown) / ScreenObj.ScreenSize));
+        b.addPath(p.translated(ScreenObj.sized(0,(BeamThickness + BeamSpace) * i * -UpDown)));
     }
     ScreenObj.moveTo(p1);
     ScreenObj.translatePath(b);

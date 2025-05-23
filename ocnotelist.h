@@ -132,7 +132,7 @@ public:
     {
         const int SgnThickness = directed(LineHalfThickNess * 2);
         const int SgnHalfThickness = directed(LineHalfThickNess);
-        if ((NoteValue != 144) && (NoteValue != 96) && (NoteValue != 64))
+        if ((NoteValue != 168) && (NoteValue != 144) && (NoteValue != 96) && (NoteValue != 64))
         {
             ScreenObj.line(BalkX, BalkBeginY - SgnThickness, 0,(BalkEndY + SgnHalfThickness) - (BalkBeginY - SgnThickness));
         }
@@ -183,7 +183,7 @@ public:
             UpDown = ForceUpDown;
         }
         else {
-            UpDown = (AverageY > (86 * 12)) ? StemUp : StemDown;
+            UpDown = (AverageY > (84 * 12)) ? StemUp : StemDown;
         }
     }
     int SlurY(const int UD) const
@@ -214,7 +214,8 @@ public:
     int NoteVal;
     int Left;
     int AccidentalLeft = 0;
-    int TieTop;
+    int TieTop = 0;
+    double TieCurve = 0;
     int Size;
     int Marked;
     int CenterX = 0;
@@ -239,6 +240,7 @@ public:
         AccidentalType = Symbol.getIntVal("AccidentalType");
         AccidentalParentheses = Symbol.getBoolVal("AccidentalParentheses");
         TieTop = Symbol.getIntVal("TieTop");
+        TieCurve = Symbol.getVal("TieCurve");
         Size = Symbol.size();
     }
     inline void moveTo(OCDraw& ScreenObj) const { ScreenObj.moveTo(CenterX, CenterY); }
@@ -485,7 +487,7 @@ public:
     static const OCGraphicsList PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj, const int YOffset = 0);
     static const OCGraphicsList PlotSlur(const OCRhythmObjectList& SlurList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
     static const OCGraphicsList PlotHairPin(const OCRhythmObjectList& HPList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotDot(const int Value, const bool UnderTriplet, const int Size, OCDraw& ScreenObj);
+    static const OCGraphicsList PlotDot(const int Value, const bool UnderTriplet, const int Size, const int SignSize, OCDraw& ScreenObj);
     static const OCGraphicsList PlotLengths(const int Sign, const QPointF& Pos, const int UpDown, const int Size, OCDraw& ScreenObj);
     static const OCGraphicsList PlotLengths(const IOCRhythmObject* Props, OCDraw& ScreenObj);
     static const OCGraphicsList plFan(const double height, const StemDirection updown, const int repeat, const int Size, OCDraw& ScreenObj);

@@ -1186,7 +1186,7 @@ OCGraphicsList CTempo::PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont&
     if (Dotted) p.addText(30,18,QFont("Courier new",100),".");
     p.addText(56,18,Font,"=" + QString::number(Tempo));
     p.translate(-p.boundingRect().width(),0);
-    double f=(1.30/ScreenObj.ScreenSize)/SizeFactor(Size);
+    double f=(ScreenObj.sized(1.30))/SizeFactor(Size);
     QTransform m;
     m.scale(f,f);
     p=p*m;

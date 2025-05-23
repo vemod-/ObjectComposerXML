@@ -89,7 +89,10 @@ public:
             p.hide("NoteHeadType");
             p.hide("Pitch");
             p.hide("AccidentalLeft");
+            p.hide("AccidentalType");
+            p.hide("AccidentalParentheses");
             p.hide("TieTop");
+            p.hide("TieCurve");
             if (p.propertyValue("NoteValue")==7)
             {
                 p.hide("Dotted");
@@ -107,7 +110,10 @@ public:
             p.show("NoteHeadType");
             p.show("Pitch");
             p.show("AccidentalLeft");
+            p.show("AccidentalType");
+            p.show("AccidentalParentheses");
             p.show("TieTop");
+            p.show("TieCurve");
             p.show("Top");
         }
     }
@@ -130,7 +136,8 @@ protected:
         m_PropColl.appendNumber("AccidentalLeft", -32000, 32000, "Returns/sets the distance between an Accidentals default horizontal position and it's current horizontal position.",false ,"" , "Accidental");
         m_PropColl.appendList("AccidentalType","Returns/sets the type of Accidental.",{"Auto","Hidden","b","#","bb","x","nat"}, 0, false,"", "Accidental");
         m_PropColl.appendBool("AccidentalParentheses", "Returns/sets Parentheses around the Accidentals", false ,"" , "Accidental");
-        m_PropColl.appendNumber("TieTop", -32000, 32000, "Returns/sets the distance between a Ties default vertical position and it's current vertical position.",false ,"" , "Position");
+        m_PropColl.appendNumber("TieTop", -32000, 32000, "Returns/sets the distance between a Ties default vertical position and it's current vertical position.",false ,"" , "Tie");
+        m_PropColl.appendNumber("TieCurve", -9, 20, "Returns/sets the difference between the current Curve and the default Curve.",false, "", "Tie");
         m_ButtonProperty = "NoteValue";
     }
 };
@@ -1279,6 +1286,7 @@ protected:
     void buildProperties()
     {
         //static QStringList SlurList{"Down", "Up"};
+        m_PropColl.appendNumber("Weight",-10,10,"Returns/sets the horizontal Weight point",false,0,"Appearance");
         m_PropColl.appendList("Direction","Returns/sets the vertical Direction of the Slur",QStringList{"Auto", "Down", "Up"},0,false,"","Appearance");
         m_PropColl.appendNumber("Angle", -32000, 32000, "Returns/sets the difference between the Endpoints current vertical Position and it's default vertical Position.",false, "", "Appearance",true);
         m_ButtonProperty="Direction";

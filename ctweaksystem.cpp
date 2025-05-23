@@ -73,12 +73,13 @@ void CTweakSystem::Fill(XMLScoreWrapper& Score, const int activeLayoutIndex, con
     //ui->ScoreView->XMLScore.setOptions(m_Layout.Options);
     //ui->ScoreView->XMLScore.ScoreOptions.copy(m_Layout.Options);
     ui->ScoreView->setActiveOptions(m_Layout.Options);
+    //ui->ScoreView->setActiveTemplate(m_Layout.XMLSystem(l).Template);
     ui->ScoreView->setLocked(false);
     ui->ScoreView->setFollowResize(ScoreViewXML::PageSizeFixed);
     ui->ScoreView->setNavigationVisible(false);
-    ui->ScoreView->setSize(12);
+    ui->ScoreView->setSize(defaultscoresize);
     Paint();
-    ui->ScoreView->setZoom(zoom * (ui->ScoreView->Size() / m_Layout.Options.scaleSize()));
+    ui->ScoreView->setZoom(zoom * defaultscorezoom * (ui->ScoreView->Size() / m_Layout.Options.scaleSize()));
     ui->ScoreView->setFixedSize(QSizeF(ui->ScoreView->sceneRect().size() * ui->ScoreView->getZoom() * 1.02).toSize());
     ui->ScoreView->adjustSize();
     ui->FadingWidget->adjustSize();

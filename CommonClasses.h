@@ -90,17 +90,17 @@ inline int IntDiv(const int a, const int b)
 #endif
 inline float FloatDiv(const float a, const float b)
 {
-    return a/b;
+    return a / b;
 }
 
 inline double DoubleDiv(const double a, const double b)
 {
-    return a/b;
+    return a / b;
 }
 
 inline double SizeFactor(const int SymbolSize)
 {
-    return (SymbolSize == 0) ? 1 : DoubleDiv(10-SymbolSize,10);
+    return (SymbolSize == 0) ? 1 : DoubleDiv(10 - SymbolSize, 10);
 }
 
 template <typename T>
@@ -774,16 +774,26 @@ typedef QList<QGraphicsItem*> OCGraphicsList;
 class OCDraw
 {
 public:
-    inline OCDraw() : ScreenSize(12), col(activestaffcolor), ColorOn(true), UseList(false) {}
-    inline OCDraw(QGraphicsScene* scene, const double size) : ScreenSize(size), col(activestaffcolor), ColorOn(false), Scene(scene), UseList(false) {}
-    double ScreenSize;
-    double XFactor;
-    QColor col;
-    bool ColorOn;
-    OCCursor* Cursor;
-    QGraphicsScene* Scene;
+    inline OCDraw() {}
+    inline OCDraw(QGraphicsScene* scene, const double size = 12) : Scene(scene), ScreenSize(size) {}
+    QColor col = activestaffcolor;
+    bool ColorOn = false;
+    OCCursor* Cursor = nullptr;
+    QGraphicsScene* Scene = nullptr;
+    inline double sized(const double v) const { return v / ScreenSize; }
+    inline QPointF sized(const double x, const double y) const { return QPointF(x, y) / ScreenSize; }
+    inline QPointF sized(const QPointF v) const { return v / ScreenSize; }
+    inline QRectF sized(const QPointF xy1, const QPointF xy2) const { return QRectF(xy1 / ScreenSize, xy2 / ScreenSize); }
+    inline QRectF sized(const QRectF v) const { return sized(v.topLeft(), v.bottomRight()); }
     inline void setSpaceX(const int staffSize) { XFactor = SizeFactor(staffSize); }
-    inline double spaceX(const double x) const { return x * XFactor; }
+    inline double spaceX(const double x = 1) const { return x * XFactor; }
+    inline void setTempSize() {
+        TempSize = ScreenSize;
+        ScreenSize = spaceX(ScreenSize);
+    };
+    inline void restoreSize() {
+        ScreenSize = TempSize;
+    }
     inline void initCurrent() { ZeroPoint = MovingPoint*XFactor; }
     inline void moveTo(const QPointF& Pos) { moveTo(Pos.x(),Pos.y()); }
     inline void moveTo(const double xs, const double ys) { MovingPoint=ZeroPoint+QPointF(xs,-ys); }
@@ -812,12 +822,9 @@ public:
     inline const OCGraphicsList plDot(const int SignSize, const double offsetX = 0,const double offsetY = 0, const int Size = 0)
     {
         OCGraphicsList l;
-        //move(offsetX-36,offsetY,Size);
-        //l.append(plLet(".",Size,"Courier new",false,false,100,Qt::AlignCenter));
-        move(offsetX,offsetY,Size);
-        l.append(plChar(WDDot,SignSize,24,WingDingsName));
-        move(-offsetX,-offsetY,Size);
-        //move(-(offsetX-36),-(offsetY),Size);
+        move(offsetX, offsetY, Size);
+        l.append(plChar(WDDot, SignSize, DoubleDiv(24, SizeFactor(Size)), WingDingsName));
+        move(-offsetX, -offsetY, Size);
         return l;
     }
     inline const QPainterPath TextPath(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const double FontSize)
@@ -826,14 +833,9 @@ public:
         QFont F(Name);
         F.setBold(Bold);
         F.setItalic(Italic);
-        F.setPointSizeF(DoubleDiv(FontSize,SizeFactor(SignSize))/ScreenSize);
-//#ifdef __MACOSX_CORE__
-        const QPointF Pos=(MovingPoint+QPointF(0,DoubleDiv(FontSize,8)))/ScreenSize;
-        F.setPointSizeF(F.pointSizeF()*1.30);
-//#else
-//        int x1=FloatDiv(MovingPoint.x() - 0.1, sizx);
-//        int y1=FloatDiv(MovingPoint.y() - (Size + FloatDiv(Size ,6)), sizy);
-//#endif
+        F.setPointSizeF(sized(DoubleDiv(FontSize, SizeFactor(SignSize))));
+        const QPointF Pos = sized(MovingPoint + QPointF(0,DoubleDiv(FontSize, 8)));
+        F.setPointSizeF(F.pointSizeF() * 1.30);
         QPainterPath path;
         path.addText(Pos,F,Letter);
         path.setFillRule(Qt::WindingFill);
@@ -861,10 +863,10 @@ public:
     {
         if (Letter.isEmpty()) return OCGraphicsList();
         QPainterPath p=TextPath(Letter,SignSize,Name,Bold,Italic,FontSize);
-        if (Align & Qt::AlignBottom) p.translate(0,-DoubleDiv(FontSize,8)/ScreenSize);
-        if (Align & Qt::AlignRight) p.translate(-p.boundingRect().width(),0);
-        if (Align & Qt::AlignHCenter) p.translate(-p.boundingRect().width()/2,0);
-        if (Align & Qt::AlignVCenter) p.translate(0,(DoubleDiv(MovingPoint.y(),ScreenSize)-p.boundingRect().top())-p.boundingRect().height()/2);
+        if (Align & Qt::AlignBottom) p.translate(0,sized(-DoubleDiv(FontSize,8)));
+        if (Align & Qt::AlignRight) p.translate(-p.boundingRect().width(), 0);
+        if (Align & Qt::AlignHCenter) p.translate(-p.boundingRect().width() / 2, 0);
+        if (Align & Qt::AlignVCenter) p.translate(0,(sized(MovingPoint.y()) - p.boundingRect().top()) - p.boundingRect().height() / 2);
         return plTextPath(p);
     }
     inline const OCGraphicsList plTextPath(const QPainterPath& path, const bool UsePen=false, const double PenWidth = -1, const bool Fill = false)
@@ -897,93 +899,93 @@ public:
         AppendToList(i);
         return l;
     }
-    inline void translatePath(QPainterPath &p) { p.translate(MovingPoint / ScreenSize); }
+    inline void translatePath(QPainterPath &p) { p.translate(sized(MovingPoint)); }
     inline const OCGraphicsList PlRect(const double width, const double height, const int Size=0, const bool fill=true, const bool LineThickness=false)
     {
         OCGraphicsList l;
         const double factor=SizeFactor(Size);
         QBrush b(col);
         if (!fill) b=QBrush(Qt::NoBrush);
-        QPointF ep(MovingPoint+(QPointF(width,-height)/factor));
-        QRectF r=QRectF(MovingPoint/ScreenSize,ep/ScreenSize).normalized();
+        QPointF ep(MovingPoint + (QPointF(width, -height) / factor));
+        QRectF r = sized(MovingPoint, ep).normalized();
 
         QPen p(col);
-        if (LineThickness) p.setWidth(int(DoubleDiv(LineHalfThickNess*4,ScreenSize)/factor));
-        QGraphicsItem* i=Scene->addRect(r,p,b);
+        if (LineThickness) p.setWidth(int(sized(LineHalfThickNess*4)/factor));
+        QGraphicsItem* i = Scene->addRect(r, p, b);
         AppendToList(i);
         l.append(i);
         return l;
     }
-    inline const OCGraphicsList PlIcon(const QIcon& icon, const double width, const double height, const int Size=0)
+    inline const OCGraphicsList PlIcon(const QIcon& icon, const double width, const double height, const int Size = 0)
     {
         OCGraphicsList l;
         const double factor=SizeFactor(Size);
-        const QPointF ep(MovingPoint+(QPointF(width,-height)/factor));
-        const QRectF r=QRectF(MovingPoint/ScreenSize,ep/ScreenSize).normalized();
+        const QPointF ep(MovingPoint + (QPointF(width, -height) / factor));
+        const QRectF r = sized(MovingPoint, ep).normalized();
         QGraphicsItem* i = Scene->addPixmap(icon.pixmap(r.size().toSize()));
-        i->moveBy(r.left(),r.top());
+        i->moveBy(r.left(), r.top());
         AppendToList(i);
         l.append(i);
         return l;
     }
     void PlSquare1(const double h, const double ah, const double t)
     {
-        const double height=DoubleDiv(h,ScreenSize);
-        const double archeight=DoubleDiv(ah,ScreenSize);
-        const double thickness=DoubleDiv(t,ScreenSize);
-        const double arcfragment=archeight/10.0;
+        const double height = sized(h);
+        const double archeight = sized(ah);
+        const double thickness = sized(t);
+        const double arcfragment = archeight / 10;
         if (isZero(ah))
         {
-            QPainterPath s(QPointF(0,0));
-            s.lineTo(0,height);
-            s.lineTo(thickness,height);
-            s.lineTo(thickness,0);
-            s.lineTo(0,0);
-            AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+            QPainterPath s(QPointF(0, 0));
+            s.lineTo(0, height);
+            s.lineTo(thickness, height);
+            s.lineTo(thickness, 0);
+            s.lineTo(0, 0);
+            AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
         }
         else
         {
-            QPainterPath s(QPointF(archeight,-arcfragment*6.0));
-            s.cubicTo(QPointF(8.0*arcfragment,-4.0*arcfragment),QPointF(6.0*arcfragment,-2.0*arcfragment),QPointF(0,0));
-            s.lineTo(0,height);
-            s.lineTo(thickness,height);
-            s.lineTo(thickness,0);
-            s.cubicTo(QPointF(thickness+(3.0*arcfragment),-2.0*arcfragment),QPointF(archeight,-4.0*arcfragment),QPointF(archeight,-arcfragment*6.0));
-            AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+            QPainterPath s(QPointF(archeight, -arcfragment * 6));
+            s.cubicTo(QPointF(8 * arcfragment, -4 * arcfragment), QPointF(6 * arcfragment, -2 *arcfragment), QPointF(0, 0));
+            s.lineTo(0, height);
+            s.lineTo(thickness, height);
+            s.lineTo(thickness, 0);
+            s.cubicTo(QPointF(thickness + (3 * arcfragment), -2 * arcfragment), QPointF(archeight, -4 * arcfragment), QPointF(archeight, -arcfragment * 6));
+            AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
         }
     }
     void PlSquare2(const double h, const double ah, const double t)
     {
-        const double height=DoubleDiv(h,ScreenSize);
-        const double archeight=DoubleDiv(ah,ScreenSize);
-        const double thickness=DoubleDiv(t,ScreenSize);
-        const double arcfragment=archeight/10.0;
-        QPainterPath s(QPointF(0,0));
-        s.lineTo(0,height);
-        s.cubicTo(QPointF(6.0*arcfragment,height+(2.0*arcfragment)),QPointF(8.0*arcfragment,height+(4.0*arcfragment)),QPointF(archeight,height+(6.0*arcfragment)));
-        s.cubicTo(QPointF(archeight,height+(4.0*arcfragment)),QPointF(thickness+(3.0*arcfragment),height+(2.0*arcfragment)),QPointF(thickness,height));
-        s.lineTo(thickness,0);
-        s.lineTo(0,0);
-        AppendToList(Scene->addPath(s.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+        const double height = sized(h);
+        const double archeight = sized(ah);
+        const double thickness = sized(t);
+        const double arcfragment=archeight / 10;
+        QPainterPath s(QPointF(0, 0));
+        s.lineTo(0, height);
+        s.cubicTo(QPointF(6 * arcfragment,height + (2 * arcfragment)),QPointF(8 * arcfragment, height + (4 * arcfragment)), QPointF(archeight, height + (6 * arcfragment)));
+        s.cubicTo(QPointF(archeight, height + (4 * arcfragment)), QPointF(thickness + (3 * arcfragment), height + (2 * arcfragment)), QPointF(thickness, height));
+        s.lineTo(thickness, 0);
+        s.lineTo(0, 0);
+        AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
     }
     void PlCurly(const double h, const double w, const double t)
     {
-        const double height=DoubleDiv(h,ScreenSize);
-        const double width=DoubleDiv(w,ScreenSize);
-        const double thickness=DoubleDiv(t,ScreenSize);
-        const double ydist=height/10.0;
-        const double xdist=width/2.0;
-        QPainterPath b(QPointF(0,0));
-        b.cubicTo(QPointF(-xdist*4.0,ydist),QPointF(xdist,height/2.0),QPointF(-xdist*2,height/2.0));
-        b.cubicTo(QPointF(xdist,height/2.0),QPointF(-xdist*4.0,height-ydist),QPointF(0,height));
-        b.cubicTo(QPointF(-(xdist*4.0)+thickness,height-(ydist/2.0)),QPointF(xdist+thickness,(height/2.0)+(ydist/2.0)),QPointF(-xdist*2.0,height/2.0));
-        b.cubicTo(QPointF(xdist+thickness,(height/2.0)-(ydist/2.0)),QPointF(-(xdist*4.0)+thickness,ydist/2.0),QPointF(0,0));
-        AppendToList(Scene->addPath(b.translated(MovingPoint/ScreenSize),QPen(col),QBrush(col)));
+        const double height = sized(h);
+        const double width = sized(w);
+        const double thickness = sized(t);
+        const double ydist = height / 10;
+        const double xdist = width / 2;
+        QPainterPath b(QPointF(0, 0));
+        b.cubicTo(QPointF(-xdist * 4, ydist), QPointF(xdist, height / 2), QPointF(-xdist * 2, height / 2));
+        b.cubicTo(QPointF(xdist, height / 2), QPointF(-xdist * 4, height - ydist), QPointF(0, height));
+        b.cubicTo(QPointF(-(xdist * 4) + thickness, height - (ydist / 2)), QPointF(xdist + thickness,(height / 2) + (ydist / 2)), QPointF(-xdist * 2,height / 2));
+        b.cubicTo(QPointF(xdist + thickness, (height / 2) - (ydist / 2)), QPointF(-(xdist * 4) + thickness, ydist / 2), QPointF(0,0));
+        AppendToList(Scene->addPath(b.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
     }
-    inline void init(const double X, const double Y) { ZeroPoint=QPointF(X,Y); }
-    inline void setcol(const int Pointer)
+    inline void init(const double X, const double Y) { ZeroPoint = QPointF(X,Y); }
+    inline void setMarkedCol(const int Pointer)
     {
-        if (canColor())
+        if (Cursor && canColor())
         {
             lastCol=col;
             if (Cursor->IsSelected(Pointer))
@@ -996,7 +998,7 @@ public:
             }
         }
     }
-    inline void setcol(const QColor& color)
+    inline void setTempCol(const QColor& color)
     {
         if (canColor())
         {
@@ -1004,18 +1006,18 @@ public:
             col=color;
         }
     }
-    inline void resetcol() { if (canColor()) col=lastCol; }
+    inline void restoreCol() { if (canColor()) col=lastCol; }
     inline bool canColor() const
     {
         return (ColorOn & (col != inactivestaffcolor));
     }
     inline bool IsSelected(const int Pointer) const
     {
-        return (canColor()) ? Cursor->IsSelected(Pointer) : false;
+        return (Cursor && canColor()) ? Cursor->IsSelected(Pointer) : false;
     }
     inline bool IsMarked(const int Pointer) const
     {
-        return (canColor()) ? Cursor->IsMarked(Pointer) : false;
+        return (Cursor && canColor()) ? Cursor->IsMarked(Pointer) : false;
     }
     void PrintFontElement(const double X, const double Y, const QString& Text, const XMLFontWrapper& FontElem, const double scalesize)
     {
@@ -1060,15 +1062,18 @@ public:
     }
     QRectF lastSlur;
 private:
-    bool UseList;
+    double ScreenSize = defaultscreensize;
+    double TempSize = ScreenSize;
+    double XFactor = 1;
+    bool UseList = false;
     QColor lastCol;
     QPointF ZeroPoint;
     QPointF MovingPoint;
     inline const OCGraphicsList DJ(const double xs, const double ys,const double bold = 1)
     {
-        QPointF temp=MovingPoint/ScreenSize;
-        MovingPoint+=QPointF(xs,-ys);
-        return MyLine(temp, MovingPoint / ScreenSize, col, false, bold);
+        QPointF temp = sized(MovingPoint);
+        MovingPoint += QPointF(xs,-ys);
+        return MyLine(temp, sized(MovingPoint), col, false, bold);
     }
     inline const OCGraphicsList MyLine(const QPointF p1, const QPointF p2, const QColor& color, const bool BF, const double bold = 1)
     {
@@ -1088,7 +1093,7 @@ private:
         QPen p(color);
         //if (!isOne(bold))
         //{
-            p.setWidth(qRound(DoubleDiv(LineHalfThickNess * 3.0 * bold , ScreenSize)));
+            p.setWidth(qRound(sized(LineHalfThickNess * 3.0 * bold)));
             p.setCapStyle(Qt::RoundCap);
         //}
         QGraphicsItem* i=Scene->addLine(x1,y1,x2,y2,p);
@@ -1434,29 +1439,29 @@ public:
         {
             ScreenObj.moveTo(NoteX, NoteY);
             ScreenObj.move(-240, 0);
-            plotSlur(QPointF(-20 * 12, 0), (UpDown * TieDirection), 0, ScreenObj);
+            plotSlur(QPointF(-20 * 12, 0), (UpDown * TieDirection), 0, 0, ScreenObj);
         }
     }
-    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
+    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const double Curve, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
     {
         if (IsWrap | (Count != 1))
         {
             ScreenObj.move(-84, 0);
-            return plotSlur(QPointF(TieLen + 168, 0), (UpDown * TieDirection), 0, ScreenObj, bold);
+            return plotSlur(QPointF(TieLen + 168, 0), (UpDown * TieDirection), 0, 0, ScreenObj, bold);
         }
         else
         {
-            qDebug() << CenterY << NextCenterY;
+            qDebug() << CenterY << NextCenterY << TieLen << UpDown << TieDirection << Curve << IsWrap;
             //if (NextCenterY <= 0) NextCenterY = CenterY;
             if (NextCenterY != CenterY)
             {
                 ScreenObj.move(-84, 0);// ' UpDown * 24
-                return plotSlur(QPointF(TieLen + 168, CenterY - NextCenterY), UpDown, 0, ScreenObj, bold);
+                return plotSlur(QPointF(TieLen + 168, CenterY - NextCenterY), UpDown, Curve, 0, ScreenObj, bold);
             }
             else
             {
                 ScreenObj.move(-84, 0);// ' UpDown * 24
-                return plotSlur(QPointF(TieLen + 168, 0), UpDown, 0, ScreenObj, bold);
+                return plotSlur(QPointF(TieLen + 168, 0), UpDown, Curve, 0, ScreenObj, bold);
             }
         }
     }
@@ -1468,7 +1473,7 @@ public:
             EraseTies = false;
         }
     }
-    const static OCGraphicsList plotSlur(QPointF endpoint, const int updown, const double curve, OCDraw& ScreenObj, double bold = 1.0)
+    const static OCGraphicsList plotSlur(QPointF endpoint, const int updown, const double curve, const double weight, OCDraw& ScreenObj, double bold = 1.0)
     {
         OCGraphicsList l;
         int moveleft = 0;
@@ -1478,8 +1483,8 @@ public:
         }
         const double direction = -updown;
         const QPointF start(0, 0);
-        const QPointF end = endpoint / ScreenObj.ScreenSize;
-        const double thickness = (LineHalfThickNess * 4.0 / ScreenObj.ScreenSize) * bold;
+        const QPointF end = ScreenObj.sized(endpoint);
+        const double thickness = ScreenObj.sized(LineHalfThickNess * 4.0) * bold;
         const QVector2D dir = QVector2D(end).normalized();
         const QVector2D normal = QVector2D(-dir.y(),dir.x()) * direction; // vinkelrätt på bågen
 
@@ -1487,12 +1492,12 @@ public:
         double xaddp2 = xaddp1 / 12.0;
         if (dir.y() * direction > 0) qSwap(xaddp1, xaddp2);
 
-        const double curveFactor = 1.0 + (curve / 50.0);
+        const double curveFactor = (1.0 + (curve / 50.0)) *  (1.0 - (qMin<double>(end.x(), ScreenObj.sized(800.0 * 12)) / ScreenObj.sized(960.0 * 12)));
         const double tiltFactor = 1.0 + qAbs(normal.x() / 4.0);
-        const double curvature = ((72.0 / ScreenObj.ScreenSize) + (qAbs(end.x()) / 12.0)) * tiltFactor * curveFactor * direction;
+        const double curvature = (ScreenObj.sized(72) + (qAbs(end.x()) / 12.0)) * tiltFactor * curveFactor * direction;
 
-        const QPointF p1((end.x() * 0.1) + xaddp1, curvature);
-        const QPointF p2((end.x() * 0.9) + xaddp2, end.y() + curvature);
+        QPointF p1((end.x() * 0.1) + xaddp1, curvature * (1 - weight));
+        QPointF p2((end.x() * 0.9) + xaddp2, end.y() + (curvature * (1 + weight)));
         const QPointF thick(normal.x() * thickness, thickness * direction);
         const QPointF thin = (thick * 2) / LineHalfThickNess;
 
@@ -1501,7 +1506,7 @@ public:
         b.lineTo(end - thin);
         b.cubicTo(p2 - thick, p1 - thick, start - thin);
         b.lineTo(start);
-        b.translate(QPointF((8 * 12) - moveleft, (-updown * 5 * 12)) / ScreenObj.ScreenSize);
+        b.translate(ScreenObj.sized(QPointF((8 * 12) - moveleft, (-updown * 5 * 12))));
         ScreenObj.translatePath(b);
         ScreenObj.lastSlur=b.boundingRect();
         l.append(ScreenObj.plTextPath(b,true,bold,true));

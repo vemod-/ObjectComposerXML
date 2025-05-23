@@ -22,7 +22,7 @@ void XMLScoreWrapper::ParseFileVersion()
             e->renameAttribute("Size","FontSize");
         }
         if (e->attributeValueInt("NoteSpace")==0) e->removeAttribute("NoteSpace");
-        if (e->attributeValueInt("NoteSpace")==16) e->removeAttribute("NoteSpace");
+        if (e->attributeValueInt("NoteSpace")==defaultnotespace) e->removeAttribute("NoteSpace");
     }
     if (m_XMLScore->documentElement->elementByTag("Templates"))
     {

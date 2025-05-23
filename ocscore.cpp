@@ -16,7 +16,7 @@ void CVoice::plotMasterStuff(OCPageBarList& BarList, const QColor& VoiceColor, O
         //CountIt.reset();
         while (py < symbolCount())
         {
-            ScreenObj.setcol(py);
+            ScreenObj.setMarkedCol(py);
             const XMLSymbolWrapper& Symbol=XMLSymbol(py, BarList.meter(CountIt.barCount()));
             if (Symbol.IsRestOrValuedNote())
             {
@@ -28,7 +28,7 @@ void CVoice::plotMasterStuff(OCPageBarList& BarList, const QColor& VoiceColor, O
             }
             else if (Symbol.IsTuplet())
             {
-                CountIt.OCCounter::tuplets(py,*this);
+                CountIt.OCCounter::beginTuplet(py,*this);
             }
             else
             {
@@ -54,10 +54,10 @@ void CVoice::setPageStartVars(const OCPrintVarsType &voiceVars) { pageStartVars 
 
 const QRectF CVoice::plBarLine(const double xs, const XMLTemplateStaffWrapper& templateStaff, OCDraw& ScreenObj)
 {
-    const QRectF r = ScreenObj.boundingRect(ScreenObj.line(xs, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+    const QRectF r = ScreenObj.boundingRect(ScreenObj.line(xs, ScoreStaffHeight, 0, -ScoreStaffLinesHeight,ScreenObj.spaceX()));
     if ((templateStaff.squareBracket() == SBBegin) || (templateStaff.curlyBracket() > CBNone))
     {
-        ScreenObj.line(0, -(ScreenObj.spaceX(ScoreStaffHeight)-ScoreStaffLinesHeight+(ScreenObj.spaceX(12*templateStaff.height()))));
+        ScreenObj.line(0, -(ScreenObj.spaceX(ScoreStaffHeight) - ScoreStaffLinesHeight + (ScreenObj.spaceX(12 * templateStaff.height()))),ScreenObj.spaceX());
     }
     return r;
 }
@@ -94,7 +94,7 @@ void CVoice::formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScor
         }
         else if (Symbol.IsTuplet())
         {
-            CountIt.OCCounter::tuplets(py, XMLScore.Voice(VoiceLocation));
+            CountIt.OCCounter::beginTuplet(py, XMLScore.Voice(VoiceLocation));
         }
         else
         {
@@ -121,7 +121,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
     OCPrintSignList SignsToPrint;
     if (CountIt.FilePointer == 0) CountIt.Meter = BarList.BarMap.GetMeter(OCBarLocation(VoiceLocation,0));
     double BarX = ScreenObj.spaceX(BarList.barX());
-    ScreenObj.setcol(QColor(unselectablecolor));
+    ScreenObj.setTempCol(QColor(unselectablecolor));
     for (const OCDurSignType& s : std::as_const(CountIt.DurSigns)) OCSymbolsCollection::plotRemaining(s, NoteList, ScreenObj);
     forever
     {
@@ -130,13 +130,13 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
         ScreenObj.col = VoiceColor;
         forever
         {
-            ScreenObj.setcol(CountIt.FilePointer);
+            ScreenObj.setMarkedCol(CountIt.FilePointer);
             SignCol = ScreenObj.col;
             if (CountIt.FilePointer >= symbolCount())
             {
                 const QRectF r=ScreenObj.boundingRect(ScreenObj.line(XFysic, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
                 BarList.setFrame(CountIt.barCount()+1,r);
-                ScreenObj.line(XFysic + ScreenObj.ScreenSize * 2, ScoreStaffHeight,0, -ScoreStaffLinesHeight);
+                ScreenObj.line(XFysic + ScreenObj.spaceX(24), ScoreStaffHeight,0, -ScoreStaffLinesHeight);
                 ScreenObj.col = VoiceColor;
                 NoteList.PlotBeams(VoiceColor, ScreenObj);
                 return;
@@ -151,9 +151,9 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
                 //CountIt.tripletFlip(Symbol);
                 if (CountIt.tripletEnd())
                 {
-                    ScreenObj.setcol(QColor(unselectablecolor));
+                    ScreenObj.setTempCol(QColor(unselectablecolor));
                     OCRhythmObjectList l;
-                    OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.TripletCounter.FirstTripletIndex,CountIt.CurrentIndex), 3, QPointF(0,0), 0, ScreenObj, CountIt.TripletCounter.TupletTriplet * 96);
+                    OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.TripletCounter.FirstNoteIndex,CountIt.CurrentIndex), 3, QPointF(0,0), 0, ScreenObj, CountIt.TripletCounter.TupletTriplet * 96);
                     ScreenObj.col = VoiceColor;
                 }
                 NoteList.plotsigns(CountIt.CurrentIndex, SignsToPrint, FrameList, ScreenObj);
@@ -161,7 +161,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             }
             else
             {
-                if (Symbol.IsTuplet()) CountIt.OCCounter::tuplets(CountIt.FilePointer, XMLScore.Voice(VoiceLocation));
+                if (Symbol.IsTuplet()) CountIt.OCCounter::beginTuplet(CountIt.FilePointer, XMLScore.Voice(VoiceLocation));
                 const OCBarSymbolLocation l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
                 FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::plot(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, XMLScore, NoteList, CountIt, XMLTemplateStaff, ScreenObj)),l);
                 OCSymbolsCollection::appendSign(Symbol,SignsToPrint,SignCol,CountIt,OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
@@ -189,7 +189,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             BarList.setFrame(CountIt.barCount()+1,plBarLine(ScreenObj.spaceX(BarList.systemLength()-(LineHalfThickNess*6)), XMLTemplateStaff, ScreenObj));
             break;
         }
-        ScreenObj.setcol(CountIt.FilePointer);
+        ScreenObj.setMarkedCol(CountIt.FilePointer);
         const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote()) break;
         const OCBarSymbolLocation& l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
@@ -205,7 +205,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
 int CVoice::fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, const double XFysic, OCDraw& ScreenObj)
 {
     OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
@@ -215,7 +215,7 @@ int CVoice::fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray,
             CountIt.flip(Symbol.ticks());
             NoteList.Append(XFysic, Symbol, VoiceLocation, *this, CountIt, StaffAccidentals, BarList, ScreenObj);
             //if (voiceVarsArray.size() > 1) s->forceUpDown(VoiceLocation.Voice);
-            currentlen = CountIt.DecrementFlip();
+            currentlen = CountIt.flip1();
             //CountIt.flip1(Ticks);
             //currentlen = CountIt.CurrentTicksRounded;
             CountIt.FilePointer++;
@@ -249,7 +249,7 @@ void CVoice::fillBetweenNotes(OCStaffCounterPrint& voiceVarsArray, OCStaffAccide
 int CVoice::findBarChunk(OCStaffCounterPrint& voiceVarsArray)
 {
     OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
@@ -258,7 +258,8 @@ int CVoice::findBarChunk(OCStaffCounterPrint& voiceVarsArray)
         {
             if (Symbol.IsTiedNote()) CountIt.Ties.append(Symbol.pitch());
             CountIt.TieWrap.eraseTie();
-            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            currentlen = CountIt.flipAll(Symbol.ticks());
+            //CountIt.Decrement(Symbol.ticks());
             CountIt.FilePointer++;
             if (Symbol.IsTiedNote()) CountIt.TieWrap.append(Symbol.pitch());
             CountIt.TieWrap.EraseTies = true;
@@ -297,14 +298,15 @@ void CVoice::findBarBetweenNotes(OCStaffCounterPrint& voiceVarsArray)
 int CVoice::searchChunk(OCBarSymbolLocationList& l, OCStaffCounterPrint& voiceVarsArray, const QString& SearchTerm)
 {
     OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
         const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote())
         {
-            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            currentlen = CountIt.flipAll(Symbol.ticks());
+            //CountIt.Decrement(Symbol.ticks());
             if (Symbol.Compare(SearchTerm)) l.append(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
             CountIt.FilePointer++;
             break;
@@ -339,14 +341,15 @@ const OCBarSymbolLocationList CVoice::searchBetweenNotes(OCStaffCounterPrint& vo
 int CVoice::FakePlotChunk(OCStaffCounterPrint& voiceVarsArray)
 {
     OCPrintCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
         const XMLSymbolWrapper& Symbol=XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote())
         {
-            currentlen = CountIt.flipAllDecrement(Symbol.ticks());
+            currentlen = CountIt.flipAll(Symbol.ticks());
+            //CountIt.Decrement(Symbol.ticks());
             CountIt.FilePointer++;
             break;
         }
@@ -377,7 +380,7 @@ void CVoice::fakePlotBetweenNotes(OCStaffCounterPrint& voiceVarsArray)
 int CVoice::findBarPlayChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, OCMIDIFile& MFile, const int TrackOffset)
 {
     OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
@@ -595,7 +598,7 @@ void CVoice::playExprClear(OCPlayBackVarsType &voiceVars, OCMIDIFile& MFile, OCP
 int CVoice::playChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, CNotesToPlay& NotesToPlay, OCMIDIFile& MFile, int MIDITrackNumber)
 {
     OCPlayCounter& CountIt = voiceVarsArray[VoiceLocation.Voice];
-    CountIt.unfinish();
+    CountIt.FragmentCounter.unfinish();
     int currentlen = 0;
     while (CountIt.valid(symbolCount()))
     {
@@ -800,15 +803,16 @@ void CStaff::plotStaff(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, 
     const int StaffPos=XMLTemplate.staffPosFromId(StaffLocation.StaffId);
     const XMLTemplateStaffWrapper& XMLTemplateStaff(XMLTemplate.staff(StaffPos));
     OCVoiceLocation ActiveVoice;
-    if (ScreenObj.ColorOn) ActiveVoice = OCVoiceLocation(ScreenObj.Cursor->location());
+    if (ScreenObj.Cursor && ScreenObj.ColorOn) ActiveVoice = OCVoiceLocation(ScreenObj.Cursor->location());
     ScreenObj.col = color;
     ScreenObj.setSpaceX(XMLTemplateStaff.size());
-    double holdSize = ScreenObj.ScreenSize;
-    ScreenObj.ScreenSize = ScreenObj.spaceX(ScreenObj.ScreenSize);
+    //double holdSize = ScreenObj.ScreenSize;
+    //ScreenObj.ScreenSize = ScreenObj.spaceX(ScreenObj.ScreenSize);
+    ScreenObj.setTempSize();
     //qDebug() << Options.xml()->toString();
     //qDebug() << "Templatestaff size" << XMLTemplateStaff.size() << "Screenobj size" << ScreenObj.ScreenSize << "Options size" << Options.size() << "XMLScore size" << XMLScore.Score.size() << "XMLScore template size" << XMLScore.Template.size();
     BarList.setFrame(0, plotLinesAndBrackets(BarList.systemLength(), XMLTemplate, Options, BarList.startBar(), StaffPos, ScreenObj));
-    ScreenObj.setcol(QColor(unselectablecolor));
+    ScreenObj.setTempCol(QColor(unselectablecolor));
     Voices.first().plfirstKey(BarList, ScreenObj);
     Voices.first().plfirstClef(BarList, ScreenObj);
     ScreenObj.col=color;
@@ -831,13 +835,14 @@ void CStaff::plotStaff(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, 
     {
         Voices[ActiveVoice.Voice].plVoice(BarList, XMLScore, NoteLists[ActiveVoice.Voice], ScreenObj, XMLTemplateStaff, color);
     }
-    ScreenObj.ScreenSize = holdSize;
+    //ScreenObj.ScreenSize = holdSize;
+    ScreenObj.restoreSize();
 }
 
 const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const int StartBar, const int StaffPos, OCDraw& ScreenObj)
 {
     const XMLTemplateStaffWrapper& TemplateStaff(XMLTemplate.staff(StaffPos));
-    ScreenObj.moveTo(0,-ScoreStaffHeight/ScreenObj.XFactor);
+    ScreenObj.moveTo(0, -ScoreStaffHeight / ScreenObj.spaceX());
     ScreenObj.initCurrent();
     const double syslen = ScreenObj.spaceX(SystemLength);
     ScreenObj.moveTo(syslen, ScoreStaffHeight);
@@ -851,7 +856,7 @@ const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTe
     ScreenObj.move(0, -96);
     ScreenObj.line(-syslen, 0);
 
-    const double Height = (StaffPos == XMLTemplate.staffCount()-1) ? ScoreStaffLinesHeight : ScreenObj.spaceX(ScoreStaffHeight + (TemplateStaff.height()*12));
+    const double Height = (StaffPos == XMLTemplate.staffCount() - 1) ? ScoreStaffLinesHeight : ScreenObj.spaceX(ScoreStaffHeight + (TemplateStaff.height()*12));
     //if (StaffPos == XMLTemplate.staffCount()-1) Height = ScoreStaffLinesHeight;
     const QRectF r=ScreenObj.boundingRect(ScreenObj.line(0, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
     ScreenObj.line(0, -(Height-ScoreStaffLinesHeight));
@@ -863,9 +868,9 @@ const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTe
         if (!Options.hideBarNumbers())
         {
             ScreenObj.moveTo(0, ScoreStaffHeight + ScreenObj.spaceX(216));
-            ScreenObj.setcol(QColor(unselectablecolor));
+            ScreenObj.setTempCol(QColor(unselectablecolor));
             ScreenObj.plLet(QString::number(1 + StartBar + Options.barNumberOffset()).trimmed(), 0, "Times New Roman", false, false, ScreenObj.spaceX(140));
-            ScreenObj.resetcol();
+            ScreenObj.restoreCol();
         }
     }
 
@@ -915,23 +920,23 @@ OCNoteListArray CStaff::fillNoteLists(OCPageBarList& BarList, OCDraw& ScreenObj)
     {
         StaffAccidentals.Clear();
         for (int i = 0 ; i < voiceCount() ; i++) {
-            if (PrintCounters[i].isReady()) {
-                PrintCounters[i].setLen(Voices[i].fillChunk(NoteLists[i], PrintCounters, StaffAccidentals, BarList, XFysic, ScreenObj));
+            if (PrintCounters[i].FragmentCounter.isReady()) {
+                PrintCounters[i].FragmentCounter.setLen(Voices[i].fillChunk(NoteLists[i], PrintCounters, StaffAccidentals, BarList, XFysic, ScreenObj));
             }
         }
         if (PrintCounters.isFinished()) break;
         StaffAccidentals.ProcessAccidentals(PrintCounters[0].Scale);
         for (int i = 0 ; i < voiceCount() ; i++)
         {
-            if (PrintCounters[i].Ready)
+            if (PrintCounters[i].FragmentCounter.wasReady)
             {
-                if (!PrintCounters[i].isFinished()) {
+                if (!PrintCounters[i].FragmentCounter.isFinished()) {
                     NoteLists[i].ApplyAccidentals(StaffAccidentals);
                 }
             }
         }
         checkChordCollision(NoteLists, PrintCounters);
-        PrintCounters.flip();
+        PrintCounters.decrementFlip();
         XFysic = ScreenObj.spaceX(BarList.calcX(PrintCounters.BarCounter, PrintCounters.Beat)) + BarX;
         if (PrintCounters.newBar())
         {
@@ -956,9 +961,9 @@ void CStaff::findall(const int BarToFind)
         for (int i = 0; i < voiceCount(); i++)
         {
             PrintCounters[i].Ties.clear();
-            if (PrintCounters[i].isReady())
+            if (PrintCounters[i].FragmentCounter.isReady())
             {
-                PrintCounters[i].setLen(Voices[i].findBarChunk(PrintCounters));
+                PrintCounters[i].FragmentCounter.setLen(Voices[i].findBarChunk(PrintCounters));
             }
         }
         if (PrintCounters.isFinished()) break;
@@ -995,15 +1000,15 @@ void CStaff::checkChordCollision(OCNoteListArray& NoteLists, OCStaffCounterPrint
     OCIntList times1(voiceCount(),0);
     for (int i = 0 ; i < voiceCount() ; i++)
     {
-        if (StaffCount[i].Ready)
+        if (StaffCount[i].FragmentCounter.wasReady)
         {
-            if (!StaffCount[i].isFinished())
+            if (!StaffCount[i].FragmentCounter.isFinished())
             {
                 for (int j = i+1 ; j < voiceCount(); j++)
                 {
-                    if (StaffCount[j].Ready)
+                    if (StaffCount[j].FragmentCounter.wasReady)
                     {
-                        if (!StaffCount[j].isFinished())
+                        if (!StaffCount[j].FragmentCounter.isFinished())
                         {
                             if (chordCollision(NoteLists[j], NoteLists[i]))
                             {
@@ -1050,10 +1055,10 @@ void CStaff::findBarPlay(const int BarToFind, OCMIDIFile& MFile, const int Track
     {
         for (int i = 0 ; i < voiceCount(); i++)
         {
-            if (PlayCounters[i].isReady())
+            if (PlayCounters[i].FragmentCounter.isReady())
             {
                 MFile.setTrackNumber(i + TrackOffset,0);
-                PlayCounters[i].setLen(Voices[i].findBarPlayChunk(*this, PlayCounters, SignsToPlay[i], MFile, TrackOffset));
+                PlayCounters[i].FragmentCounter.setLen(Voices[i].findBarPlayChunk(*this, PlayCounters, SignsToPlay[i], MFile, TrackOffset));
             }
         }
         if (PlayCounters.isFinished()) break;
@@ -1111,7 +1116,7 @@ void CStaff::play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, c
     {
         for (int i = 0 ; i < voiceCount() ; i++)
         {
-            if (PlayCounters[i].isReady())
+            if (PlayCounters[i].FragmentCounter.isReady())
             {
                 MFile.setTrackNumber(MIDITrackNumber + i, PlayCounters[i].CurrentDelta);
                 if ((MIDITrackNumber + i == 0) && (PlayCounters[i].isFirstBeat()))
@@ -1120,7 +1125,7 @@ void CStaff::play(OCMIDIFile& MFile, int& MIDITrackNumber, const int StartBar, c
                     if (b < barmap.EndOfVoiceBar(OCVoiceLocation(StaffLocation.StaffId,i))) MFile.appendMetaEvent(0x07, "Bar " + QString::number(b));
                     PlayCounters[i].CurrentDelta = 0;
                 }
-                PlayCounters[i].setLen(Voices[i].playChunk(*this, PlayCounters, SignsToPlay[i], NotesToPlay[i], MFile, MIDITrackNumber));
+                PlayCounters[i].FragmentCounter.setLen(Voices[i].playChunk(*this, PlayCounters, SignsToPlay[i], NotesToPlay[i], MFile, MIDITrackNumber));
             }
         }
         if (PlayCounters.isFinished()) break;
@@ -1141,15 +1146,15 @@ const OCBarSymbolLocationList CStaff::search(const QString& SearchTerm, const in
     {
         for (int i = 0 ; i < voiceCount() ; i++)
         {
-            if (PrintCounters[i].isReady())
+            if (PrintCounters[i].FragmentCounter.isReady())
             {
                 if ((TrackToSearch == -1) || (i == TrackToSearch))
                 {
-                    PrintCounters[i].setLen(Voices[i].searchChunk(l, PrintCounters, SearchTerm));
+                    PrintCounters[i].FragmentCounter.setLen(Voices[i].searchChunk(l, PrintCounters, SearchTerm));
                 }
                 else
                 {
-                    PrintCounters[i].setLen(Voices[i].FakePlotChunk(PrintCounters));
+                    PrintCounters[i].FragmentCounter.setLen(Voices[i].FakePlotChunk(PrintCounters));
                 }
             }
         }
@@ -1170,9 +1175,9 @@ const OCPrintVarsType CStaff::fakePlot(const int TrackToSearch, const int Target
     {
         for (int i = 0; i < voiceCount(); i++)
         {
-            if (PrintCounters[i].isReady())
+            if (PrintCounters[i].FragmentCounter.isReady())
             {
-                PrintCounters[i].setLen(Voices[i].FakePlotChunk(PrintCounters));
+                PrintCounters[i].FragmentCounter.setLen(Voices[i].FakePlotChunk(PrintCounters));
             }
             if ((i == TrackToSearch) && (PrintCounters[i].FilePointer >= TargetIndex))
             {
@@ -1198,12 +1203,12 @@ void CStaff::fillBarsArray(OCBarMap& barMap, const int StaffOffset)
     {
         for (int i = 0; i < voiceCount(); i++)
         {
-            if (PrintCounters[i].isReady())
+            if (PrintCounters[i].FragmentCounter.isReady())
             {
                 OCBarWindowBar& VB = VoiceBar[i];
                 OCPrintCounter& CountIt = PrintCounters[i];
-                if (!CountIt.isFinished()) VB.Density++;
-                CountIt.setLen(Voices[i].findBarChunk(PrintCounters));
+                if (!CountIt.FragmentCounter.isFinished()) VB.Density++;
+                CountIt.FragmentCounter.setLen(Voices[i].findBarChunk(PrintCounters));
                 if (PrintCounters.Beat == 0)
                 {
                     VB.KeyChangeOnOne = CountIt.KeyChange;
@@ -1233,7 +1238,7 @@ void CStaff::fillBarsArray(OCBarMap& barMap, const int StaffOffset)
             {
                 OCBarWindowBar& VB = VoiceBar[i];
                 OCPrintCounter& CountIt = PrintCounters[i];
-                if (!CountIt.isFinished())
+                if (!CountIt.FragmentCounter.isFinished())
                 {
                     VB.setMeter(CountIt.Meter,CountIt.MeterText);
                     barMap.appendBar(StaffOffset + i, OCBarWindowBar(VB));
@@ -1565,11 +1570,11 @@ const QRectF OCScore::getBarlineX(const int BarNum)
 
 int OCScore::insideBarline(const QPointF &x)
 {
-    for (int i=0;i<BarList.barsToPrint();i++)
+    for (int i = 0;i < BarList.barsToPrint(); i++)
     {
-        if (BarList.frame(i).x()-3 < x.x())
+        if (BarList.frame(i).x() - 6 < x.x())
         {
-            if (BarList.frame(i).x()+3 > x.x())
+            if (BarList.frame(i).x() + 6 > x.x())
             {
                 return i + startBar();
             }

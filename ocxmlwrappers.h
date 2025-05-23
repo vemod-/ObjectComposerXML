@@ -8,6 +8,12 @@
 #include "softsynthsdefines.h"
 #include "cpitchtextconvert.h"
 
+#define defaultscorezoom 0.25
+#define defaultlayoutzoom 0.2
+#define defaultscreensize 3
+#define defaultscoresize 12
+#define defaultnotespace 16
+
 enum SquareBracketConstants
 {
     SBNone = 0,
@@ -697,13 +703,13 @@ public:
     inline XMLScoreOptionsWrapper() : IXMLWrapper("Options") {}
     inline XMLScoreOptionsWrapper(QDomLiteElement* e) : IXMLWrapper(e) {}
     void shadowXML(QDomLiteElement* e);
-    XMLProperty(size,Size,Size,12,double)
+    XMLProperty(size,Size,Size,defaultscoresize,double)
     XMLIntProperty(view,View,View,0)
-    XMLProperty(scoreZoom,ScoreZoom,ScoreZoom,1,double)
+    XMLProperty(scoreZoom,ScoreZoom,ScoreZoom,defaultscorezoom,double)
     XMLIntProperty(startBar,StartBar,StartBar,0)
-    XMLProperty(layoutZoom,LayoutZoom,LayoutZoom,0.2,double)
+    XMLProperty(layoutZoom,LayoutZoom,LayoutZoom,defaultlayoutzoom,double)
     XMLIntProperty(layoutIndex,LayoutIndex,LayoutIndex,0)
-    XMLIntProperty(noteSpace,NoteSpace,NoteSpace,16)
+    XMLIntProperty(noteSpace,NoteSpace,NoteSpace,defaultnotespace)
     XMLIntProperty(barNumberOffset,BarNumberOffset,BarNrOffset,0)
     XMLBoolProperty(hideBarNumbers,HideBarNumbers,DontShowBN,false)
     XMLIntProperty(masterStaff,MasterStaff,MasterStave,0)
@@ -932,6 +938,7 @@ public:
     void shadowXML(QDomLiteElement* e);
     XMLIntProperty(showNamesSwitch,ShowNamesSwitch,ShowNamesSwitch,2)
     XMLBoolProperty(showAllOnFirstSystem,ShowAllOnFirstSystem,ShowAllOnSys1,true)
+    XMLBoolProperty(showLayoutName,ShowLayoutName,ShowLayoutName,false)
     XMLBoolProperty(transposeInstruments,TransposeInstruments,TransposeInstruments,false)
     XMLIntProperty(scoreType,ScoreType,ScoreType,2)
     XMLProperty(scaleSize,ScaleSize,ScaleSize,1,double)

@@ -228,7 +228,7 @@ void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int BarCount,
                 }
                 else if (Symbol.IsTuplet())
                 {
-                     CountIt.tuplets(Pointer, XMLVoice);
+                     CountIt.beginTuplet(Pointer, XMLVoice);
                  }
                 Info = Symbol.description();
                 QTreeWidgetItem *nameItem = table->createStandardItem(Info,QString(),1);

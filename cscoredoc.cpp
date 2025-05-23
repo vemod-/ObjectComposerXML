@@ -617,9 +617,14 @@ void CScoreDoc::ShowLayoutSystemPopup()
 void CScoreDoc::toggleView()
 {
     qDebug() << sv->FollowResize();
-    if (sv->FollowResize()==ScoreViewXML::PageSizeUnlimited)
+    if (sv->FollowResize() == ScoreViewXML::PageSizeUnlimited)
     {
         sv->setFollowResize(ScoreViewXML::PageSizeFollowsResize);
+        sv->Paint(tsReformat);
+        return;
+    }
+    else if (sv->FollowResize() == ScoreViewXML::PageSizeFollowsResize) {
+        sv->setFollowResize(ScoreViewXML::PageSizeFixed);
         sv->Paint(tsReformat);
         return;
     }
@@ -690,12 +695,14 @@ bool CScoreDoc::AddLayout()
     d.setWindowTitle("New Layout");
     if ((lv->layoutCount()==0) || (d.exec()==QDialog::Accepted))
     {
+        ui->FadingWidget_2->prepare();
         MainMenu->UndoMenu->addItem("Add Layout");
         d.ModifyXML(sv->XMLScore,-1);
         lv->ReloadXML();
         InitLayout(lv->layoutCount()-1);
         UpdateStatus();
         RetVal=true;
+        ui->FadingWidget_2->fade();
     }
     return RetVal;
 }
@@ -709,9 +716,11 @@ void CScoreDoc::EditLayout()
     d.setWindowTitle("Edit Layout");
     if (d.exec()==QDialog::Accepted)
     {
+        ui->FadingWidget_2->prepare();
         MainMenu->UndoMenu->addItem("Edit Layout");
         d.ModifyXML(sv->XMLScore,Index);
         InitLayout(Index);
+        ui->FadingWidget_2->fade();
     }
 }
 
@@ -1950,6 +1959,10 @@ void CScoreDoc::PasteDoc(const QDomLiteElement* xml)
     }
     else
     {
+        for (int i=0;i<SelectionList.size();i++)
+        {
+            sv->Delete(MarkToVoiceLocation(i),SelectionList[i]);
+        }
         for (int i = 0; i < xml->childCount(); i++)
         {
             const OCVoiceLocation& l=MarkToVoiceLocation(i);
@@ -2312,6 +2325,7 @@ void CScoreDoc::SaveDoc(QString path)
     QDomLiteDocument Doc;
     Doc.replaceDoc(xml.firstChild()->clone());
     CProjectPage::saveFile(p,&Doc,grab());
+    MainMenu->RecentMenu->AddRecentFile(p);
 }
 
 void CScoreDoc::ExportMidi()

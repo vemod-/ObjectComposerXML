@@ -48,9 +48,10 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(Scene);
     Scene->setBackgroundBrush(paperbrush);
-    ScreenObj.Scene=Scene;
+    ScreenObj.Scene = Scene;
     ScreenObj.Cursor = &Cursor;
-    CursorFrame=new OCCursorFrame(this);
+    ScreenObj.ColorOn = true;
+    CursorFrame = new OCCursorFrame(this);
     MouseDown=false;
     Dragging=false;
     MouseButton=Qt::NoButton;
@@ -61,7 +62,7 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     m_Locked=false;
     m_NavigationVisible=false;
     setMouseTracking(true);
-    zoomer = new QGraphicsViewZoomer(this);
+    zoomer = new QGraphicsViewZoomer(this, defaultscorezoom);
     connect(zoomer,&QGraphicsViewZoomer::ZoomChanged,this,&ScoreViewXML::changeZoom);
 
     XMLScore.newScore();
@@ -73,9 +74,10 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     setActiveOptions();
     m_EndBar=0;
     m_StartBar=0;
-    m_SystemLength = (900 * 12);
+    m_SystemLength = defaultsystemlength;
     setActiveStaffId(0);
-    setSceneRect(0,0,800,systemRect().height());
+    createSceneRect();
+    //setSceneRect(systemRect());//(0,0,800,systemRect().height());
 
     EditMenu = new QMenu(this);
     actionSwapForward = EditMenu->addAction("Swap forward",QKeySequence::SelectNextWord,this,&ScoreViewXML::selectSwapForward);
@@ -211,7 +213,7 @@ void ScoreViewXML::writeAltkeyNote(const QPointF &mappedPos) {
 }
 
 void ScoreViewXML::writeMoveSymbol(const QPointF &moved, const Qt::KeyboardModifiers &modifiers) {
-    QPoint qp=(moved*Size()*SizeFactor(ActiveTemplate.staffFromId(Cursor.location().StaffId).size())).toPoint();
+    QPoint qp=(scaledFromScene(moved) * SizeFactor(ActiveTemplate.staffFromId(Cursor.location().StaffId).size())).toPoint();
     if (MouseButton != Qt::RightButton) {
         setCursor(Qt::PointingHandCursor);
         HoverRubberband->hide();
@@ -240,6 +242,7 @@ void ScoreViewXML::writeMoveSymbol(const QPointF &moved, const Qt::KeyboardModif
             for (const int& i : Cursor.SelectedPointers()) {
                 XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(i);
                 if (XMLSymbol.IsPitchedNote()) XMLSymbol.setAttribute("AccidentalLeft",qp.x() + XMLSymbol.getIntVal("AccidentalLeft"));
+                if (XMLSymbol.Compare("Slur")) XMLSymbol.setAttribute("Weight",qBound<int>(-10, qp.x() + XMLSymbol.getIntVal("Weight"), 10));
             }
         }
         else {
@@ -258,8 +261,8 @@ int ScoreViewXML::insideStaffId(const QPointF &p) const
 {
     for (int StaffPos = 0 ; StaffPos < ActiveTemplate.staffCount() ; StaffPos++) {
         const int staffTop = ActiveTemplate.staffTop(StaffPos);
-        if (p.y() > scaled(staffTop)) {
-            if (p.y() < scaled(staffTop+ScoreStaffLinesHeight)) {
+        if (p.y() > scaledToScene(staffTop)) {
+            if (p.y() < scaledToScene(staffTop+ScoreStaffLinesHeight)) {
                 return ActiveTemplate.staffId(StaffPos);
             }
         }
@@ -270,7 +273,7 @@ int ScoreViewXML::insideStaffId(const QPointF &p) const
 int ScoreViewXML::pitchFromPoint(const OCSymbolLocation &l, const QPointF &m)
 {
     const int clef = Score.fakePlotClef(l);
-    const int pitch = 74 - int(((m.y() * Size()) - ActiveTemplate.staffTopFromId(l.StaffId)) / 28) - int((52 - CClef::LineDiff(clef)) * 12.0 / 28.0);
+    const int pitch = 74 - int((scaledFromScene(m.y()) - ActiveTemplate.staffTopFromId(l.StaffId)) / 28) - int((52 - CClef::LineDiff(clef)) * 12.0 / 28.0);
     return boundStep<int>(0, pitch, 127);
 }
 
@@ -334,7 +337,7 @@ bool ScoreViewXML::viewportEvent(QEvent *event)
 
 void ScoreViewXML::wheelEvent(QWheelEvent* event)
 {
-    if ((zoomer->getZoom() > 1) && (FollowResize() != PageSizeFixed))
+    if ((zoomer->getZoom() > defaultscorezoom) && (FollowResize() != PageSizeFixed))
     {
         QGraphicsView::wheelEvent(event);
         return;
@@ -1111,21 +1114,20 @@ void ScoreViewXML::Paint(const OCRefreshMode DrawMode, const bool UpdateSelectio
     if (DrawMode != tsRedrawActiveStave)
     {
         Score.eraseAll(Scene);
-        double picheight = systemRect().height();
         setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        if (FollowResize()==PageSizeFollowsResize)
+        if (FollowResize() == PageSizeFollowsResize)
         {
-            int WindowWidth = width();
-            if (picheight > height()) WindowWidth -= verticalScrollBar()->width();
-            setSceneRect(0,0,WindowWidth,picheight);
-            m_SystemLength = (WindowWidth - 40) * Size();
-            if (zoomer->getZoom()<1) m_SystemLength /= zoomer->getZoom();
-        }
-        else if (FollowResize()==PageSizeFixed)
-        {
+            const double WindowWidth = (systemRect().height() > height()) ? viewport()->width() -verticalScrollBar()->width() : viewport()->width();
+            const double zoomFactor = (zoomer->getZoom() < defaultscorezoom) ? zoomer->getZoom() : defaultscorezoom;
+            m_SystemLength = scaledFromScene(WindowWidth / zoomFactor) - (ScoreLeftMargin * 2);
             createSceneRect();
         }
-        if (FollowResize()==PageSizeUnlimited)
+        else if (FollowResize() == PageSizeFixed)
+        {
+            m_SystemLength = defaultsystemlength;
+            createSceneRect();
+        }
+        if (FollowResize() == PageSizeUnlimited)
         {
             if (DrawMode == tsReformat)
             {
@@ -1237,7 +1239,7 @@ void ScoreViewXML::flashSelected()
 void ScoreViewXML::changeZoom(double zoom)
 {
     if (HoverRubberband->isVisible()) HoverRubberband->hide();
-    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom()<1)) Paint(tsReformat,true);
+    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom() < defaultscorezoom)) Paint(tsReformat,true);
     emit ZoomChanged(zoom);
 }
 
@@ -1245,7 +1247,7 @@ void ScoreViewXML::setZoom(const double Zoom)
 {
     zoomer->setZoom(Zoom);
     if (HoverRubberband->isVisible()) HoverRubberband->hide();
-    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom()<1)) Paint(tsReformat,true);
+    if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom() < defaultscorezoom)) Paint(tsReformat,true);
 }
 
 void ScoreViewXML::toggleAltKey(bool v) {
@@ -1406,9 +1408,9 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 if (newBar > -1)
                 {
                     setCursor(Qt::PointingHandCursor);
-                    QRectF barX=Score.getBarlineX(newBar);
-                    barX.setTop(staffTopScaled(newStaffIndex));
-                    barX.setHeight(scaled(ScoreStaffLinesHeight));
+                    QRectF barX = Score.getBarlineX(newBar);
+                    barX.setTop(scaledToScene(ActiveTemplate.staffTopFromId(newStaffIndex)));
+                    barX.setHeight(scaledToScene(ScoreStaffLinesHeight / SizeFactor(ActiveTemplate.staffFromId(newStaffIndex).size())));
                     barX.setRight(Score.getBarlineX(newBar+1).left()+3);
                     HoverRubberband->setGeometry(mapFromSceneRect(barX.adjusted(-3,-3,3,3)));
                     HoverRubberband->show(40);
@@ -1426,7 +1428,7 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 else if (newStaffIndex > -1)
                 {
                     setCursor(Qt::PointingHandCursor);
-                    HoverRubberband->setGeometry(mapFromSceneRect(QRectF(scaled(ScoreLeftMargin),staffTopScaled(newStaffIndex),scaled(m_SystemLength),scaled(ScoreStaffLinesHeight)).adjusted(-4,-4,4,4)));
+                    HoverRubberband->setGeometry(mapFromSceneRect(scaledToScene(QRectF(ScoreLeftMargin,ActiveTemplate.staffTopFromId(newStaffIndex),m_SystemLength,ScoreStaffLinesHeight / SizeFactor(ActiveTemplate.staffFromId(newStaffIndex).size())).adjusted(-4,-4,4,4))));
                     HoverRubberband->show(40);
                     setToolTip(XMLScore.StaffName(newStaffIndex));
                 }
@@ -1500,8 +1502,8 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
         else if (MouseArea==MouseOnBar)
         {
             QRectF r(m_HoldMappedPos,mappedPos);
-            r.setTop(activeStaffTopScaled());
-            r.setHeight(scaled(ScoreStaffLinesHeight));
+            r.setTop(ActiveTemplate.staffTopFromId(ActiveStaffId()));
+            r.setHeight(scaledToScene(ScoreStaffLinesHeight));
             SelectRubberband->setGeometry(rect());
             SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
             SelectRubberband->show();
@@ -1569,22 +1571,22 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
                 else
                 {
                     QRectF r(m_HoldMappedPos,mappedPos);
-                    r.setTop(activeStaffTopScaled());
-                    r.setHeight(scaled(ScoreStaffLinesHeight));
+                    r.setTop(ActiveTemplate.staffTopFromId(ActiveStaffId()));
+                    r.setHeight(scaledToScene(ScoreStaffLinesHeight));
                     SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
                 }
-                QRect r=SelectRubberband->windowGeometry();
-                popupPoint=mapToGlobal(r.bottomRight());
+                QRect r = SelectRubberband->windowGeometry();
+                popupPoint = mapToGlobal(r.bottomRight());
                 OCPointerList Ptrs;
-                if (MouseArea==MouseOnBar)
+                if (MouseArea == MouseOnBar)
                 {
                     r.setTop(0);
-                    r.setHeight(int(Scene->height()*Size()));
-                    Ptrs=Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
+                    r.setHeight(int(scaledFromScene(Scene->height())));
+                    Ptrs = Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
                 }
                 else
                 {
-                    Ptrs=Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
+                    Ptrs = Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
                     if (Ptrs.empty())
                     {
                         const OCLocationList p1 = Score.locationsInside(mapToSceneRect(r));
@@ -1653,8 +1655,8 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
             else if (MouseArea==MouseOnBar)
             {
                 QRectF barX=Score.getBarlineX(MouseAreaIndex);
-                barX.setTop(activeStaffTopScaled());
-                barX.setHeight(scaled(ScoreStaffLinesHeight));
+                barX.setTop(ActiveTemplate.staffTopFromId(ActiveStaffId()));
+                barX.setHeight(scaledToScene(ScoreStaffLinesHeight));
                 barX.setRight(Score.getBarlineX(MouseAreaIndex+1).left()+3);
                 popupPoint=mapToGlobal(QGraphicsView::mapFromScene(barX.bottomRight()));
                 const OCSymbolRange r(findPointerToBar(MouseAreaIndex).Pointer,findPointerToBar(MouseAreaIndex+1).Pointer-1);
@@ -1724,7 +1726,7 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
 
 void ScoreViewXML::ensureVisible(const int iStaff)
 {
-    const auto i = int(staffTopScaled(iStaff));
+    const auto i = int(scaledToScene(ActiveTemplate.staffTopFromId(iStaff)));
     verticalScrollBar()->setValue(i-(height()/3));
     if (HoverRubberband->isVisible())
     {
@@ -1784,21 +1786,27 @@ void ScoreViewXML::nextStaff(const int Direction)
 
 int ScoreViewXML::activeStaffPos() const { return ActiveTemplate.staffPosFromId(Cursor.location().StaffId); }
 
-double ScoreViewXML::scaled(const double v) const { return v/Size(); }
+double ScoreViewXML::scaledToScene(const double v) const { return v / (ActiveOptions.size() / ScreenObj.sized(defaultscoresize)); }
 
-double ScoreViewXML::staffTopScaled(int id) const {
-    return scaled(ActiveTemplate.staffTopFromId(id));
+QRectF ScoreViewXML::scaledToScene(const QRectF v) const { return QRectF(scaledToScene(v.x()),scaledToScene(v.y()),scaledToScene(v.width()),scaledToScene(v.height())); }
+/*
+double ScoreViewXML::staffTopScaledToScene(int id) const {
+    return scaledToScene(ActiveTemplate.staffTopFromId(id));
 }
 
-double ScoreViewXML::activeStaffTopScaled() const {
-    return scaled(ActiveTemplate.staffTopFromId(ActiveStaffId()));
+double ScoreViewXML::activeStaffTopScaledToScene() const {
+    return scaledToScene(ActiveTemplate.staffTopFromId(ActiveStaffId()));
 }
-
+*/
 int ScoreViewXML::findCurrentMeter(const OCSymbolLocation& SymbolLocation) const
 {
     OCBarSymbolLocation Bar=Score.BarMap().GetBar(SymbolLocation);
     return Score.BarMap().GetMeter(Bar);
 }
+
+double ScoreViewXML::scaledFromScene(const double v) const { return v * (ActiveOptions.size() / ScreenObj.sized(defaultscoresize)); }
+
+QPointF ScoreViewXML::scaledFromScene(const QPointF v) const { return v * (ActiveOptions.size() / ScreenObj.sized(defaultscoresize)); }
 
 const QVector<ulong> ScoreViewXML::tickList() const
 {
@@ -1817,15 +1825,14 @@ const QVector<ulong> ScoreViewXML::tickList() const
 
 const QRectF ScoreViewXML::systemRect() const
 {
-    const double w = scaled(m_SystemLength);
-    return QRectF(scaled(ScoreLeftMargin),0,w,scaled(ActiveTemplate.staffTop(ActiveTemplate.staffCount() - 1) + 800) + 30);
+    return scaledToScene(QRectF(ScoreLeftMargin,0,m_SystemLength,ActiveTemplate.staffTop(ActiveTemplate.staffCount() - 1) + 800)).adjusted(0,0,0,30);
 }
 
 void ScoreViewXML::createSceneRect()
 {
     QRectF r(systemRect());
     r.setX(0);
-    r.setWidth(scaled(m_SystemLength + (ScoreLeftMargin * 2)));
+    r.setWidth(scaledToScene(m_SystemLength + (ScoreLeftMargin * 2)));
     setSceneRect(r);
 }
 

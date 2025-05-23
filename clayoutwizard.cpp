@@ -208,6 +208,7 @@ void CLayoutWizard::ModifyXML(XMLScoreWrapper& XMLScore, int Index )
     }
     XMLTemplate.validateBrackets();
     XMLLayoutOptionsWrapper options;
+    options.setShowLayoutName(ui->ShowLayoutName->isChecked());
     options.setShowNamesSwitch(ui->ShowNames->currentIndex()+1);
     options.setShowAllOnFirstSystem(ui->ShowAllStaffs->isChecked());
     options.setTransposeInstruments(!ui->ShowAsSound->isChecked());
@@ -266,25 +267,17 @@ void CLayoutWizard::ModifyXML(XMLScoreWrapper& XMLScore, int Index )
         }
         if (Msg.length())
         {
-            /*
-            int ret=QMessageBox::warning(this, "Object Composer XML",Msg+"The Layout will be Reformated, Continue ?",QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-            if (ret==QMessageBox::Cancel)
-            {
-                return;
-            }
-*/
             int r = nativeAlert(this,"Object Composer",Msg+"The Layout will be Reformated, Continue ?",{"Cancel","Ok"});
             if (r == 1000) return;
 
-            //LayoutCollection.clearChild(Index);
-            //XMLLayout=LayoutCollection.XMLLayout(Index);
+            XMLLayout.xml()->removeChildren("Page");
             XMLLayout.setIsFormated(false);
         }
     }
     else
     {
         LayoutCollection.addChild();
-        XMLLayout=LayoutCollection.XMLLayout(LayoutCollection.layoutCount()-1);
+        XMLLayout = LayoutCollection.XMLLayout(LayoutCollection.layoutCount()-1);
     }
     XMLLayout.Template.copy(XMLTemplate);
     XMLLayout.Options.copy(options);
@@ -563,6 +556,7 @@ void CLayoutWizard::FillOptions(XMLLayoutOptionsWrapper &Options, XMLLayoutFonts
     ui->BarNumberOffset->setValue(Options.barNumberOffset());
     ui->NoteSpace->setValue(Options.noteSpace()-16);
     ui->MasterStaff->setCurrentIndex(Options.masterStaff());
+    ui->ShowLayoutName->setChecked(Options.showLayoutName());
     ui->ShowNames->setCurrentIndex(Options.showNamesSwitch()-1);
     ui->ShowAllStaffs->setChecked(Options.showAllOnFirstSystem());
     ui->ShowAsSound->setChecked(!Options.transposeInstruments());

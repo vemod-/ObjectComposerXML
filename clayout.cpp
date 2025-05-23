@@ -156,8 +156,9 @@ void CLayoutPage::AppendSystem(CLayoutSystem *System) {
 
 void CLayoutPage::RemoveSystem() {
     if (!Systems.isEmpty()) {
-        delete Systems.takeLast();
-        XMLElement->removeLast();
+        //XMLElement->takeLast();
+        //delete Systems.takeLast();
+        delete takeLastSystem();
     }
 }
 
@@ -256,13 +257,16 @@ void CLayoutPage::EraseTitle(QGraphicsScene* Scene)
     TitleList.clear();
 }
 
-void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& /*Options*/, OCDraw& ScreenObj)
+void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, const QString& LayoutName, OCDraw& ScreenObj)
 {
     TitleList.clear();
     ScreenObj.StartList();
     ScreenObj.col = Qt::black;
     double TitleHeight = 0;
     if (Page > 0) return;
+    if (Options.showLayoutName()) {
+        ScreenObj.PrintFontElement(PageRect.left(), PageRect.top(), LayoutName, Fonts.composer, 1);
+    }
     if (!Fonts.title.empty())
     {
         double Halfwidth = Fonts.title.textWidth() / 2.0;  //' Calculate one-half width.
@@ -356,12 +360,12 @@ void CLayout::Plot(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphics
 void CLayout::AutoAll(const LayoutLocation& StartLocation, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene, const bool Auto)
 {
     bool Finished=false;
-    OCCursor c;
+    //OCCursor c;
     OCDraw ScreenObj(Scene,Options.scaleSize());
-    ScreenObj.Cursor = &c;
+    //ScreenObj.Cursor = &c;
     LayoutLocation l(StartLocation);
     while (l.Page > Pages.size()-1) AddPage();
-    Pages[l.Page]->PlotTitle(l.Page, Fonts, PageRect(), Options, ScreenObj);
+    Pages[l.Page]->PlotTitle(l.Page, Fonts, PageRect(), Options, name(), ScreenObj);
     int StartBar=0;
     //qDebug() << Options.scaleSize() << Options.size() << Options.scoreType() << Options.layoutZoom();
     forever
@@ -422,8 +426,10 @@ void CLayout::RemovePage()
 {
     if (Pages.size() > 1)
     {
+        while (Pages.last()->systemCount()) Pages.last()->RemoveSystem();
+        const QDomLiteElementList l = XMLElement->elementsByTag("Page");
+        XMLElement->takeChild(l.last());
         delete Pages.takeLast();
-        XMLElement->removeChild(XMLElement->elementsByTag("Page").last());
     }
 }
 
@@ -434,7 +440,7 @@ void CLayout::RemoveSystem(const int Page)
 
 int CLayout::NumOfSystems(const int Page) const
 {
-    if (Page>=Pages.size()) return 0;
+    if (Page >= Pages.size()) return 0;
     return Pages[Page]->systemCount();
 }
 
@@ -654,7 +660,7 @@ void CLayout::PrintIt(const int StartPage, XMLScoreWrapper& XMLScore, QGraphicsS
     LayoutLocation l(StartPage,0);
     CLayoutPage* p = Pages[l.Page];
     int StartBar = p->StartBar(0);
-    p->PlotTitle(l.Page, Fonts, PageRect(), Options, ScreenObj);
+    p->PlotTitle(l.Page, Fonts, PageRect(), Options, name(), ScreenObj);
     forever
     {
         const bool ShowAllStaves = (l.isFirstSystem() && Options.showAllOnFirstSystem());
@@ -718,7 +724,7 @@ bool CLayout::ChangePrinter(QWidget* Owner, QPrinter* Prn)
 void CLayout::PlotTitle(QGraphicsScene *Scene)
 {
     OCDraw ScreenObj(Scene,Options.scaleSize());
-    Pages.first()->PlotTitle(0, Fonts, PageRect(), Options, ScreenObj);
+    Pages.first()->PlotTitle(0, Fonts, PageRect(), Options, name(), ScreenObj);
 }
 
 CLayoutCollection::CLayoutCollection() : XMLLayoutCollectionWrapper(), m_ActiveLayout(0) {}

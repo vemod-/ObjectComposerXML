@@ -23,7 +23,7 @@ LayoutViewXML::LayoutViewXML(QWidget *parent) :
     this->setOptimizationFlags(QGraphicsView::DontSavePainterState | QGraphicsView::DontAdjustForAntialiasing);
     this->setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
     setMouseTracking(true);
-    zoomer = new QGraphicsViewZoomer(this, 0.2);
+    zoomer = new QGraphicsViewZoomer(this, defaultlayoutzoom);
     connect(zoomer,&QGraphicsViewZoomer::ZoomChanged,this,&LayoutViewXML::changeZoom);
     Scene = new QGraphicsScene(this);
     Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -64,9 +64,9 @@ void LayoutViewXML::FormatAndDraw(const LayoutLocation& StartLocation, const boo
 {
     this->setUpdatesEnabled(false);
     CLayout* l=activeLayout();
-    while (SceneNumOfPages-1 > StartLocation.Page)
+    while (SceneNumOfPages - 1 > StartLocation.Page)
     {
-        for (int i=0; i < systemCount(SceneNumOfPages - 1); i++) ClearSystem(LayoutLocation(SceneNumOfPages - 1, i));
+        for (int i = 0; i < systemCount(SceneNumOfPages - 1); i++) ClearSystem(LayoutLocation(SceneNumOfPages - 1, i));
         RemovePaper();
         if (Auto) l->RemovePage();
     }

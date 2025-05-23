@@ -42,7 +42,7 @@ void OCPrintSignList::PrintSigns(const int TieLen, OCFrameArray& FrameList, cons
     int SignsUp=0;
     for (CSymbol* Sign : std::as_const(Signs))
     {
-        ScreenObj.setcol(Sign->PrintProps.Color);
+        ScreenObj.setTempCol(Sign->PrintProps.Color);
         Sign->PrintProps.setPosition(Props->Center(),Props->BalkEndY,TieLen);
         FrameList.AppendGroup(ScreenObj.MakeGroup(Sign->PrintSign(Props->UpDown, SignsUp, ScreenObj)),Sign->PrintProps.Location);
     }

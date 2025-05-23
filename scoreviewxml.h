@@ -13,6 +13,8 @@
 #include "qiphotorubberband.h"
 #include "qgraphicsviewzoomer.h"
 
+#define defaultsystemlength 12900
+
 namespace Ui {
     class ScoreViewXML;
 }
@@ -290,9 +292,12 @@ private:
     const OCBarSymbolLocation pointerBegin() const;
     void nextStaff(const int Direction);
     int activeStaffPos() const;
-    double scaled(const double v) const;
-    double staffTopScaled(int id) const;
-    double activeStaffTopScaled() const;
+    double scaledToScene(const double v) const;
+    QRectF scaledToScene(const QRectF v) const;
+    //double staffTopScaledToScene(int id) const;
+    //double activeStaffTopScaledToScene() const;
+    double scaledFromScene(const double v) const;
+    QPointF scaledFromScene(const QPointF v) const;
     void zeroSwipe();
     QRectF mapToSceneRect(const QRect& r);
     QRect mapFromSceneRect(const QPointF& a, const QPointF& b);

@@ -587,7 +587,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
                 TieLen = TieLen - 168;
             }
             bool IsWrap=((Beat == Meter) & (Bar == BarsToPrint - 1));
-            t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, CurrentNote.TieCurve, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
+            t.append(TieWrap.plotTie(IsWrap, NoteHeadList.size(), TieUpDown, TieDirection, CurrentNote.TieCurve, CurrentNote.TieWeight, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj));
         }
         CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }
@@ -606,7 +606,7 @@ void CNotesToPrint::plotNote(CNoteHead& CurrentNote, const int TieDirection, con
                 ScreenObj.move(84, 0);
                 TieLen = TieLen - 168;
             }
-            t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, CurrentNote.TieCurve, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
+            t.append(TieWrap.plotTie(false, 1, TieUpDown, TieDirection, CurrentNote.TieCurve, CurrentNote.TieWeight, TieLen, CurrentNote.CenterY, NextCenterY, ScreenObj, 0.5));
         }
         CurrentNote.plot(UnderTriplet, TrackColor, UpDown, FrameList, t, ScreenObj);
     }

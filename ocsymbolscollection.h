@@ -93,6 +93,7 @@ public:
             p.hide("AccidentalParentheses");
             p.hide("TieTop");
             p.hide("TieCurve");
+            p.hide("TieWeight");
             if (p.propertyValue("NoteValue")==7)
             {
                 p.hide("Dotted");
@@ -114,6 +115,7 @@ public:
             p.show("AccidentalParentheses");
             p.show("TieTop");
             p.show("TieCurve");
+            p.show("TieWeight");
             p.show("Top");
         }
     }
@@ -138,6 +140,7 @@ protected:
         m_PropColl.appendBool("AccidentalParentheses", "Returns/sets Parentheses around the Accidentals", false ,"" , "Accidental");
         m_PropColl.appendNumber("TieTop", -32000, 32000, "Returns/sets the distance between a Ties default vertical position and it's current vertical position.",false ,"" , "Tie");
         m_PropColl.appendNumber("TieCurve", -9, 20, "Returns/sets the difference between the current Curve and the default Curve.",false, "", "Tie");
+        m_PropColl.appendNumber("TieWeight",-10,10,"Returns/sets the horizontal Weight point",false,0,"Tie");
         m_ButtonProperty = "NoteValue";
     }
 };

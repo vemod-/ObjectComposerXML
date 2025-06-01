@@ -216,6 +216,7 @@ public:
     int AccidentalLeft = 0;
     int TieTop = 0;
     double TieCurve = 0;
+    double TieWeight = 0;
     int Size;
     int Marked;
     int CenterX = 0;
@@ -241,6 +242,7 @@ public:
         AccidentalParentheses = Symbol.getBoolVal("AccidentalParentheses");
         TieTop = Symbol.getIntVal("TieTop");
         TieCurve = Symbol.getVal("TieCurve");
+        TieWeight = Symbol.getVal("TieWeight") * 0.09;
         Size = Symbol.size();
     }
     inline void moveTo(OCDraw& ScreenObj) const { ScreenObj.moveTo(CenterX, CenterY); }

@@ -1442,7 +1442,7 @@ public:
             plotSlur(QPointF(-20 * 12, 0), (UpDown * TieDirection), 0, 0, ScreenObj);
         }
     }
-    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const double Curve, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
+    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const double Curve, const double Weight, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
     {
         if (IsWrap | (Count != 1))
         {
@@ -1456,12 +1456,12 @@ public:
             if (NextCenterY != CenterY)
             {
                 ScreenObj.move(-84, 0);// ' UpDown * 24
-                return plotSlur(QPointF(TieLen + 168, CenterY - NextCenterY), UpDown, Curve, 0, ScreenObj, bold);
+                return plotSlur(QPointF(TieLen + 168, CenterY - NextCenterY), UpDown, Curve, Weight, ScreenObj, bold);
             }
             else
             {
                 ScreenObj.move(-84, 0);// ' UpDown * 24
-                return plotSlur(QPointF(TieLen + 168, 0), UpDown, Curve, 0, ScreenObj, bold);
+                return plotSlur(QPointF(TieLen + 168, 0), UpDown, Curve, Weight, ScreenObj, bold);
             }
         }
     }

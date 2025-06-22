@@ -33,6 +33,7 @@ public:
     void plfirstKey(OCPageBarList& BarList, OCDraw& ScreenObj);
     void formatBar(const OCPageBar& b, OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate);
     void plVoice(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, OCNoteList& NoteList, OCDraw& ScreenObj, const XMLTemplateStaffWrapper& XMLTemplateStaff, const QColor& TrackColor);
+    void clefLookAhead(OCPrintCounter& CountIt, const XMLScoreWrapper& XMLScore);
     int fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, const double XFysic, OCDraw& ScreenObj);
     int findBarChunk(OCStaffCounterPrint& voiceVarsArray);
     int findBarPlayChunk(XMLStaffWrapper& XMLStaff, OCStaffCounterPlay& voiceVarsArray, OCPlaySignList& SignsToPlay, OCMIDIFile& MFile, const int TrackOffset);

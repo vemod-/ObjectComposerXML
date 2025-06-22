@@ -65,7 +65,7 @@ void CScoreWizard::Fill(XMLScoreWrapper& XMLScore)
             {
                 item->setData(LWTranspose,Symbol.getIntVal("Transpose"));
             }
-            else if (Symbol.Compare("Clef"))
+            else if (Symbol.IsClef())
             {
                 item->setData(LWClef,Symbol.getIntVal("Clef"));
             }

@@ -350,6 +350,8 @@ public:
     inline bool IsRest() const { return Compare("Rest"); }
     inline bool IsTuplet() const { return Compare("Tuplet"); }
     inline bool IsTime() const { return Compare("Time"); }
+    inline bool IsKey() const { return Compare("Key"); }
+    inline bool IsClef() const { return Compare("Clef"); }
     inline bool IsAnyVorschlag() const { return (XMLElement->attributeValueInt("NoteType") >= 4); }
     inline bool IsVorschlag() const { return (XMLElement->attributeValueInt("NoteType") == 4); }
     inline bool IsTiedVorschlag() const { return (XMLElement->attributeValueInt("NoteType") == 5); }

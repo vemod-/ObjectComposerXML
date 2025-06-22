@@ -162,6 +162,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             else
             {
                 if (Symbol.IsTuplet()) CountIt.OCCounter::beginTuplet(CountIt.FilePointer, XMLScore.Voice(VoiceLocation));
+                if (Symbol.IsKey()) clefLookAhead(CountIt,XMLScore);
                 const OCBarSymbolLocation l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
                 FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::plot(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, XMLScore, NoteList, CountIt, XMLTemplateStaff, ScreenObj)),l);
                 OCSymbolsCollection::appendSign(Symbol,SignsToPrint,SignCol,CountIt,OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
@@ -192,6 +193,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
         ScreenObj.setMarkedCol(CountIt.FilePointer);
         const XMLSymbolWrapper& Symbol = XMLSymbol(CountIt.FilePointer, CountIt.Meter);
         if (Symbol.IsRestOrValuedNote()) break;
+        if (Symbol.IsKey()) clefLookAhead(CountIt,XMLScore);
         const OCBarSymbolLocation& l(OCBarSymbolLocation(CountIt.barCount(),VoiceLocation,CountIt.FilePointer));
         FrameList.AppendGroup(ScreenObj.MakeGroup(OCSymbolsCollection::plotSystemEnd(Symbol, 0, BarList, CountIt, SignsToPrint, unselectablecolor, XMLScore, NoteList, CountIt, XMLTemplateStaff, ScreenObj)),l);
         OCSymbolsCollection::fib(Symbol,CountIt);
@@ -200,6 +202,14 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
     }
     ScreenObj.col = VoiceColor;
     NoteList.PlotBeams(VoiceColor, ScreenObj);
+}
+
+void CVoice::clefLookAhead(OCPrintCounter &CountIt, const XMLScoreWrapper &XMLScore) {
+    for (int i = CountIt.FilePointer; i < XMLScore.Voice(VoiceLocation).symbolCount(); i++) {
+        const XMLSimpleSymbolWrapper s = XMLSymbol(i,CountIt.Meter);
+        if (s.IsValuedRestOrValuedNote()) break;
+        if (s.IsClef()) CountIt.setClef(s);
+    }
 }
 
 int CVoice::fillChunk(OCNoteList& NoteList, OCStaffCounterPrint& voiceVarsArray, OCStaffAccidentals& StaffAccidentals, OCPageBarList& BarList, const double XFysic, OCDraw& ScreenObj)
@@ -240,7 +250,7 @@ void CVoice::fillBetweenNotes(OCStaffCounterPrint& voiceVarsArray, OCStaffAccide
         else
         {
             OCSymbolsCollection::fibCommon(Symbol,voiceVarsArray,VoiceLocation);
-            if (Symbol.Compare("Key")) StaffAccidentals.SetKeyAccidentals(CountIt.key());
+            if (Symbol.IsKey()) StaffAccidentals.SetKeyAccidentals(CountIt.key());
         }
         CountIt.FilePointer++;
     }
@@ -813,8 +823,8 @@ void CStaff::plotStaff(OCPageBarList& BarList, const XMLScoreWrapper& XMLScore, 
     //qDebug() << "Templatestaff size" << XMLTemplateStaff.size() << "Screenobj size" << ScreenObj.ScreenSize << "Options size" << Options.size() << "XMLScore size" << XMLScore.Score.size() << "XMLScore template size" << XMLScore.Template.size();
     BarList.setFrame(0, plotLinesAndBrackets(BarList.systemLength(), XMLTemplate, Options, BarList.startBar(), StaffPos, ScreenObj));
     ScreenObj.setTempCol(QColor(unselectablecolor));
-    Voices.first().plfirstKey(BarList, ScreenObj);
     Voices.first().plfirstClef(BarList, ScreenObj);
+    Voices.first().plfirstKey(BarList, ScreenObj);
     ScreenObj.col=color;
     if (StaffPos == 0)
     {

@@ -13,8 +13,12 @@
 #define maxticks 255
 #define vorschlagLength 30
 
-#define midifl "/Users/Shared/oc.mid"
-#define settingsfile "../OCstuff.xml"
+//#define midifl "/Users/Shared/oc.mid"
+//#define settingsfile "../OCstuff.xml"
+// Nytt och portabelt:
+#define midifl (QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/oc.mid")
+#define settingsfile (QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/OCstuff.xml")
+
 #define OCTTFname "Object Composer"
 #define WingDingsName "Wingdings 2"
 #define BeamThickness 48
@@ -983,6 +987,7 @@ public:
         AppendToList(Scene->addPath(b.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
     }
     inline void init(const double X, const double Y) { ZeroPoint = QPointF(X,Y); }
+    inline void init(const QPointF p) { ZeroPoint = p; }
     inline void setMarkedCol(const int Pointer)
     {
         if (Cursor && canColor())
@@ -1204,12 +1209,12 @@ private:
     }
 public:
     OCFrameArray(){}
-    void AppendGroup(QGraphicsItemGroup* g, const OCSymbolLocation& l, const QRectF& bounding = QRectF())
+    void AppendGroup(QGraphicsItemGroup* g, const OCSymbolLocation& l)//, const QRectF& bounding = QRectF())
     {
         if (g==nullptr) return;
         if (g->childItems().empty()) return;
-        const QRectF r = (bounding.isNull()) ? getBoundingRect(g) : widenRect(bounding.normalized());
-        OCFrameProperties F = OCFrameProperties(r,l);
+        //const QRectF r = (bounding.isNull()) ? getBoundingRect(g) : widenRect(bounding.normalized());
+        OCFrameProperties F = OCFrameProperties(getBoundingRect(g),l);
         append(F);
     }
     void AppendAccidentalGroup(QGraphicsItemGroup* g, QGraphicsItemGroup* a, QGraphicsItemGroup* t, const OCSymbolLocation& l)

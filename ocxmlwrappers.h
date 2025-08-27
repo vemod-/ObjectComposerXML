@@ -885,6 +885,7 @@ public:
         return staffTop(staffPosFromId(id));
     }
     inline int height() const { return staffTop(staffCount()) - 700; }
+    //inline int height() const { return staffTop(staffCount() - 1) + 800; }
     inline int staffPosFromId(const int id) const {
         for (int pos=0; pos < staffCount(); pos++) if (child(pos).id()==id) return pos;
         return 0;

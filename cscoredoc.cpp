@@ -2212,7 +2212,7 @@ void CScoreDoc::RequestMidiFile(QString &path, int& bar, CMIDI2wav::PlayLocation
     TrackIDs.clear();
     for (int i = 0; i < sv->BarMap().voiceCount(); i++) TrackIDs.append(sv->BarMap().voiceCaption(i));
     bar = StartBar;
-    path=midifl;
+    path = midifl;
 }
 
 void CScoreDoc::NewDoc()

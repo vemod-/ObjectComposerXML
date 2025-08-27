@@ -258,7 +258,7 @@ public:
 #ifdef Q_OS_IOS
         //QString settingsPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/ObjectComposerXML";
         //Settings = new QSettings(settingsPath, QSettings::IniFormat);
-        QSettings(QString("Veinge Musik och Data"),QString("ObjectComposerXML"))
+        QSettings(QString("Vemod"),QString("ObjectComposerXML"))
 #else
         QSettings(QString("http://www.musiker.nu/objectstudio"),QString("ObjectComposerXML"))
 #endif

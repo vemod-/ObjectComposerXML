@@ -89,7 +89,7 @@ void CTweakSystem::Fill(XMLScoreWrapper& Score, const int activeLayoutIndex, con
 
 QPointF CTweakSystem::sysPos()
 {
-    return ui->ScoreView->systemRect().topLeft() * ui->ScoreView->getZoom();
+    return ui->ScoreView->scaledToScene(ui->ScoreView->systemRect()).topLeft() * ui->ScoreView->getZoom();
 }
 
 void CTweakSystem::Paint()

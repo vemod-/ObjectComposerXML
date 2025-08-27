@@ -15,7 +15,11 @@
 #include "ocsymbolscollection.h"
 
 #define apptitle "Object Composer XML"
+#ifdef Q_OS_IOS
+#define _DocumentPath QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Object Composer/"
+#else
 #define _DocumentPath QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/Object Composer/"
+#endif
 
 namespace Ui {
     class CScoreDoc;

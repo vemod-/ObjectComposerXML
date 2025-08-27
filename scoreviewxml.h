@@ -55,6 +55,8 @@ public:
     void SetSystemLength(const int NewSystemLength);
     double SystemLength() const;
     const QRectF systemRect() const;
+    double scaledToScene(const double v) const;
+    QRectF scaledToScene(const QRectF v) const;
     void createSceneRect();
     void Paint(const OCRefreshMode Mode, const bool UpdateSelection=false);
     void PasteClipBoardData(const OCSymbolLocation& SymbolLocation, const XMLVoiceWrapper& ClipBoardData);
@@ -287,15 +289,14 @@ private:
     OCMIDIFile MidiData;
     QTimer ScrollTimer;
     QTimeLine swipeLine;
-    int activeStaffTop() const;
     const OCBarSymbolLocation pointerBegin(const OCVoiceLocation& Voice) const;
     const OCBarSymbolLocation pointerBegin() const;
     void nextStaff(const int Direction);
     int activeStaffPos() const;
-    double scaledToScene(const double v) const;
-    QRectF scaledToScene(const QRectF v) const;
-    //double staffTopScaledToScene(int id) const;
-    //double activeStaffTopScaledToScene() const;
+    double staffLinesHeight(int staffId) const;
+    double staffTop(int staffId) const;
+    QRectF staffRect(int staffId) const;
+    QRectF barFrame(int staffId, int barNumber);
     double scaledFromScene(const double v) const;
     QPointF scaledFromScene(const QPointF v) const;
     void zeroSwipe();

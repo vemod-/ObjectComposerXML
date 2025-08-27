@@ -74,6 +74,7 @@
         <file>Leland.otf</file>
         <file>loading.gif</file>
         <file>midi_instruments_controllers.xml</file>
+        <file>Wingdings 2.ttf</file>
     </qresource>
     <qresource prefix="/24">
         <file>24/back.png</file>

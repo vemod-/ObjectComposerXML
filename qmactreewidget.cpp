@@ -174,7 +174,7 @@ QTreeWidgetItem* QMacTreeWidget::createTopLevelItem(const QString& text, const Q
     auto i=new QTreeWidgetItem;
     i->setText(0,text.toUpper());
     i->setIcon(0,QIcon(iconPath));
-    i->setForeground(0,QColor("#666"));
+    i->setForeground(0,QColor(0x66,0x66,0x66));
     i->setSizeHint(0,QSize(-1,tablerowheight));
     i->setFlags(Qt::ItemIsEnabled);
     i->setFirstColumnSpanned(true);
@@ -186,7 +186,7 @@ QTreeWidgetItem* QMacTreeWidget::createStandardItem(const QString& text, const Q
     auto i=new QTreeWidgetItem;
     i->setText(0,text);
     if (!iconPath.isEmpty()) i->setIcon(0,QIcon(iconPath));
-    i->setForeground(0,QColor("#222"));
+    i->setForeground(0,QColor(QColor(0x22,0x22,0x22)));
     if (CloseIcon)
     {
         i->setIcon(CloseIcon,QIcon(":/fileclose.png"));

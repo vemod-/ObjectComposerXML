@@ -90,11 +90,11 @@ void CAccidentalsPiano::DrawWhiteKey(const int Pos, const bool Down)
     if (Down) col="#eeeeee";
     setPenBrush(col);
     drawRectangle(Pos+1,0,aWhiteKeyWidth-1,aWhiteKeyHeight-1);
-    setPen("#888888");
+    setPen(QColor(0x88,0x88,0x88));
     drawLine(Pos,0,Pos+aWhiteKeyWidth,0);
     if (Down)
     {
-        setPen("#dddddd");
+        setPen(QColor(0xdd,0xdd,0xdd));
         drawLine(Pos,1,Pos+aWhiteKeyWidth,1);
     }
     setPen(Qt::black);

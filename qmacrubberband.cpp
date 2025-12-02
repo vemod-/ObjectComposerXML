@@ -21,9 +21,8 @@ void QMacRubberband::paintEvent(QPaintEvent *event)
     p.setBrush(QColor(100,100,0,15));
     if (m_type==QMacRubberband::MacRubberbandYellow)
     {
-        QColor c("#d8f100");
+        QColor c(QColor(0xd8,0xf1,0));
         c.setAlpha(220);
-        //QColor c(200,200,0,200);
         p.setPen(QPen(c,5,Qt::SolidLine,Qt::SquareCap,Qt::RoundJoin));
         p.setBrush(QColor(0,0,0,30));
         p.setPen(Qt::yellow);
@@ -57,7 +56,6 @@ void QMacRubberband::hideAnimated()
 QHoverRubberband::QHoverRubberband(QRubberBand::Shape shape, QWidget *parent) : QRubberBand(shape,parent)
 {
     animation=new QTimeLine(400,this);
-    //animation->setEasingCurve(QEasingCurve::OutBack);
     connect(animation,&QTimeLine::frameChanged,this,&QHoverRubberband::TimeStep);
     connect(animation,&QTimeLine::finished,this,&QHoverRubberband::TimeFinished);
     m_Opacity=0;

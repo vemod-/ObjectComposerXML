@@ -238,36 +238,27 @@ void OCPiano::DrawBlackKey(const int Pos, const bool Down)
 {
     if (!Down)
     {
-        //setPenBrush("#888","#666");
-        //drawRectangle(Pos+2,1,BlackKeyWidth,BlackKeyHeight);
-        Scene->addRect(Pos+2,1,BlackKeyWidth,BlackKeyHeight,QPen("#888"),QBrush("#666"));
+        Scene->addRect(Pos+2,1,BlackKeyWidth,BlackKeyHeight,QPen(QColor(0x88,0x88,0x88)),QBrush(QColor(0x66,0x66,0x66)));
     }
-    //setPenBrush(Qt::black);
-    //drawRectangle(Pos,0,BlackKeyWidth,BlackKeyHeight);
     Scene->addRect(Pos,0,BlackKeyWidth,BlackKeyHeight,QPen(Qt::black),QBrush(Qt::black));
-    QColor col("#666");
-    if (Down) col=QColor("#444");
-    //setPen(col);
-    //drawLine(Pos+1,1,Pos+1,BlackKeyHeight-3);
+    QColor col(0x66,0x66,0x66);
+    if (Down) col = QColor(0x44,0x44,0x44);
     Scene->addLine(Pos+1,1,Pos+1,BlackKeyHeight-3,col);
     QLinearGradient lg(0,0,0,BlackKeyHeight-7);
     if (Down)
     {
-        lg.setColorAt(0,"#000");
-        lg.setColorAt(1,"#444");
+        lg.setColorAt(0,Qt::black);
+        lg.setColorAt(1,QColor(0x44,0x44,0x44));
     }
     else
     {
-        lg.setColorAt(0,"#000");
-        lg.setColorAt(1,"#666");
+        lg.setColorAt(0,Qt::black);
+        lg.setColorAt(1,QColor(0x66,0x66,0x66));
     }
     QPainterPath p(QPoint(Pos+2,1));
     p.lineTo(Pos+2,BlackKeyHeight-5);
     p.cubicTo(Pos+2,BlackKeyHeight-3,Pos+BlackKeyWidth-1,BlackKeyHeight-3,Pos+BlackKeyWidth-1,BlackKeyHeight-5);
     p.lineTo(Pos+BlackKeyWidth-1,1);
-    //setPen(Qt::black);
-    //setBrush(lg);
-    //drawPath(p);
     Scene->addPath(p,QPen(Qt::black),lg);
 }
 
@@ -306,48 +297,30 @@ void OCPiano::DrawWhiteKey(const int Pos, const bool Down)
     QLinearGradient lg(0,0,0,WhiteKeyHeight);
     if (Down)
     {
-        lg.setColorAt(0,"#999");
-        lg.setColorAt(0.6,"#ddd");
+        lg.setColorAt(0,QColor(0x99,0x99,0x99));
+        lg.setColorAt(0.6,QColor(0xdd,0xdd,0xdd));
     }
     else
     {
-        lg.setColorAt(0,"#ccc");
-        lg.setColorAt(0.8,"#fff");
-        //int pitch = PosToPitch(QPoint(Pos + 5,BlackKeyHeight));
+        lg.setColorAt(0,QColor(0xcc,0xcc,0xcc));
+        lg.setColorAt(0.8,Qt::white);
         int Octave=IntDiv(IntDiv(Pos+WhiteKeyWidth,WhiteKeyWidth),7);
         lg.setColorAt(0.8,octaveToColor(Octave * 12));
     }
-    //setPen(QPen(Qt::NoPen));
-    //setBrush(lg);
-    //drawRectangle(Pos+1,0,WhiteKeyWidth-1,WhiteKeyHeight-1);
     Scene->addRect(Pos+1,0,WhiteKeyWidth-1,WhiteKeyHeight-1,Qt::NoPen,lg);
-    //setPen("#666");
-    //drawLine(Pos,0,Pos+WhiteKeyWidth,0);
-    Scene->addLine(Pos,0,Pos+WhiteKeyWidth,0,QPen("#666"));
+    Scene->addLine(Pos,0,Pos+WhiteKeyWidth,0,QPen(QColor(0x66,0x66,0x66)));
     if (Down)
     {
-        //setPen("#888");
-        //drawLine(Pos,1,Pos+WhiteKeyWidth,1);
-        Scene->addLine(Pos,1,Pos+WhiteKeyWidth,1,QPen("#888"));
+        Scene->addLine(Pos,1,Pos+WhiteKeyWidth,1,QPen(QColor(0x88,0x88,0x88)));
     }
-    //setPen("#555");
-    //drawLine(Pos,0,Pos,WhiteKeyHeight-1);
-    Scene->addLine(Pos,0,Pos,WhiteKeyHeight-1,QPen("#555"));
-    //setPen(Qt::black);
-    //drawLine(Pos+WhiteKeyWidth,0,Pos+WhiteKeyWidth,WhiteKeyHeight-1);
+    Scene->addLine(Pos,0,Pos,WhiteKeyHeight-1,QPen(QColor(0x55,0x55,0x55)));
     Scene->addLine(Pos+WhiteKeyWidth,0,Pos+WhiteKeyWidth,WhiteKeyHeight-1,QPen(Qt::black));
-    //setPenBrush(Qt::gray);
-    //drawRectangle(Pos+WhiteKeyWidth-1,1,1,WhiteKeyHeight-2);
     Scene->addRect(Pos+WhiteKeyWidth-1,1,1,WhiteKeyHeight-2,QPen(Qt::gray),QBrush(Qt::gray));
     if (Down)
     {
-        //setBrush("#666");
-        //drawRectangle(Pos+1,1,1,WhiteKeyHeight-2);
-        Scene->addRect(Pos+1,1,1,WhiteKeyHeight-2,QPen(Qt::gray),QBrush("#666"));
+        Scene->addRect(Pos+1,1,1,WhiteKeyHeight-2,QPen(Qt::gray),QBrush(QColor(0x66,0x66,0x66)));
     }
-    //setPen("#555");
-    //drawLine(Pos+1,WhiteKeyHeight,Pos+WhiteKeyWidth-1,WhiteKeyHeight);
-    Scene->addLine(Pos+1,WhiteKeyHeight,Pos+WhiteKeyWidth-1,WhiteKeyHeight,QPen("#555"));
+    Scene->addLine(Pos+1,WhiteKeyHeight,Pos+WhiteKeyWidth-1,WhiteKeyHeight,QPen(QColor(0x55,0x55,0x55)));
 }
 
 void OCPiano::keyReleaseEvent(QKeyEvent* event)

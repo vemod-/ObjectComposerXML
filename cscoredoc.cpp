@@ -25,7 +25,7 @@ public:
     void drawDisplay(QPainter *painter, const QStyleOptionViewItem &option, const QRect &rect, const QString &text) const
     {
         QRect r(0,rect.top()+rect.height()-16,128,14);
-        (option.state & QStyle::State_Selected) ? painter->setPen("#eee") : painter->setPen(Qt::black);
+        (option.state & QStyle::State_Selected) ? painter->setPen(QColor(0xee,0xee,0xee)) : painter->setPen(Qt::black);
         painter->drawText(r,text,QTextOption(Qt::AlignHCenter));
     }
     void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const

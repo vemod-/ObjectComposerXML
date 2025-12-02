@@ -135,21 +135,17 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
     p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     QTextOption o(Qt::AlignCenter);
     p.setFont(font());
-    QPen dpen("#333");
+    QPen dpen(QColor(0x33,0x33,0x33));
     dpen.setJoinStyle(Qt::RoundJoin);
     QRectF shadowRect(roundRect);
     shadowRect.translate(0,1);
-    QPen pPen("#666");
+    QPen pPen(QColor(0x66,0x66,0x66));
     pPen.setJoinStyle(Qt::RoundJoin);
     p.setPen(pPen);
     p.setBrush(Qt::transparent);
-    //p.drawRoundedRect(shadowRect,CornerRadius,CornerRadius);
-    //p.setRenderHint(QPainter::Antialiasing,true);
     drawArrowShape(p,shadowRect,m_ArrowDirection);
     if (!icon().isNull())
     {
-        //iconRect.setWidth(iconRect.width()-2);
-        //iconRect.setHeight(iconRect.height()-2);
         iconRect.adjust(0,2,-3,-3);
         QSizeF s(24,24);
         if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
@@ -158,7 +154,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         if (aspect<thisaspect)
         {
             iconRect.setWidth(iconRect.height()*aspect);
-            //iconRect.setLeft((float)(rect().width()-iconRect.width())/2.0);
             iconRect.translate((rect().width()-iconRect.width())/2.0,0);
         }
         if (aspect>thisaspect)
@@ -166,24 +161,15 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
             iconRect.setHeight(iconRect.width()*aspect);
             iconRect.translate(0,(rect().height()-iconRect.height())/2.0);
         }
-        //iconRect.translate(1,1);
-        //iconRect.adjust(2,2,-2,-2);
         r=iconRect;
         r.translate(0,1);
         px = icon().pixmap(s.toSize()).toImage().convertToFormat(QImage::Format_ARGB32);
-        //mask = QPixmap(icon().pixmap(s).createHeuristicMask());
     }
     if (this->isEnabled())
     {
         if (isDown())
         {
             QLinearGradient lg(0,0,0,height());
-            /*
-            lg.setColorAt(0,"#ddd");
-            lg.setColorAt(0.39999,"#555");
-            lg.setColorAt(0.4,"#444");
-            lg.setColorAt(1,"#282828");
-            */
             lg.setColorAt(0,QColor(150,150,150,150));
             lg.setColorAt(0.4,QColor(150,150,150,0));
             lg.setColorAt(0.6,QColor(0,0,0,0));
@@ -191,13 +177,9 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
 
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
-            //p.setRenderHint(QPainter::Antialiasing,false);
             drawArrowShape(p,roundRect,m_ArrowDirection);
             if (!icon().isNull())
             {
-                //p.setPen("#333333");
-                //p.setPen(pen);
-                //px=setBrightness(px,-1);
                 p.drawImage(r, setBrightness(px,0,true));
                 p.drawImage(iconRect,setBrightness(px,250,true));
             }
@@ -212,14 +194,7 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         }
         else
         {
-            //qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #999, stop: 0.39999 #666, stop: 0.4 #5f5f5f, stop: 1 #484848)
             QLinearGradient lg(0,0,0,height());
-            /*
-            lg.setColorAt(0,"#eee");
-            lg.setColorAt(0.39999,"#666");
-            lg.setColorAt(0.4,"#555");
-            lg.setColorAt(1,"#383838");
-            */
             lg.setColorAt(0,QColor(255,255,255,150));
             lg.setColorAt(0.4,QColor(255,255,255,0));
             lg.setColorAt(0.6,QColor(0,0,0,0));
@@ -227,7 +202,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
 
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
-            //p.setRenderHint(QPainter::Antialiasing,false);
             drawArrowShape(p,roundRect,m_ArrowDirection);
             if (!icon().isNull())
             {
@@ -236,9 +210,9 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
             }
             else
             {
-                p.setPen("#000");
+                p.setPen(Qt::black);
                 p.drawText(r,text(),o);
-                p.setPen("#eee");
+                p.setPen(QColor(0xee,0xee,0xee));
                 p.drawText(textRect,text(),o);
             }
         }
@@ -248,12 +222,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         if (!isChecked())
         {
             QLinearGradient lg(0,0,0,height());
-            /*
-            lg.setColorAt(0,"#ccc");
-            lg.setColorAt(0.39999,"#666");
-            lg.setColorAt(0.4,"#555");
-            lg.setColorAt(1,"#383838");
-            */
             lg.setColorAt(0,QColor(200,200,200,150));
             lg.setColorAt(0.5,QColor(100,100,100,50));
             lg.setColorAt(1,QColor(50,50,50,100));
@@ -264,12 +232,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         else
         {
             QLinearGradient lg(0,0,0,height());
-            /*
-            lg.setColorAt(0,"#bbb");
-            lg.setColorAt(0.39999,"#555");
-            lg.setColorAt(0.4,"#444");
-            lg.setColorAt(1,"#282828");
-            */
             lg.setColorAt(0,QColor(150,150,150,150));
             lg.setColorAt(0.5,QColor(100,100,100,50));
             lg.setColorAt(1,QColor(50,50,50,150));
@@ -277,7 +239,6 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
         }
-        //p.setRenderHint(QPainter::Antialiasing,false);
         drawArrowShape(p,roundRect,m_ArrowDirection);
         if (!icon().isNull())
         {
@@ -286,9 +247,9 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
         }
         else
         {
-            p.setPen("#dddddd");
+            p.setPen(QColor(0xdd,0xdd,0xdd));
             p.drawText(r,text(),o);
-            p.setPen("#666666");
+            p.setPen(QColor(0x66,0x66,0x66));
             p.drawText(textRect,text(),o);
         }
     }

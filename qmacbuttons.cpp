@@ -94,20 +94,16 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
     p.setWorldMatrixEnabled(false);
     p.setViewTransformEnabled(false);
     p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
-    //p.setRenderHints(QPainter::Antialiasing);
     QTextOption o(Qt::AlignCenter);
     p.setFont(font());
-    //QPen pen=p.pen();
-    QPen dpen("#555555");
+    QPen dpen(QColor(0x55,0x55,0x55));
     QRect shadowRect=roundRect;
     shadowRect.translate(1,1);
-    p.setPen("#cccccc");
+    p.setPen(QColor(0xcc,0xcc,0xcc));
     p.setBrush(Qt::transparent);
     p.drawRoundedRect(shadowRect,CornerRadius,CornerRadius);
     if (!icon().isNull())
     {
-        //iconRect.setWidth(iconRect.width()-2);
-        //iconRect.setHeight(iconRect.height()-2);
         iconRect.adjust(0,2,-3,-3);
         QSize s(24,24);
         if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
@@ -124,35 +120,29 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
             iconRect.setHeight(double(iconRect.width())*aspect);
             iconRect.translate(0,(rect().height()-iconRect.height())/2.0);
         }
-        //iconRect.translate(1,1);
-        //iconRect.adjust(2,2,-2,-2);
         r=iconRect;
         r.translate(0,1);
         px = icon().pixmap(s).toImage().convertToFormat(QImage::Format_ARGB32,Qt::DiffuseDither);
-        //mask = QPixmap(icon().pixmap(s).createHeuristicMask());
     }
     if (this->isEnabled())
     {
         if (isChecked() || isDown())
         {
             QLinearGradient lg(0,0,0,height());
-            lg.setColorAt(0,"#333333");
-            lg.setColorAt(0.4,"#666666");
+            lg.setColorAt(0,QColor(0x33,0x33,0x33));
+            lg.setColorAt(0.4,QColor(0x66,0x66,0x66));
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
             p.drawRoundedRect(roundRect,CornerRadius,CornerRadius);
             lg=QLinearGradient(0,0,width(),0);
-            lg.setColorAt(0,"#555555");
+            lg.setColorAt(0,QColor(0x55,0x55,0x55));
             lg.setColorAt(0.15,Qt::transparent);
             lg.setColorAt(0.85,Qt::transparent);
-            lg.setColorAt(1,"#555555");
+            lg.setColorAt(1,QColor(0x55,0x55,0x55));
             p.setBrush(QBrush(lg));
             p.drawRoundedRect(roundRect,CornerRadius,CornerRadius);
             if (!icon().isNull())
             {
-                //p.setPen("#333333");
-                //p.setPen(pen);
-                //px=setBrightness(px,-1);
                 if (monochrome)
                 {
                     p.drawImage(r,setBrightness(px,20,true));
@@ -175,12 +165,10 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
         else
         {
             QLinearGradient lg(0,0,0,height());
-            //lg.setColorAt(0,Qt::white);
-            //lg.setColorAt(0.8,"#aaaaaa");
             lg.setColorAt(0,Qt::white);
-            lg.setColorAt(0.39999,"#eee");
-            lg.setColorAt(0.4,"#dfdfdf");
-            lg.setColorAt(1,"#c8c8c8");
+            lg.setColorAt(0.39999,QColor(0xee,0xee,0xee));
+            lg.setColorAt(0.4,QColor(0xdf,0xdf,0xdf));
+            lg.setColorAt(1,QColor(0xc8,0xc8,0xc8));
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
             p.drawRoundedRect(roundRect,CornerRadius,CornerRadius);
@@ -199,7 +187,7 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
             }
             else
             {
-                p.setPen("#eeeeee");
+                p.setPen(QColor(0xee,0xee,0xee));
                 p.drawText(r,text(),o);
                 p.setPen(Qt::black);
                 p.drawText(textRect,text(),o);
@@ -211,29 +199,26 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
         if (!isChecked())
         {
             QLinearGradient lg(0,0,0,height());
-            lg.setColorAt(0,"#ddd");
-            lg.setColorAt(0.39999,"#ccc");
-            lg.setColorAt(0.4,"#bfbfbf");
-            lg.setColorAt(1,"#bbb");
-
-            //lg.setColorAt(0,"#dddddd");
-            //lg.setColorAt(0.8,Qt::gray);
+            lg.setColorAt(0,QColor(0xdd,0xdd,0xdd));
+            lg.setColorAt(0.39999,QColor(0xcc,0xcc,0xcc));
+            lg.setColorAt(0.4,QColor(0xbf,0xbf,0xbf));
+            lg.setColorAt(1,QColor(0xbb,0xbb,0xbb));
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
         }
         else
         {
             QLinearGradient lg(0,0,0,height());
-            lg.setColorAt(0,"#666666");
-            lg.setColorAt(0.4,"#888888");
+            lg.setColorAt(0,QColor(0x66,0x66,0x66));
+            lg.setColorAt(0.4,QColor(0x88,0x88,0x88));
             p.setBrush(QBrush(lg));
             p.setPen(dpen);
             p.drawRoundedRect(roundRect,CornerRadius,CornerRadius);
             lg=QLinearGradient(0,0,width(),0);
-            lg.setColorAt(0,"#777777");
+            lg.setColorAt(0,QColor(0x77,0x77,0x77));
             lg.setColorAt(0.15,Qt::transparent);
             lg.setColorAt(0.85,Qt::transparent);
-            lg.setColorAt(1,"#777777");
+            lg.setColorAt(1,QColor(0x77,0x77,0x77));
             p.setBrush(QBrush(lg));
         }
         p.drawRoundedRect(roundRect,CornerRadius,CornerRadius);
@@ -252,9 +237,9 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
         }
         else
         {
-            p.setPen("#dddddd");
+            p.setPen(QColor(0xdd,0xdd,0xdd));
             p.drawText(r,text(),o);
-            p.setPen("#666666");
+            p.setPen(QColor(0x66,0x66,0x66));
             p.drawText(textRect,text(),o);
         }
     }

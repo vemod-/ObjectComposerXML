@@ -86,7 +86,7 @@ public:
         //QLabel* btnzoomtxt=new QLabel(this);
         btnzoomtxt->setText("Zoom");
         btnzoomtxt->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
-        btnzoomtxt->setTextColor("#111111");
+        btnzoomtxt->setTextColor(QColor(0x11,0x11,0x11));
         btnzoomtxt->setShadowColor(Qt::white);
         btnzoomtxt->setEffect(EffectLabel::Plain);
         QFont fnt=btnzoomtxt->font();

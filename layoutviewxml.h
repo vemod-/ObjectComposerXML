@@ -8,6 +8,7 @@
 #include "qmacrubberband.h"
 //#include "ceditsystem.h"
 #include "qgraphicsviewzoomer.h"
+#include "qdprpixmap.h"
 
 namespace Ui {
     class LayoutViewXML;
@@ -145,7 +146,7 @@ private:
     bool NoScrollFlag;
     int SceneNumOfPages;
     //const QBrush paperbrush=QBrush(QPixmap(":/grey-paper-texture.jpg"));
-    const QBrush paperbrush=QBrush(QPixmap(":/lightpaperfibers.png"));
+    const QBrush paperbrush = QBrush(QDPRPixmap(":/lightpaperfibers.png"));
     /*
     inline const QRectF sizeToView(const QRectF& r) const {
         return QRectF(r.topLeft(),r.size());

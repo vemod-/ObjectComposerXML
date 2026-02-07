@@ -13,7 +13,7 @@ QMacRubberband::QMacRubberband(QRubberBand::Shape shape, MacRubberbandTypes Type
 void QMacRubberband::paintEvent(QPaintEvent *event)
 {
     QPainter p(this);
-    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     p.setWorldMatrixEnabled(false);
     p.setViewTransformEnabled(false);
 
@@ -64,7 +64,7 @@ QHoverRubberband::QHoverRubberband(QRubberBand::Shape shape, QWidget *parent) : 
 void QHoverRubberband::paintEvent(QPaintEvent *event)
 {
     QPainter p(this);
-    p.setRenderHint(QPainter::SmoothPixmapTransform);
+    p.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     p.setWorldMatrixEnabled(false);
     p.setViewTransformEnabled(false);
 

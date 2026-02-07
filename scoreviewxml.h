@@ -12,6 +12,7 @@
 #include "qhoverbutton.h"
 #include "qiphotorubberband.h"
 #include "qgraphicsviewzoomer.h"
+#include "qdprpixmap.h"
 
 #define defaultsystemlength 12900
 
@@ -236,7 +237,7 @@ private slots:
     void swipeProc(int value);
 private:
     QGraphicsViewZoomer* zoomer;
-    const QBrush paperbrush=QBrush(QPixmap(":/lightpaperfibers.png"));
+    const QBrush paperbrush = QBrush(QDPRPixmap(":/lightpaperfibers.png"));
     int m_StartBar;
     enum MouseAreas
     {

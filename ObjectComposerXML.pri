@@ -49,7 +49,7 @@ INCLUDEPATH += $$PWD/../midi2wav
 INCLUDEPATH += $$PWD/../EventHandlers
 INCLUDEPATH += $$PWD/../XMLTest
 INCLUDEPATH += $$PWD/../QGraphicsViewZoomer
-INCLUDEPATH += $$PWD/../SoftSynthsWidgets
+INCLUDEPATH += $$PWD/../SoftSynths/SoftSynthsWidgets
 
 SOURCES += $$PWD/../EventHandlers/mouseevents.cpp \
     ##$$PWD/cdocumentloader.cpp \
@@ -97,6 +97,7 @@ SOURCES += $$PWD/../EventHandlers/mouseevents.cpp \
 HEADERS  += $$PWD/../EventHandlers/mouseevents.h \
     $$PWD/../QGraphicsViewZoomer/qgraphicsviewzoomer.h \
     $$PWD/../SoftSynths/RtAudioBuffer/cthreadedfunction.h \
+    ##$$PWD/../SoftSynthsWidgets/qdprpixmap.h \
     $$PWD/CommonClasses.h \
     $$PWD/CommonCounters.h \
     ##$$PWD/cdocumentloader.h \

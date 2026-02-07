@@ -1304,12 +1304,7 @@ void OCScore::plotStaffNoList(const int staffIndex, const XMLScoreWrapper& XMLSc
 void OCScore::eraseSystem(int StaffIndex, QGraphicsScene *Scene)
 {
     CStaff& s = Staffs[StaffIndex];
-    for(QGraphicsItem* item : std::as_const(s.ItemList))
-    {
-        Scene->removeItem(item);
-        delete item;
-    }
-    s.ItemList.clear();
+    s.ItemList.erase(Scene);
 }
 
 void OCScore::eraseAll(QGraphicsScene* Scene)

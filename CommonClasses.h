@@ -46,6 +46,7 @@
 #include "ocxmlwrappers.h"
 //#include "array"
 #include <QGraphicsView>
+#include "qgraphicsitemlist.h"
 
 template <typename T>
 
@@ -269,7 +270,7 @@ public:
     const OCDurSignType& sign(const int index) const { return (*this)[index]; }
     const OCDurSignVector signs(const QString& name) const {
         OCDurSignVector l;
-        for (OCDurSignType s : (*this)) if (s.XMLSymbol.Compare(name)) l.append(s);
+        for (const OCDurSignType& s : (*this)) if (s.XMLSymbol.Compare(name)) l.append(s);
         return l;
     }
     int indexOf(const QString& name) const {
@@ -773,7 +774,7 @@ private:
 
 //--------------------------------------------------------------------------
 
-typedef QList<QGraphicsItem*> OCGraphicsList;
+typedef QGraphicsItemList OCGraphicsList;
 
 class OCDraw
 {
@@ -883,7 +884,8 @@ public:
             if (PenWidth > -1)
             {
                 b = (Fill == true) ? QBrush(col) : QBrush(Qt::NoBrush);
-                p = QPen(QBrush(col),PenWidth);
+                p = QPen(col);
+                p.setWidthF(PenWidth);
                 p.setCapStyle(Qt::RoundCap);
             }
             else

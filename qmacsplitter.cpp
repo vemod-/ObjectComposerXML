@@ -14,7 +14,7 @@ void QMacSplitterHandle::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e);
     QPainter painter(this);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
     painter.setWorldMatrixEnabled(false);
     painter.setViewTransformEnabled(false);
 

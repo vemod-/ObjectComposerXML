@@ -4,15 +4,7 @@ CLayoutSystem::~CLayoutSystem() {}
 
 void CLayoutSystem::Erase(QGraphicsScene* Scene)
 {
-    for (QGraphicsItem* item : std::as_const(SystemList))
-    {
-        if (Scene->items().contains(item))
-        {
-            Scene->removeItem(item);
-            delete item;
-        }
-    }
-    SystemList.clear();
+    SystemList.erase(Scene);
 }
 
 void CLayoutSystem::plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj)
@@ -54,7 +46,8 @@ void CLayoutSystem::plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const 
         Score->plotStaffNoList(StaffId, XMLScore, Template, Options, Qt::black, ScreenObj);
     }
     SystemList.append(ScreenObj.EndList());
-    for (QGraphicsItem* item : std::as_const(SystemList)) item->setZValue(2);
+    //for (QGraphicsItem* item : std::as_const(SystemList)) item->setZValue(2);
+    SystemList.setZValue(2);
 }
 
 void CLayoutSystem::Format(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& LayoutTemplate, const XMLLayoutOptionsWrapper& Options, const int m_StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const double SystemLength)
@@ -246,15 +239,7 @@ void CLayoutPage::Erase(const int System, QGraphicsScene *Scene)
 
 void CLayoutPage::EraseTitle(QGraphicsScene* Scene)
 {
-    for (QGraphicsItem* item : std::as_const(TitleList))
-    {
-        if (Scene->items().contains(item))
-        {
-            Scene->removeItem(item);
-            delete item;
-        }
-    }
-    TitleList.clear();
+    TitleList.erase(Scene);
 }
 
 void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, const QString& LayoutName, OCDraw& ScreenObj)
@@ -289,7 +274,8 @@ void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, 
         //TitleHeight += TextHeight;
     }
     TitleList.append(ScreenObj.EndList());
-    for (QGraphicsItem* g : std::as_const(TitleList)) g->setZValue(2);//int i=0;i<TitleList.size();i++) TitleList[i]->setZValue(2);
+    //for (QGraphicsItem* g : std::as_const(TitleList)) g->setZValue(2);//int i=0;i<TitleList.size();i++) TitleList[i]->setZValue(2);
+    TitleList.setZValue(2);
 }
 
 CLayout::CLayout(QDomLiteElement *e) : XMLLayoutWrapper(e)

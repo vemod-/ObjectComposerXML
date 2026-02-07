@@ -99,7 +99,7 @@ OCSymbolsCollection::OCSymbolsCollection()
                     QPixmap pm(24,24);
                     pm.fill(Qt::transparent);
                     QPainter painter(&pm);
-                    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+                    painter.setRenderHints(QPainter::SmoothPixmapTransform | QPainter::Antialiasing | QPainter::TextAntialiasing);
                     painter.setWorldMatrixEnabled(false);
                     painter.setViewTransformEnabled(false);
                     //painter.setBackground(Qt::transparent);

@@ -23,7 +23,7 @@ OCPiano::OCPiano(QWidget *parent) :
 
     MD=false;
     MouseInside=false;
-    this->setFixedSize(PitchToPos(127)+WhiteKeyWidth+1,WhiteKeyHeight+1);
+    this->setFixedSize(PitchToPos(127) + WhiteKeyWidth + 1,WhiteKeyHeight + 1);
 }
 
 OCPiano::~OCPiano()

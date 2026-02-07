@@ -28,7 +28,7 @@ LayoutViewXML::LayoutViewXML(QWidget *parent) :
     Scene = new QGraphicsScene(this);
     Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(Scene);
-    Scene->setBackgroundBrush(QPixmap(":/paper-texture.jpg"));
+    Scene->setBackgroundBrush(QDPRPixmap(":/paper-texture.jpg"));
     setRenderHints(renderinghints);
     rb=new QMacRubberband(QRubberBand::Rectangle,QMacRubberband::MacRubberbandYellow,this);
     rb->hide();
@@ -497,7 +497,7 @@ bool LayoutViewXML::PrintAll(QPrinter *Printer)
 
 const QPixmap LayoutViewXML::firstPageIcon(const int i)
 {
-    if (!lc.layout(i)->pageCount()) return QPixmap(":/layout.png");
+    if (!lc.layout(i)->pageCount()) return QDPRPixmap(":/layout.png");
     QPixmap pm(lc.layout(i)->PaperRect().size().toSize());
     pm.fill(Qt::white);
     QPainter P;

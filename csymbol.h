@@ -337,12 +337,12 @@ protected:
     {
         m_PropColl.appendBool("Common", "Returns/sets symbol in Voice 1 common to all Voices", false, true, "Behavior");
     }
-    static OCGraphicsList plotInvisibleIcon(const CSymbol* This, const XMLSimpleSymbolWrapper& Symbol, const double XFysic, OCDraw& ScreenObj) {
+    static OCGraphicsItem plotInvisibleIcon(const CSymbol* This, const XMLSimpleSymbolWrapper& Symbol, const double XFysic, OCDraw& ScreenObj) {
         if (ScreenObj.canColor() || ((ScreenObj.col == inactivestaffcolor) && Symbol.isCommon())) {
             const QString buttonProperty = This->buttonProperty();
             int buttonIndex = 0;
             ScreenObj.moveTo(XFysic - (16 * 12), ScoreStaffHeight + (16* 12) + (16 * 12));
-            OCGraphicsList l;
+            OCContainerList l;
             if (!buttonProperty.isEmpty()) buttonIndex = Symbol.getIntVal(buttonProperty);
             OCToolButtonProps* p = This->m_ButtonList[buttonIndex];
             if ((ScreenObj.col == markedcolor) || (ScreenObj.col == selectedcolor)) l.append(ScreenObj.PlRect(16 * 12, 16 * 12, 0, false));
@@ -350,7 +350,8 @@ protected:
                 QIcon i = QIcon(p->iconpath);
                 l.append(ScreenObj.PlIcon(i, 16 * 12, 16 * 12));
                 if ((ScreenObj.col == activestaffcolor) || (ScreenObj.col == inactivestaffcolor)) {
-                    QGraphicsPixmapItem* i = (QGraphicsPixmapItem*)l.first();
+                    const auto c = l;
+                    QGraphicsPixmapItem* i = (QGraphicsPixmapItem*)c.first();
                     i->setOpacity(0.6);
                 }
             }
@@ -361,13 +362,14 @@ protected:
                 ScreenObj.move(8*12,8*12);
                 l.append(ScreenObj.plLet(p->buttonText,0,f, Qt::AlignCenter));
                 if ((ScreenObj.col == activestaffcolor) || (ScreenObj.col == inactivestaffcolor)) {
-                    QGraphicsPathItem* i = (QGraphicsPathItem*)l.first();
+                    const auto c = l;
+                    QGraphicsPathItem* i = (QGraphicsPathItem*)c.first();
                     i->setOpacity(0.6);
                 }
             }
-            return l;
+            return ScreenObj.containerItem(l);
         }
-        return OCGraphicsList();
+        return ScreenObj.nullItem();
     }
 public:
     inline CSymbol(const QString& Name) : XMLSimpleSymbolWrapper(Name)
@@ -385,12 +387,12 @@ public:
         return m_PropColl;
     }
     virtual ~CSymbol();
-    virtual OCGraphicsList plot(const XMLSymbolWrapper& /*Symbol*/, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& /*ScreenObj*/) {
-        return OCGraphicsList();
+    virtual OCGraphicsItem plot(const XMLSymbolWrapper& /*Symbol*/, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj) {
+        return ScreenObj.nullItem();
     }
-    virtual OCGraphicsList plotRemaining(const OCDurSignType& /*s*/, OCNoteList& /*NoteList*/, OCDraw& /*ScreenObj*/)
+    virtual OCGraphicsItem plotRemaining(const OCDurSignType& /*s*/, OCNoteList& /*NoteList*/, OCDraw& ScreenObj)
     {
-        return OCGraphicsList();
+        return ScreenObj.nullItem();
     }
     virtual void appendSign(const XMLSymbolWrapper& /*Symbol*/, OCPrintSignList& /*SignsToPrint*/, const QColor& /*SignCol*/, const OCBarSymbolLocation& /*Location*/){}
     virtual void Edit(XMLSimpleSymbolWrapper& /*Symbol*/, OCRefreshMode& RefreshMode, bool& esc, QWidget* /*parent*/)
@@ -401,12 +403,12 @@ public:
     virtual void fibPlay(const XMLSymbolWrapper& /*Symbol*/, OCMIDIFile& /*MFile*/, OCCounter& /*CountIt*/, int& /*Py*/, const XMLVoiceWrapper& /*XMLVoice*/, OCPlaySignList& /*SignsToPlay*/, OCPlayBackVarsType &/*TemPlay*/){}
     virtual void fib(const XMLSymbolWrapper& /*Symbol*/,OCPrintVarsType &/*voiceVars*/){}
     virtual void Play(const XMLSymbolWrapper& /*Symbol*/, OCMIDIFile& /*MFile*/, OCCounter& /*CountIt*/, int& /*Py*/, const XMLVoiceWrapper& /*XMLVoice*/, OCPlaySignList& /*SignsToPlay*/, OCPlayBackVarsType &/*TemPlay*/){}
-    virtual OCGraphicsList PlotMTrack(double /*XFysic*/, const XMLSymbolWrapper& /*Symbol*/, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& /*ScreenObj*/)
+    virtual OCGraphicsItem PlotMTrack(double /*XFysic*/, const XMLSymbolWrapper& /*Symbol*/, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
     {
-        return OCGraphicsList();
+        return ScreenObj.nullItem();
     }
-    virtual OCGraphicsList PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& /*ScreenObj*/){
-        return OCGraphicsList();
+    virtual OCGraphicsItem PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& ScreenObj){
+        return ScreenObj.nullItem();
     }
     virtual void MoveToSignUp(StemDirection UpDown, int & SignsUp , OCDraw& ScreenObj) {
         SignsUp++;
@@ -415,9 +417,9 @@ public:
     virtual void DuringNote(OCMIDIFile& /*MFile*/, int /*Pitch*/, int& /*LastTime*/, int /*Tick*/, int /*PlayTime*/, OCPlayBackVarsType &/*TemPlay*/){}
     virtual void BeforeNote(const XMLSymbolWrapper& /*XMLNote*/, int& /*PlayDynam*/, int& /*Pitch*/, int& /*endPitch*/, OCPlayBackVarsType &/*TemPlay*/){}
     virtual void AfterNote(const XMLSymbolWrapper& /*XMLNote*/, OCPlayBackVarsType &/*TemPlay*/){}
-    virtual OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& /*Symbol*/, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& /*ScreenObj*/)
+    virtual OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& /*Symbol*/, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj)
     {
-        return OCGraphicsList();
+        return ScreenObj.nullItem();
     }
     virtual void ModifyProperties(OCProperties& /*p*/) {}
     virtual OCProperties* GetDefaultProperties()
@@ -472,7 +474,7 @@ public:
         buildProperties();
     }
     virtual ~CInvisibleSymbol();
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj) {
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj) {
         return CSymbol::plotInvisibleIcon(this,Symbol,XFysic,ScreenObj);
     }
 };
@@ -512,7 +514,7 @@ public:
     {
         buildProperties();
     }
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj) {
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*sCurrent*/, OCDraw& ScreenObj) {
         return CSymbol::plotInvisibleIcon(this,Symbol,XFysic,ScreenObj);
     }
     virtual ~CInvisibleDuratedSymbol();

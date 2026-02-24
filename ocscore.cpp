@@ -134,7 +134,7 @@ void CVoice::plVoice(OCPageBarList &BarList, const XMLScoreWrapper &XMLScore, OC
             SignCol = ScreenObj.col;
             if (CountIt.FilePointer >= symbolCount())
             {
-                const QRectF r=ScreenObj.boundingRect(ScreenObj.line(XFysic, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+                const QRectF r = ScreenObj.boundingRect(ScreenObj.line(XFysic, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
                 BarList.setFrame(CountIt.barCount()+1,r);
                 ScreenObj.line(XFysic + ScreenObj.spaceX(24), ScoreStaffHeight,0, -ScoreStaffLinesHeight);
                 ScreenObj.col = VoiceColor;
@@ -855,6 +855,8 @@ const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTe
     ScreenObj.moveTo(0, -ScoreStaffHeight / ScreenObj.spaceX());
     ScreenObj.initCurrent();
     const double syslen = ScreenObj.spaceX(SystemLength);
+
+    ScreenObj.startPath();
     ScreenObj.moveTo(syslen, ScoreStaffHeight);
     ScreenObj.line(-syslen, 0);
     ScreenObj.move(0, -96);
@@ -865,11 +867,11 @@ const QRectF CStaff::plotLinesAndBrackets(const double SystemLength, const XMLTe
     ScreenObj.line(syslen, 0);
     ScreenObj.move(0, -96);
     ScreenObj.line(-syslen, 0);
-
+    ScreenObj.endPath();
     const double Height = (StaffPos == XMLTemplate.staffCount() - 1) ? ScoreStaffLinesHeight : ScreenObj.spaceX(ScoreStaffHeight + (TemplateStaff.height()*12));
-    //if (StaffPos == XMLTemplate.staffCount()-1) Height = ScoreStaffLinesHeight;
-    const QRectF r=ScreenObj.boundingRect(ScreenObj.line(0, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
+    const QRectF r = ScreenObj.boundingRect(ScreenObj.line(0, ScoreStaffHeight, 0, -ScoreStaffLinesHeight));
     ScreenObj.line(0, -(Height-ScoreStaffLinesHeight));
+
     ScreenObj.move(ScreenObj.spaceX(-24), 0);
     ScreenObj.PlRect(ScreenObj.spaceX(-24),Height);
 
@@ -1307,10 +1309,9 @@ void OCScore::eraseSystem(int StaffIndex, QGraphicsScene *Scene)
     s.ItemList.erase(Scene);
 }
 
-void OCScore::eraseAll(QGraphicsScene* Scene)
+void OCScore::eraseAll()
 {
     for(CStaff& s : Staffs) s.ItemList.clear();
-    Scene->clear();
 }
 
 void OCScore::formatPageBack(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options)

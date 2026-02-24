@@ -10,7 +10,7 @@
 #include <QTimer>
 #include "ocscore.h"
 #include "qhoverbutton.h"
-#include "qiphotorubberband.h"
+//#include "qiphotorubberband.h"
 #include "qgraphicsviewzoomer.h"
 #include "qdprpixmap.h"
 
@@ -271,11 +271,13 @@ private:
     QTimer soundTimer;
     bool m_NavigationVisible;
     bool m_Locked;
-    QiPhotoRubberband* SelectRubberband;
-    QHoverRubberband* HoverRubberband;
+    //QiPhotoRubberband* SelectRubberband;
+    QGraphicsIPhotoRubberband* selectRect;
+    //QHoverRubberband* HoverRubberband;
+    QGraphicsRubberBand* hoverRect;
     OCScore Score;
     OCCursorFrame* CursorFrame;
-    QGraphicsScene* Scene;
+    QGraphicsScene Scene;
     QHoverButton* turnpagebutton;
     QHoverButton* turnbackbutton;
     QHoverButton* fastforwardbutton;

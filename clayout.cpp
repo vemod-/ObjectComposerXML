@@ -5,6 +5,7 @@ CLayoutSystem::~CLayoutSystem() {}
 void CLayoutSystem::Erase(QGraphicsScene* Scene)
 {
     SystemList.erase(Scene);
+    SystemList.setPos(0,0);
 }
 
 void CLayoutSystem::plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj)
@@ -15,7 +16,7 @@ void CLayoutSystem::plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const 
     ScreenObj.StartList();
     if (showNames() > 0)
     {
-        for (int StaffPos = 0; StaffPos<Template.staffCount();StaffPos++)
+        for (int StaffPos = 0; StaffPos < Template.staffCount();StaffPos++)
         {
             const int StaffId=Template.staffId(StaffPos);
             QString Text;
@@ -242,6 +243,15 @@ void CLayoutPage::EraseTitle(QGraphicsScene* Scene)
     TitleList.erase(Scene);
 }
 
+void CLayoutPage::clear() {
+    TitleList.clear();
+    for (CLayoutSystem* s : std::as_const(Systems)) s->clear();
+}
+
+void CLayoutPage::MoveSystemTop(const int System, int y){
+    if (System < systemCount()) Sys(System)->MoveTop(y);
+}
+
 void CLayoutPage::PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, const QString& LayoutName, OCDraw& ScreenObj)
 {
     TitleList.clear();
@@ -335,7 +345,7 @@ const QRectF CLayout::PaperRect(const int page) const
 }
 
 
-void CLayout::Plot(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene)
+void CLayout::PlotSystem(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene)
 {
     OCDraw ScreenObj(Scene,Options.scaleSize());
     int StartBar=0;
@@ -661,7 +671,7 @@ void CLayout::PrintIt(const int StartPage, XMLScoreWrapper& XMLScore, QGraphicsS
     }
 }
 
-void CLayout::Erase(const LayoutLocation &l, QGraphicsScene *Scene)
+void CLayout::EraseSystem(const LayoutLocation &l, QGraphicsScene *Scene)
 {
     if (l.Page<Pages.size()) Pages[l.Page]->Erase(l.System,Scene);
 }

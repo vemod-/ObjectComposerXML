@@ -106,7 +106,7 @@ void QCustomToolButton::paintEvent(QPaintEvent *event)
     {
         iconRect.adjust(0,2,-3,-3);
         QSize s(24,24);
-        if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
+        if (!icon().availableSizes().empty()) s = icon().availableSizes().first();
         double aspect=double(s.width())/double(s.height());
         double thisaspect=double(iconRect.width())/double(iconRect.height());
         if (aspect<thisaspect)

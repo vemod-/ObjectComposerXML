@@ -164,7 +164,7 @@ void CMusicTree::ItemChange()
     {
         table->blockSignals(true);
         table->setUpdatesEnabled(false);
-        Cursor->SetPos(table->selectedItems()[0]->data(0,32).toInt());
+        Cursor->SetPos(table->selectedItems().first()->data(0,32).toInt());
         for (QTreeWidgetItem* item : (const QList<QTreeWidgetItem*>)table->selectedItems())
         {
             if (table->indexOfTopLevelItem(item)==-1)

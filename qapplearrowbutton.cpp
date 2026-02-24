@@ -148,7 +148,7 @@ void QAppleArrowButton::paintEvent(QPaintEvent *event)
     {
         iconRect.adjust(0,2,-3,-3);
         QSizeF s(24,24);
-        if (!icon().availableSizes().empty()) s = icon().availableSizes()[0];
+        if (!icon().availableSizes().empty()) s = icon().availableSizes().first();
         double aspect=s.width()/s.height();
         double thisaspect=iconRect.width()/iconRect.height();
         if (aspect<thisaspect)

@@ -68,7 +68,7 @@ void QFadingFrame::processing(int count)
     {
         backPic->setOpacity(1.0-(count*0.01));
     }
-    backPic->repaint();
+    backPic->update();
 }
 
 void QFadingFrame::finished()

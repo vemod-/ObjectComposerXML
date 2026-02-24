@@ -24,12 +24,19 @@ enum MarginDirections
 class CLayoutSystem : public XMLLayoutSystemWrapper
 {
 public:
-    inline CLayoutSystem(QDomLiteElement* e) : XMLLayoutSystemWrapper(e) {}
+    inline CLayoutSystem(QDomLiteElement* e) : XMLLayoutSystemWrapper(e) {
+    }
     ~CLayoutSystem();
     void plot(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, OCDraw& ScreenObj);
     void Format(OCScore* Score, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& LayoutTemplate, const XMLLayoutOptionsWrapper& Options, const int m_StartBar, const bool Auto, const bool ShowAllStaves, const int ShowNamesOption, const double SystemLength);
     void SetStaveDistance(const double stavedistance);
     void Erase(QGraphicsScene* Scene);
+    void clear() {
+        SystemList.clear();
+    }
+    void MoveTop(int y){
+        SystemList.setPos(0,y);
+    }
 private:
     OCGraphicsList SystemList;
 };
@@ -60,6 +67,9 @@ public:
     void PlotTitle(const int Page, const XMLLayoutFontsWrapper& Fonts, const QRectF& PageRect, const XMLLayoutOptionsWrapper& Options, const QString& LayoutName, OCDraw& ScreenObj);
     void Erase(const int System, QGraphicsScene* Scene);
     void EraseTitle(QGraphicsScene* Scene);
+    void clear();
+    void MoveSystemTop(const int System, int y);
+
 private:
     QList<CLayoutSystem*> Systems;
     OCGraphicsList TitleList;
@@ -84,7 +94,7 @@ public:
     const QRectF PageRect(const int page) const;
     const QRectF PaperRect() const;
     const QRectF PaperRect(const int page) const;
-    void Plot(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene);
+    void PlotSystem(const LayoutLocation& l, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene);
     void AutoAll(const LayoutLocation& StartLocation, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene, const bool Auto);
     void RemovePage();
     void RemoveSystem(const int Page);
@@ -108,8 +118,14 @@ public:
     bool ChangePrinter(QWidget* Owner,QPrinter* Prn);
     void PlotTitle(QGraphicsScene* Scene);
     void PrintIt(const int StartPage, XMLScoreWrapper& XMLScore, QGraphicsScene *Scene);
-    void Erase(const LayoutLocation& l, QGraphicsScene* Scene);
+    void EraseSystem(const LayoutLocation& l, QGraphicsScene* Scene);
     void EraseTitle(QGraphicsScene* Scene);
+    void clear() {
+        for (CLayoutPage* p : std::as_const(Pages)) p->clear();
+    }
+    void MoveSystemTop(const LayoutLocation& l, int y) {
+        if (l.Page<Pages.size()) Pages[l.Page]->MoveSystemTop(l.System,y);
+    }
 private:
     QRectF m_PaperRect;
     LayoutLocation m_ActiveLocation;

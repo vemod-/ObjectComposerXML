@@ -246,7 +246,7 @@ public:
         Size = Symbol.size();
     }
     inline void moveTo(OCDraw& ScreenObj) const { ScreenObj.moveTo(CenterX, CenterY); }
-    void plot(const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray& FrameList, const OCGraphicsList& tie, OCDraw& ScreenObj);
+    void plot(const bool UnderTriplet, const QColor& TrackColor, const int UpDown, OCFrameArray& FrameList, const OCGraphicsItem tie, OCDraw& ScreenObj);
     double sized(const double val) {
         if (Size == 0) return val;
         return DoubleDiv(val ,SizeFactor(Size));
@@ -342,9 +342,9 @@ private:
     int mCenterY = 0;
     int NumOfCompressed = 0;
     int PointerAfterCompress = 0;
-    const OCGraphicsList PrintPauseSign(const int c, OCDraw& ScreenObj);
-    void PrintNumber(const int b, const int siz, OCDraw& ScreenObj);
-    void PlMorePauses(const int NumOfBars, OCDraw& ScreenObj);
+    OCGraphicsItem PrintPauseSign(const int c, OCDraw& ScreenObj);
+    OCGraphicsItem PrintNumber(const int b, const int siz, OCDraw& ScreenObj);
+    OCGraphicsList PlMorePauses(const int NumOfBars, const int pnt, const QColor& TrackColor, OCDraw& ScreenObj);
 public:
     inline CPausesToPrint() {}
     void SetUpDown(const StemDirection UD=StemAuto) {
@@ -486,15 +486,15 @@ public:
     void CreateBeamLists();
     void plot(const int FirstNote, OCPrintCounter& CountIt, const OCVoiceLocation& VoiceLocation, const OCPageBarList& BarList, const QColor& TrackColor, OCFrameArray& FrameList, OCDraw& ScreenObj);
     void PlotBeams(const QColor& TrackColor, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj, const int YOffset = 0);
-    static const OCGraphicsList PlotSlur(const OCRhythmObjectList& SlurList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotHairPin(const OCRhythmObjectList& HPList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotDot(const int Value, const bool UnderTriplet, const int Size, const int SignSize, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotLengths(const int Sign, const QPointF& Pos, const int UpDown, const int Size, OCDraw& ScreenObj);
-    static const OCGraphicsList PlotLengths(const IOCRhythmObject* Props, OCDraw& ScreenObj);
-    static const OCGraphicsList plFan(const double height, const StemDirection updown, const int repeat, const int Size, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotTuplet(const OCRhythmObjectList& TupletList, const int TupletCaption, const QPointF& Pos, const int Size, OCDraw& ScreenObj, const int YOffset = 0);
+    static OCGraphicsItem PlotSlur(const OCRhythmObjectList& SlurList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotHairPin(const OCRhythmObjectList& HPList, const XMLSimpleSymbolWrapper& XMLSymbol, const bool IsAWrap, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotDot(const int Value, const bool UnderTriplet, const int Size, const int SignSize, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotLengths(const int Sign, const QPointF& Pos, const int UpDown, const int Size, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotLengths(const IOCRhythmObject* Props, OCDraw& ScreenObj);
+    static OCGraphicsItem plFan(const double height, const StemDirection updown, const int repeat, const int Size, OCDraw& ScreenObj);
     static const QPainterPath FanPath(const double height, const StemDirection updown, const int repeat);
-    static const OCGraphicsList PlotHairPin(const int Length, const int gap, const bool IsDim, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotHairPin(const int Length, const int gap, const bool IsDim, OCDraw& ScreenObj);
     void plotsigns(const int FirstNote, OCPrintSignList& SignsToPrint, OCFrameArray& FrameList, OCDraw& ScreenObj);
     void ApplyAccidentals(OCStaffAccidentals& StaffAccidentals);
     inline const OCIntList FillLineNumsArray() const

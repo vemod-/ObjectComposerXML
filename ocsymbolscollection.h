@@ -11,14 +11,14 @@ public:
     ~OCSymbolsCollection();
     void Connect(void* imglst, void* tlb);
     static bool editevent(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, QWidget* parent);
-    static OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    static OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     static void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     static void fibCommon(const XMLSymbolWrapper& Symbol, OCStaffCounterPrint& voiceVarsArray, const OCVoiceLocation& VoiceLocation);
     static void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    static OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj);
-    static OCGraphicsList plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
+    static OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj);
+    static OCGraphicsItem plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
     static void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, OCPrintVarsType &voiceVars, const OCBarSymbolLocation& Location);
-    static OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj);
+    static OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj);
     static void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     static void DrawFactor(const XMLSymbolWrapper& Symbol, OCCounter& Counter, const XMLTemplateWrapper& XMLTemplate, OCPageBarList& BarList, const XMLScoreWrapper& Score);
     static OCProperties& GetProperties(const XMLSimpleSymbolWrapper& Symbol);
@@ -157,7 +157,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     OCProperties* GetDefaultProperties(int Button);
     static const QStringList DynamicList;
@@ -238,13 +238,13 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void DrawFactor(const XMLSymbolWrapper& Symbol, OCCounter& Counter, const XMLTemplateWrapper& XMLTemplate, OCPageBarList& BarList, const XMLScoreWrapper& Score);
     void ModifyProperties(OCProperties& p);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     static const QStringList TimeList;
-    static OCGraphicsList PlTime(const XMLSymbolWrapper& Symbol, double X, OCDraw& ScreenObj, Qt::Alignment Align=Qt::AlignCenter);
+    static OCGraphicsItem PlTime(const XMLSymbolWrapper& Symbol, double X, OCDraw& ScreenObj, Qt::Alignment Align=Qt::AlignCenter);
     //static int GetTicks(const XMLSymbolWrapper& Symbol);
     static int CalcBeamLimit(const XMLSymbolWrapper& Symbol);
 protected:
@@ -271,7 +271,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
 protected:
     void buildProperties()
     {
@@ -292,12 +292,12 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void DrawFactor(const XMLSymbolWrapper& Symbol, OCCounter& Counter, const XMLTemplateWrapper& XMLTemplate, OCPageBarList& BarList, const XMLScoreWrapper& Score);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     const QStringList ClefList{"Soprano", "Bass", "Alto", "Tenor", "Percussion"};
-    static OCGraphicsList PlClef(int Clef, int Size, OCDraw& ScreenObj);
+    static OCGraphicsItem PlClef(int Clef, int Size, OCDraw& ScreenObj);
     static int LineDiff(const int Clef) {
         switch (Clef)
         {
@@ -352,12 +352,12 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void DrawFactor(const XMLSymbolWrapper& Symbol, OCCounter& Counter, const XMLTemplateWrapper& XMLTemplate, OCPageBarList& BarList, const XMLScoreWrapper& Score);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    static OCGraphicsList plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& ScreenObj);
+    static OCGraphicsItem plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& ScreenObj);
     static const QStringList KeyList;
     static uint NumOfAccidentals(int Key);
     static OCKeyAccidental AccidentalFlag(int Key);
@@ -409,10 +409,10 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     const QStringList TempoList{"Whole", "Half", "Quarter", "8th", "16th"};
-    static OCGraphicsList PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont& Font, int Size, OCDraw& ScreenObj);
+    static OCGraphicsItem PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont& Font, int Size, OCDraw& ScreenObj);
 protected:
     void buildProperties()
     {
@@ -501,7 +501,7 @@ public:
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     OCProperties* GetDefaultProperties(int Button);
 protected:
     void buildProperties()
@@ -524,7 +524,7 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     OCProperties* GetDefaultProperties(int Button);
@@ -553,7 +553,7 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     OCProperties* GetDefaultProperties(int Button);
 private:
@@ -605,7 +605,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     const QStringList BowingList{"Up", "Down"};
 protected:
     void buildProperties()
@@ -622,7 +622,7 @@ public:
     inline CBartokP(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol,false,true) {}
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
 };
 
 class CFingering : public CVisibleSymbol
@@ -638,7 +638,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     static const QStringList FingerList;
 protected:
     void buildProperties()
@@ -662,7 +662,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     static const QStringList StringSigns;
 protected:
     void buildProperties()
@@ -727,7 +727,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     static const QString cueletter(int i);
 protected:
     const QStringList CueTypeList = {"Letters","Numbers"};
@@ -750,7 +750,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
 protected:
@@ -767,7 +767,7 @@ public:
     inline CDaCapo() :CVisibleSymbol("DaCapo") {}
     inline CDaCapo(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol) {}
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
 protected:
@@ -790,7 +790,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
@@ -831,7 +831,7 @@ public:
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     OCProperties* GetDefaultProperties(int Button);
     const QStringList LengthList{"Length", "Tenuto", "Staccato"};
@@ -899,7 +899,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType& voiceVars);
     OCProperties* GetDefaultProperties(int Button);
     static const QStringList DynamicChangeList;
@@ -947,7 +947,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
 protected:
     void buildProperties()
     {
@@ -963,7 +963,7 @@ public:
     inline CFine(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol) {}
     QList<OCToolButtonProps*> CreateButtons();
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
 };
 
@@ -981,8 +981,8 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType& voiceVars);
@@ -1039,7 +1039,7 @@ public:
     QList<OCToolButtonProps*> CreateButtons();
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
@@ -1073,8 +1073,8 @@ public:
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     OCProperties* GetDefaultProperties(int Button);
     const QStringList LengthList{"Length", "Tenuto", "Staccato", "Length x1", "Tenuto x1", "Staccato x1"};
@@ -1120,7 +1120,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
@@ -1154,7 +1154,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     const QStringList OctaveList{"15ma Down", "8va Down", "Loco", "8va Up", "15ma Up"};
 protected:
@@ -1202,8 +1202,8 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void ModifyProperties(OCProperties& p);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     const QStringList RepeatList{"End", "Begin", "Volta", "Barline"};
@@ -1229,7 +1229,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
 protected:
@@ -1277,8 +1277,8 @@ public:
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     //void AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
-    OCGraphicsList plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj);
     static OCNoteList::SlurTypes SlurDirection(const int d, const OCRhythmObjectList& l)
     {
         if (d==2) return OCNoteList::SlurDown;
@@ -1303,7 +1303,7 @@ public:
     inline CStopped(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol,false,true) {}
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
 };
 
 class CHarmonic :public CVisibleSymbol
@@ -1313,7 +1313,7 @@ public:
     inline CHarmonic(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol,false,true) {}
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
 };
 
 class CComma :public CVisibleSymbol
@@ -1323,7 +1323,7 @@ public:
     inline CComma(const XMLSimpleSymbolWrapper& XMLSymbol) : CVisibleSymbol(XMLSymbol,false,true) {}
     QList<OCToolButtonProps*> CreateButtons();
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
 };
 
 class CTempoChange : public CVisibleSymbol
@@ -1339,7 +1339,7 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void ModifyProperties(OCProperties& p);
@@ -1367,11 +1367,11 @@ public:
     }
     QList<OCToolButtonProps*> CreateButtons();
     void Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent);
-    OCGraphicsList PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
+    OCGraphicsItem PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType& voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj);
     void fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars);
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
 private:
-    OCGraphicsList PlotText(const XMLSymbolWrapper& Symbol, double XFysic, OCDraw& ScreenObj);
+    OCGraphicsItem PlotText(const XMLSymbolWrapper& Symbol, double XFysic, OCDraw& ScreenObj);
 protected:
     void buildProperties()
     {
@@ -1394,7 +1394,7 @@ public:
     void appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, const OCBarSymbolLocation& Location);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     OCProperties* GetDefaultProperties(int Button);
 protected:
     void buildProperties()
@@ -1416,7 +1416,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
+    OCGraphicsItem PrintSign(StemDirection UpDown, int& SignsUp, OCDraw& ScreenObj);
     void DuringNote(OCMIDIFile& MFile, int Pitch, int& LastTime, int Tick, int PlayTime, OCPlayBackVarsType& voiceVars);
     void BeforeNote(const XMLSymbolWrapper& XMLNote, int& PlayDynam, int& Pitch, int& endPitch, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
@@ -1477,7 +1477,7 @@ public:
         buildProperties();
     }
     QList<OCToolButtonProps*> CreateButtons();
-    OCGraphicsList plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
+    OCGraphicsItem plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper& XMLTemplateStaff, OCDraw& ScreenObj);
     void fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType& voiceVars);
     void Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType &voiceVars);
     const QStringList PedalList{"Pedal Down", "Pedal Up"};

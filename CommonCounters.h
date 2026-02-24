@@ -175,7 +175,7 @@ public:
         Fraction = f.reducedWith(ShortestValue);
         if (ContainsTriplet) Fraction.reduce();
         Factor = f.reciprocalValue();
-        ActualTicks = CountDown;
+        //ActualTicks = CountDown;
         NumOfNotes = NoteCount;
     }
     bool isStart() {
@@ -867,8 +867,8 @@ public:
     inline bool playEnd(const int Index) { return ((at(Index).State==tSPlayEnd) || ((*this)[Index].State==tSPlayStartEnd)); }
     inline bool playPortamento(const int Index) { return (at(Index).State==tSPlayPortamento); }
     inline int pitch(const int Index) const { return at(Index).Pitch; }
-    inline int monoPitch() const { return at(0).Pitch; }
-    inline void setMonoPitch(const int pitch) { (*this)[0].Pitch = pitch; }
+    inline int monoPitch() const { return first().Pitch; }
+    inline void setMonoPitch(const int pitch) { first().Pitch = pitch; }
     inline bool inaudible(const int Index) const { return at(Index).Inaudible; }
     inline int velocity(const int index, const int data2) const {
         return (inaudible(index)) ? 0 : qBound<int>(0,data2,127);

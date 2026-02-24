@@ -5,7 +5,7 @@
 #include <QWidget>
 //#include <QGraphicsView>
 //#include <QRubberBand>
-#include "qmacrubberband.h"
+//#include "qmacrubberband.h"
 //#include "ceditsystem.h"
 #include "qgraphicsviewzoomer.h"
 #include "qdprpixmap.h"
@@ -13,7 +13,7 @@
 namespace Ui {
     class LayoutViewXML;
 }
-
+/*
 class PageGraphics
 {
 public:
@@ -30,8 +30,8 @@ public:
     QGraphicsItem* Paper;
     QGraphicsItem* Shadow;
 };
-
-typedef QMap<int,PageGraphics> PageGraphicsMap;
+*/
+//typedef QMap<int,PageGraphics> PageGraphicsMap;
 
 class LayoutViewXML : public QGraphicsView
 {
@@ -44,6 +44,8 @@ public:
     void Unformat();
     void MoveSystem(const int Direction);
     void MoveBar(const int Direction);
+    void BarToNextSystem();
+    void BarFromNextSystem();
     void AddPaper();
     void RemovePaper();
     void Clear();
@@ -54,32 +56,22 @@ public:
     void AdjustCurrentPage();
     void AdjustPage(const int Page);
     void AdjustPages(const int StartPage);
-    void setActiveLayout(const int Index) {
-        if (!layoutCount()) return;
-        lc.setActiveLayout(Index);
-        if (pageCount())
-        {
-            setActiveLocation(activeLayoutLocation());
-        }
-        emit SelectionChanged();
-    }
-    inline int activeLayoutIndex() const { return lc.activeLayoutIndex(); }
-    inline int activePageIndex() const { return lc.activePageIndex(); }
-    inline int activeSystemIndex() const { return lc.activeSystemIndex(); }
-    inline QRectF activeSystemRect() const {
-        return mapFromScene(sysRect(activeLayoutLocation()));
-    }
-    inline LayoutLocation activeLayoutLocation() const { return lc.activeLayoutLocation(); }
-    inline LayoutLocation bottomSystem() { return LayoutLocation(activePageIndex(),systemCount()-1); }
-    inline int activeStartBar() { return activeSystem().startBar(); }
-    inline int activeEndBar() { return activeSystem().endBar(); }
+    void setActiveLayout(const int Index);
+    int activeLayoutIndex() const;
+    int activePageIndex() const;
+    int activeSystemIndex() const;
+    QRectF activeSystemRect() const;
+    LayoutLocation activeLayoutLocation() const;
+    LayoutLocation bottomSystem();
+    int activeStartBar();
+    int activeEndBar();
     void AddTitle();
     void PrintIt(const int StartPage, QGraphicsScene* Scene);
     void SetXML(XMLScoreWrapper& Score);
     void ReloadXML();
-    void InitLayout(const int Index) { lc.InitLayout(Index,XMLScore); }
-    const QString LayoutName(const int Index) const { return XMLScore.LayoutName(Index); }
-    inline int layoutCount() const { return XMLScore.layoutCount(); }
+    void InitLayout(const int Index);
+    const QString LayoutName(const int Index) const;
+    int layoutCount() const;
     const QPixmap firstPageIcon(const int i);
     XMLScoreWrapper XMLScore;
 public slots:
@@ -87,38 +79,20 @@ public slots:
     bool PrintAll(QPrinter* Printer);
     void PrinterPrint(const QString& pdfPath=QString());
     void PageSetup();
-    void MakeBackup(const QString& text) { emit BackMeUp(text); }
-    void changeZoom(double zoom) {
-        DrawActiveRect();
-        if (HoverRubberband->isVisible()) HoverRubberband->hide();
-        emit ZoomChanged(zoom);
-    }
-    void setZoom(const double Zoom) {
-        DrawActiveRect();
-        if (HoverRubberband->isVisible()) HoverRubberband->hide();
-        zoomer->setZoom(Zoom);
-    }
+    void MakeBackup(const QString& text);
+    void changeZoom(double zoom);
+    void setZoom(const double Zoom);
+private slots:
+    void MoveSystemToNextPage();
+    void GetSystemFromNextPage();
 public:
-    double getZoom() const {
-        return zoomer->getZoom();
-    }
+    double getZoom() const;
     void SelectSystem(const LayoutLocation& l);
-    int pageOfBar(const int bar) const {
-        return activeLayout()->PageOfBar(bar);
-    }
-    int systemOfBar(const int page, const int bar) const {
-        return activeLayout()->SystemOfBar(page, bar);
-    }
-    LayoutLocation locationOfBar(const int bar) const {
-        const int p = pageOfBar(bar);
-        return LayoutLocation(p,systemOfBar(p,bar));
-    }
-    bool pageContainsBar(const int page, const int bar) const {
-        return (activeLayout()->PageOfBar(bar) == page);
-    }
-    bool systemContainsBar(const int page, const int system, const int bar) const {
-        return (activeLayout()->SystemOfBar(page, bar) == system);
-    }
+    int pageOfBar(const int bar) const;
+    int systemOfBar(const int page, const int bar) const;
+    LayoutLocation locationOfBar(const int bar) const;
+    bool pageContainsBar(const int page, const int bar) const;
+    bool systemContainsBar(const int page, const int system, const int bar) const;
 signals:
     void Changed();
     void BackMeUp(const QString& Text);
@@ -140,9 +114,20 @@ private:
     Ui::LayoutViewXML *ui;
     QGraphicsScene* Scene;
     CLayoutCollection lc;
-    QMacRubberband* rb;
-    PageGraphicsMap PageList;
+    //QMacRubberband* rb;
+    QGraphicsRubberBand* rubberBand;
+    QGraphicsItemList PageList;
+    //QGraphicsItemList PageButtonsList;
+    //QList<QGraphicsItemList> SystemButtonsList;
+    QGraphicsContainerItem* PageButtonsItem;
+    QGraphicsContainerItem* SystemButtonsItem;
+    QGraphicsToolButton* addSystemButton;
+    QGraphicsToolButton* removeSystemButton;
+    QGraphicsToolButton* addBarButton;
+    QGraphicsToolButton* removeBarButton;
+    QGraphicsToolButton* toggleNamesButton;
     QGraphicsViewZoomer* zoomer;
+    LayoutLocation hoverLocation;
     bool NoScrollFlag;
     int SceneNumOfPages;
     //const QBrush paperbrush=QBrush(QPixmap(":/grey-paper-texture.jpg"));
@@ -153,13 +138,14 @@ private:
     }
     inline double sizeToView(const double v) { return v; }
 */
-    inline int pageCount() const { return activeLayout()->pageCount(); }
-    inline int systemCount() const { return systemCount(activePageIndex()); }
-    inline int systemCount(const int Page) const { return activeLayout()->systemCount(Page); }
-    inline CLayout* activeLayout() const { return lc.activeLayout(); }
-    inline XMLLayoutSystemWrapper activeSystem() const { return *activeLayout()->activeSystem(); }
-    void setActiveLocation(const LayoutLocation& l) { activeLayout()->setActiveLocation(l); }
-    QHoverRubberband* HoverRubberband;
+    int pageCount() const;
+    int systemCount() const;
+    int systemCount(const int Page) const;
+    CLayout* activeLayout() const;
+    XMLLayoutSystemWrapper activeSystem() const;
+    void setActiveLocation(const LayoutLocation& l);
+    //QHoverRubberband* HoverRubberband;
+    QGraphicsRubberBand* hoverRect;
     double my;
     bool MD;
     LayoutLocation ML;
@@ -167,44 +153,17 @@ private:
     void DrawPaper(const int Page);
     void ClearSystem(const LayoutLocation& l);
     void ClearActiveSystem();
+    void MoveActiveSystemTop(int y);
+    void MoveSystemTop(const LayoutLocation& l, int y);
     void PlotActiveSystem();
-    inline const QRectF sysRect(const LayoutLocation& l) const {
-        return activeLayout()->SysRect(l);
-    }
-    inline const QRectF paperRect(const int page) const {
-        return activeLayout()->PaperRect(page);
-    }
-    inline const QRectF paperRect() const {
-        return activeLayout()->PaperRect();
-    }
-    inline const QRect mapFromScene(const QRectF& r) const {
-        return QRect(QGraphicsView::mapFromScene(r.topLeft()),QGraphicsView::mapFromScene(r.bottomRight()));
-    }
-    LayoutLocation InsideLocation(const QPointF p) const {
-        LayoutLocation l;
-        l.Page = InsidePage(p);
-        if (l.Page > -1) l.System = InsideSystem(p, l.Page);
-        return l;
-    }
-    int InsidePage(const QPointF p) const {
-        for (int i = 0; i < pageCount(); i++)
-        {
-            QRectF r(paperRect(i));
-            if (r.contains(p)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    int InsideSystem(const QPointF p, const int Page) const {
-        if (Page < 0 ) return -1;
-        for (int i = 0; i < systemCount(Page); i++)
-        {
-            QRectF s(sysRect(LayoutLocation(Page,i)));
-            if (s.contains(p)) return i;
-        }
-        return -1;
-    }
+    const QRectF sysRect(const LayoutLocation& l) const;
+    const QRectF paperRect(const int page) const;
+    const QRectF paperRect() const;
+    const QRect mapFromScene(const QRectF& r) const;
+    LayoutLocation InsideLocation(const QPointF p) const;
+    int InsidePage(const QPointF p) const;
+    int InsideSystem(const QPointF p, const int Page) const;
+    void placeButtons(LayoutLocation l);
     void DrawRect(const LayoutLocation& l, int y, bool Animated=false);
     void DrawActiveRect();
 };

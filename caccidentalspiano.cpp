@@ -87,7 +87,7 @@ void CAccidentalsPiano::DrawBlackKey(const int Pos, const bool Down)
 void CAccidentalsPiano::DrawWhiteKey(const int Pos, const bool Down)
 {
     QColor col=Qt::white;
-    if (Down) col="#eeeeee";
+    if (Down) col = QColor(0xee,0xee,0xee);
     setPenBrush(col);
     drawRectangle(Pos+1,0,aWhiteKeyWidth-1,aWhiteKeyHeight-1);
     setPen(QColor(0x88,0x88,0x88));

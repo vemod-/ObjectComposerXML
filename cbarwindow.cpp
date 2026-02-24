@@ -39,7 +39,7 @@ bool CBarWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::Wheel)
     {
-        table->viewport()->repaint();
+        table->viewport()->update();
     }
     else if (event->type() == QEvent::MouseButtonRelease)
     {
@@ -50,7 +50,8 @@ bool CBarWindow::eventFilter(QObject *obj, QEvent *event)
         }
         if (!table->selectedRanges().empty())
         {
-            QTableWidgetSelectionRange r=table->selectedRanges().at(0);
+            const auto l = table->selectedRanges();
+            QTableWidgetSelectionRange r = l.first();
             if ((r.columnCount() > 1) || (r.rowCount() > 1)) emit Popup(QCursor::pos());
         }
     }
@@ -61,7 +62,8 @@ void CBarWindow::Select()
 {
     if (!table->selectedRanges().empty())
     {
-        QTableWidgetSelectionRange r=table->selectedRanges().at(0);
+        const auto l = table->selectedRanges();
+        QTableWidgetSelectionRange r = l.first();
         QRect s(r.leftColumn(),r.topRow(),r.columnCount(),r.rowCount());
         emit SelectionChanged(s);
     }
@@ -77,7 +79,8 @@ void CBarWindow::SelectToEnd()
 {
     if (!table->selectedRanges().empty())
     {
-        QTableWidgetSelectionRange r=table->selectedRanges().at(0);
+        const auto l = table->selectedRanges();
+        QTableWidgetSelectionRange r = l.first();
         QTableWidgetSelectionRange r1(r.topRow(),r.leftColumn(),r.bottomRow(),table->columnCount()-1);
         table->setRangeSelected(r1,true);
         Select();
@@ -88,7 +91,8 @@ void CBarWindow::SelectFromStart()
 {
     if (!table->selectedRanges().empty())
     {
-        QTableWidgetSelectionRange r=table->selectedRanges().at(0);
+        const auto l = table->selectedRanges();
+        QTableWidgetSelectionRange r = l.first();
         QTableWidgetSelectionRange r1(r.topRow(),0,r.bottomRow(),r.rightColumn());
         table->setRangeSelected(r1,true);
         Select();

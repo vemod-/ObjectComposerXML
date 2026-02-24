@@ -83,7 +83,7 @@ public:
     double systemLength() const;
     bool isEnded(const XMLTemplateWrapper& XMLTemplate) const;
     void eraseSystem(int Stave, QGraphicsScene* Scene);
-    void eraseAll(QGraphicsScene* Scene);
+    void eraseAll();
     void plotStaff(const int q, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj);
     void plotStaffNoList(const int q, const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options, const QColor& color, OCDraw& ScreenObj);
     void formatPageBack(const XMLScoreWrapper& XMLScore, const XMLTemplateWrapper& XMLTemplate, const XMLScoreOptionsWrapper& Options);

@@ -156,9 +156,9 @@ bool OCSymbolsCollection::editevent(XMLSimpleSymbolWrapper& Symbol, OCRefreshMod
     return !Escape;
 }
 
-OCGraphicsList OCSymbolsCollection::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType &voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
+OCGraphicsItem OCSymbolsCollection::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int stavedistance, OCPrintVarsType &voiceVars, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
 {
-    if ((Symbol.IsRestOrAnyNote()) || Symbol.IsTuplet()) return OCGraphicsList(); // 'tsnote To tstiedpolynote, tstuplet, tsend
+    if ((Symbol.IsRestOrAnyNote()) || Symbol.IsTuplet()) return ScreenObj.nullItem(); // 'tsnote To tstiedpolynote, tstuplet, tsend
     /*
     If Extend.GetObj(GetSymbolName(XMLSymbol)) Then
         Extend.thisobj.PlotMTrack XFysic, XMLSymbol, stavedistance, voiceVars, ScreenObj, MTObj, Pointer
@@ -170,7 +170,7 @@ OCGraphicsList OCSymbolsCollection::PlotMTrack(double XFysic, const XMLSymbolWra
     {
         if (Symbol.isVisible()) return s->PlotMTrack(XFysic, Symbol, stavedistance, voiceVars, Score, ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void OCSymbolsCollection::fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType &voiceVars)
@@ -215,7 +215,7 @@ void OCSymbolsCollection::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile
     }
 }
 
-OCGraphicsList OCSymbolsCollection::plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj)
+OCGraphicsItem OCSymbolsCollection::plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj)
 {
     /*
     If Extend.GetObj(GetSymbolName(XMLSymbol)) Then
@@ -228,17 +228,17 @@ OCGraphicsList OCSymbolsCollection::plot(const XMLSymbolWrapper& Symbol, double 
     {
         if (Symbol.isVisible()) return s->plot(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, Score, NoteList, voiceVars, XMLTemplateStaff, ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList OCSymbolsCollection::plotRemaining(const OCDurSignType& Sign, OCNoteList& NoteList, OCDraw& ScreenObj)
+OCGraphicsItem OCSymbolsCollection::plotRemaining(const OCDurSignType& Sign, OCNoteList& NoteList, OCDraw& ScreenObj)
 {
     CSymbol* s = Symbols[Sign.XMLSymbol.name()];
     if (s != nullptr)
     {
         if (Sign.XMLSymbol.isVisible() && Sign.remains()) return s->plotRemaining(Sign, NoteList, ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void OCSymbolsCollection::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsToPrint, const QColor& SignCol, OCPrintVarsType& /*voiceVars*/, const OCBarSymbolLocation& Location)
@@ -256,7 +256,7 @@ void OCSymbolsCollection::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSign
     }
 }
 
-OCGraphicsList OCSymbolsCollection::plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj)
+OCGraphicsItem OCSymbolsCollection::plotSystemEnd(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, const QColor& SignCol, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper &XMLTemplateStaff, OCDraw& ScreenObj)
 {
     /*
     If Extend.GetObj(GetSymbolName(XMLSymbol)) Then
@@ -269,7 +269,7 @@ OCGraphicsList OCSymbolsCollection::plotSystemEnd(const XMLSymbolWrapper& Symbol
     {
         if (Symbol.isVisible()) return s->plotSystemEnd(Symbol, XFysic, BarList, CountIt, SignsToPrint, SignCol, Score, NoteList, voiceVars, XMLTemplateStaff, ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void OCSymbolsCollection::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& CountIt, int& Py, const XMLVoiceWrapper& XMLVoice, OCPlaySignList& SignsToPlay, OCPlayBackVarsType &voiceVars)
@@ -404,7 +404,7 @@ QList<OCToolButtonProps*> CDynamic::CreateButtons()
     return m_ButtonList;
 }
 
-OCGraphicsList CDynamic::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CDynamic::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     QString a;
     int c=Symbol.getIntVal("DynamicSign");
@@ -564,18 +564,18 @@ void CTime::ModifyProperties(OCProperties& p)
     p.hide("Lower", p.propertyValue("TimeType").toInt() > 0);
 }
 
-OCGraphicsList CTime::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CTime::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     return PlTime(Symbol, (XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), false, false, true) + 192)),ScreenObj, Qt::AlignLeft);
 }
 
-OCGraphicsList CTime::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CTime::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     PlTime(Symbol, ScreenObj.spaceX(BarList.paddingRight(false,false,true))-24,ScreenObj,Qt::AlignLeft); //BarX-108
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CTime::PlTime(const XMLSymbolWrapper& Symbol, double X, OCDraw& ScreenObj, Qt::Alignment Align)
+OCGraphicsItem CTime::PlTime(const XMLSymbolWrapper& Symbol, double X, OCDraw& ScreenObj, Qt::Alignment Align)
 {
     QPainterPath p;
     switch (Symbol.getIntVal("TimeType"))
@@ -692,7 +692,7 @@ void CTuplet::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, b
     RefreshMode = tsReformat;
 }
 
-OCGraphicsList CTuplet::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CTuplet::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     return OCNoteList::PlotTuplet(NoteList.ListFromTo(CountIt.CurrentIndex, CountIt.CurrentIndex + CountIt.TupletCounter.NumOfNotes - 1), CountIt.TupletCounter.Fraction.num, Symbol.pos(), Symbol.size(), ScreenObj,int(CountIt.TupletCounter.ContainsTriplet) * 96);
 }
@@ -720,7 +720,7 @@ void CClef::DrawFactor(const XMLSymbolWrapper& Symbol, OCCounter& Counter, const
     }
 }
 
-OCGraphicsList CClef::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CClef::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     if (Symbol.isVisible())
     {
@@ -742,19 +742,18 @@ OCGraphicsList CClef::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPage
         ScreenObj.moveTo(XFysic -ScreenObj.spaceX(Left + 96), 888, Symbol);
         return PlClef(Symbol.getIntVal("Clef") + 1, Sz,ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CClef::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CClef::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(ScreenObj.spaceX(BarList.paddingRight(true,true,true)), 888, Symbol);
     PlClef(Symbol.getIntVal("Clef") + 1, -3, ScreenObj);
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CClef::PlClef(int Clef, int Size, OCDraw& ScreenObj)
+OCGraphicsItem CClef::PlClef(int Clef, int Size, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
 #ifdef __Lelandfont
     ScreenObj.move(0,-36);
 #endif
@@ -764,52 +763,47 @@ OCGraphicsList CClef::PlClef(int Clef, int Size, OCDraw& ScreenObj)
         ScreenObj.move(0,96);
 #ifndef __Lelandfont
         ScreenObj.move(0,-96,Size);
-        l.append(ScreenObj.plLet(OCTTFSopranoClef, Size, 624));
+        return ScreenObj.plLet(OCTTFSopranoClef, Size, 624);
 #else
-        l.append(ScreenObj.plLet(LelandSopranoClef, Size));
+        return ScreenObj.plLet(LelandSopranoClef, Size);
 #endif
-        break;
     case 2:
         ScreenObj.move(0,288);
 #ifndef __Lelandfont
         ScreenObj.move(0,-288,Size);
-        l.append(ScreenObj.plLet(OCTTFBassClef, Size, 624));
+        return ScreenObj.plLet(OCTTFBassClef, Size, 624);
 #else
-        l.append(ScreenObj.plLet(LelandBassClef, Size));
+        return ScreenObj.plLet(LelandBassClef, Size);
 #endif
-        break;
     case 3:
         ScreenObj.move(0,195);
 #ifndef __Lelandfont
         ScreenObj.move(0,-192,Size);
-        l.append(ScreenObj.plLet(OCTTFAltoClef, Size, 624));
+        return ScreenObj.plLet(OCTTFAltoClef, Size, 624);
 #else
         ScreenObj.move(0,-4);
-        l.append(ScreenObj.plLet(LelandAltoClef, Size));
+        return ScreenObj.plLet(LelandAltoClef, Size);
 #endif
-        break;
     case 4:
         ScreenObj.move(0,96);
         ScreenObj.move(0,195);
 #ifndef __Lelandfont
         ScreenObj.move(0,-192,Size);
-        l.append(ScreenObj.plLet(OCTTFAltoClef, Size, 624));
+        return ScreenObj.plLet(OCTTFAltoClef, Size, 624);
 #else
         ScreenObj.move(0,-4);
-        l.append(ScreenObj.plLet(LelandAltoClef, Size));
+        return ScreenObj.plLet(LelandAltoClef, Size);
 #endif
-        break;
     case 5:
         ScreenObj.move(0,192);
 #ifndef __Lelandfont
         ScreenObj.move(0,-192,Size);
-        l.append(ScreenObj.plLet(OCTTFPercussionClef, Size, 624));
+        return ScreenObj.plLet(OCTTFPercussionClef, Size, 624);
 #else
-        l.append(ScreenObj.plLet(LelandPercussionClef, Size));
+        return ScreenObj.plLet(LelandPercussionClef, Size);
 #endif
-        break;
     }
-    return l;
+    return ScreenObj.nullItem();
 }
 
 void CClef::Edit(XMLSimpleSymbolWrapper& /*Symbol*/, OCRefreshMode& RefreshMode, bool& esc, QWidget* /*parent*/)
@@ -889,24 +883,24 @@ OCKeyAccidental CKey::AccidentalFlag(int Key)
     return OCKeyAccidental(-Sgn<int>(Key));
 }
 
-OCGraphicsList CKey::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CKey::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
+    OCContainerList l;
     const int MoveX = (CountIt.isFirstBeatOfFirstBar()) ? 180 : 120;
-    l=plotKey(Symbol.getIntVal("Key")-6,Symbol.move(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, false, true) + MoveX),0),voiceVars.clef(),ScreenObj);
+    l.append(plotKey(Symbol.getIntVal("Key")-6,Symbol.move(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, false, true) + MoveX),0),voiceVars.clef(),ScreenObj));
     if (CountIt.isFirstBeat() && !CountIt.isFirstBar()) {
         ScreenObj.moveTo(XFysic - ScreenObj.spaceX(BarList.paddingLeft(CountIt.barCount(), true, true, true) + 216), ScoreStaffHeight);
         l.append(ScreenObj.line(0,-ScoreStaffLinesHeight));
     }
-    return l;
+    return ScreenObj.containerItem(l);
 }
 
-OCGraphicsList CKey::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CKey::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &voiceVars, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     plotKey(Symbol.getIntVal("Key")-6, Symbol.move(ScreenObj.spaceX(BarList.paddingRight(true, false, true))+(12*2),0),voiceVars.clef(),ScreenObj);
     ScreenObj.moveTo(ScreenObj.spaceX(BarList.systemLength()-(LineHalfThickNess*6)), ScoreStaffHeight);
     ScreenObj.line(0,-ScoreStaffLinesHeight);
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void CKey::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode& RefreshMode, bool& esc, QWidget* parent)
@@ -986,13 +980,13 @@ void CKey::fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars)
     }
 }
 
-OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& ScreenObj)
+OCGraphicsItem CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& ScreenObj)
 {
     OCKeyAccidental KBFlagFaste=AccidentalFlag(Key);
     uint AntalFasteFortegn=NumOfAccidentals(Key);
     std::array<int,7> Acc={99 ,87 ,103 ,91 ,79 ,95 ,83};
-    OCGraphicsList l;
-    if (AntalFasteFortegn == 0) return l;
+    if (AntalFasteFortegn == 0) return ScreenObj.nullItem();
+    OCContainerList l;
     if (KBFlagFaste == keyAccSharps)
     {
         switch (CurrentClef)
@@ -1055,7 +1049,7 @@ OCGraphicsList CKey::plotKey(int Key, QPointF Pos, int CurrentClef, OCDraw& Scre
 #endif
         }
     }
-    return l;
+    return ScreenObj.containerItem(l);
 }
 
 void CKey::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounter& /*CountIt*/, int& /*Py*/, const XMLVoiceWrapper& /*XMLVoice*/, OCPlaySignList& /*SignsToPlay*/, OCPlayBackVarsType &voiceVars)
@@ -1146,7 +1140,7 @@ void CTempo::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OCCounte
     voiceVars.Accel = 0;
 }
 
-OCGraphicsList CTempo::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType& /*voiceVars*/, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
+OCGraphicsItem CTempo::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType& /*voiceVars*/, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic, ScoreTempoY, Symbol);
     return PlTempo(Symbol.getIntVal("Tempo"),Symbol.noteValue(), Symbol.dotted(),Score.TempoFont.font(),Symbol.size(),ScreenObj);
@@ -1157,9 +1151,9 @@ void CTempo::fib(const XMLSymbolWrapper& /*Symbol*/, OCPrintVarsType& voiceVars)
     voiceVars.MasterStuff=true;
 }
 
-OCGraphicsList CTempo::PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont& Font, int Size, OCDraw& ScreenObj)
+OCGraphicsItem CTempo::PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont& Font, int Size, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
+    OCGraphicsItem l;
     QPainterPath p(QPointF(0,0));
     switch (NoteVal)
     {
@@ -1192,7 +1186,7 @@ OCGraphicsList CTempo::PlTempo(int Tempo, int NoteVal, bool Dotted, const QFont&
     p=p*m;
     p.setFillRule(Qt::WindingFill);
     ScreenObj.translatePath(p);
-    l.append(ScreenObj.plTextPath(p));
+    l = ScreenObj.plTextPath(p);
     return l;
 }
 
@@ -1330,7 +1324,7 @@ void CAccent::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCoun
     SignsToPlay.append(KillInstantly, 0, new CAccent(Symbol));
 }
 
-OCGraphicsList CAccent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CAccent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     if (UpDown == 1) SignsUp++;
     PrintProps.moveTo(0, (12 * 12) + (UpDown * 14 * 12), ScreenObj);
@@ -1350,7 +1344,7 @@ QList<OCToolButtonProps*> Cfp::CreateButtons()
     return m_ButtonList;
 }
 
-OCGraphicsList Cfp::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem Cfp::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic - (16 * 12), ScoreBottomSymbolY,Symbol);
     return ScreenObj.plLet(MakeUnicode("fp"), Symbol.size(), OCTTFname, false, false, 1200, Qt::AlignBottom);
@@ -1412,7 +1406,7 @@ QList<OCToolButtonProps*> Cfz::CreateButtons()
     return m_ButtonList;
 }
 
-OCGraphicsList Cfz::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem Cfz::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic - (16 * 12), ScoreBottomSymbolY,Symbol);
     return ScreenObj.plLet(MakeUnicode("Z"), Symbol.size(), OCTTFname, false, false, 1200, Qt::AlignBottom);
@@ -1553,7 +1547,7 @@ void CBowing::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsT
     SignsToPrint.append(SignCol, Location, new CBowing(Symbol));
 }
 
-OCGraphicsList CBowing::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CBowing::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(OCTTFBowing0 + XMLIntValue("Bowing") + 1)), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
@@ -1572,7 +1566,7 @@ void CBartokP::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Signs
     SignsToPrint.append(SignCol, Location, new CBartokP(Symbol));
 }
 
-OCGraphicsList CBartokP::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CBartokP::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(uint(OCTTFBartok))), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
@@ -1592,18 +1586,18 @@ void CFingering::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Sig
     SignsToPrint.append(SignCol, Location, new CFingering(Symbol));
 }
 
-OCGraphicsList CFingering::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CFingering::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
-    OCGraphicsList l;
+    OCContainerList l;
 #ifndef __Lelandfont
     if (XMLIntValue("Finger")==6)
     {
-        l=ScreenObj.plLet(QChar(uint(OCTTFStopped)), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
+        l.append(ScreenObj.plLet(QChar(uint(OCTTFStopped)), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter));
     }
     else
     {
-        l=ScreenObj.plLet(QChar(OCTTFFinger0 + XMLIntValue("Finger")), PrintProps.size(), OCTTFname, false, false, 1500, Qt::AlignHCenter);
+        l.append(ScreenObj.plLet(QChar(OCTTFFinger0 + XMLIntValue("Finger")), PrintProps.size(), OCTTFname, false, false, 1500, Qt::AlignHCenter));
     }
 #else
     ScreenObj.move(-24,-144);
@@ -1622,7 +1616,7 @@ OCGraphicsList CFingering::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw&
         ScreenObj.move(-144,-180);
         l.append(ScreenObj.plLet("-",0,"Arial",false,false,156));
     }
-    return l;
+    return ScreenObj.containerItem(l);
 }
 
 const QStringList CStringNumber::StringSigns = {"I","II","III","IV","V","VI"};
@@ -1638,7 +1632,7 @@ void CStringNumber::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& 
     SignsToPrint.append(SignCol, Location, new CStringNumber(Symbol));
 }
 
-OCGraphicsList CStringNumber::PrintSign(StemDirection UpDown, int& /*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CStringNumber::PrintSign(StemDirection UpDown, int& /*SignsUp*/, OCDraw& ScreenObj)
 {
     PrintProps.moveToBelow(UpDown, -24*12, ScreenObj);
     return ScreenObj.plLet(StringSigns[XMLIntValue("String")], PrintProps.size(), "Times New Roman", false, false, 156, Qt::AlignHCenter);
@@ -1720,18 +1714,19 @@ const QString CCue::cueletter(int i)
     return s;
 }
 
-OCGraphicsList CCue::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &voiceVars, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CCue::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &voiceVars, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic - (14 * 12), (30 * 12) + ScoreStaffHeight,Symbol);
     QString s = cueletter(voiceVars.cueletter); //= QChar(voiceVars.cueletter + QChar('A').unicode() - 1);
     if (Symbol.getIntVal("Type")==1)  s=QString::number(voiceVars.cueletter);
-    OCGraphicsList l = ScreenObj.plLet(s, Symbol.size(), "times new roman", true, false, 240);
+    OCContainerList l;
+    l.append(ScreenObj.plLet(s, Symbol.size(), "times new roman", true, false, 240));
     QFontMetrics m(QFont("times new roman",240));
     ScreenObj.move(0,-36);
     ScreenObj.move(-24,-24,Symbol.size());
     QSize s1(m.horizontalAdvance(s),m.height());
     l.append(ScreenObj.PlRect(s1.width()+(108*s.length()),s1.height(),Symbol.size(),false,true));
-    return l;
+    return ScreenObj.containerItem(l);
 }
 
 
@@ -1756,18 +1751,18 @@ void CCoda::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCou
     }
 }
 
-OCGraphicsList CCoda::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CCoda::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
+    OCGraphicsItem l;
     if (Symbol.getIntVal("CodaType") == 0)
     {
         ScreenObj.moveTo(XFysic, ScoreTopSymbolY + 96, Symbol);
-        l.append(ScreenObj.plLet(OCTTFCoda, Symbol.size(), 1200, Qt::AlignHCenter));
+        l = ScreenObj.plLet(OCTTFCoda, Symbol.size(), 1200, Qt::AlignHCenter);
     }
     else
     {
         ScreenObj.moveTo(XFysic, ScoreTopSymbolY, Symbol);
-        l.append(ScreenObj.plLet("Dal coda", Symbol.size(), "times new roman", true, true, 156));
+        l = ScreenObj.plLet("Dal coda", Symbol.size(), "times new roman", true, true, 156);
     }
     return l;
 }
@@ -1795,7 +1790,7 @@ void CDaCapo::fibPlay(const XMLSymbolWrapper& /*Symbol*/, OCMIDIFile& /*MFile*/,
     }
 }
 
-OCGraphicsList CDaCapo::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CDaCapo::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic, ScoreTopSymbolY,Symbol);
     return ScreenObj.plLet("Da capo", Symbol.size(), "times new roman", true, true, 156);
@@ -1817,17 +1812,17 @@ QList<OCToolButtonProps*> CDobbel::CreateButtons()
 
 bool CDobbel::BeginningOfNote() { return (XMLIntValue("Timing")==1); }
 
-OCGraphicsList CDobbel::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CDobbel::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
-    OCGraphicsList l;
+    OCGraphicsItem l;
     if (XMLIntValue("Direction")==1)
     {
-        l.append(ScreenObj.plLet(OCTTFDobbelDown, PrintProps.size(), 1200, Qt::AlignHCenter));
+        l = ScreenObj.plLet(OCTTFDobbelDown, PrintProps.size(), 1200, Qt::AlignHCenter);
     }
     else
     {
-        l.append(ScreenObj.plLet(OCTTFDobbelUp, PrintProps.size(), 1200, Qt::AlignHCenter));
+        l = ScreenObj.plLet(OCTTFDobbelUp, PrintProps.size(), 1200, Qt::AlignHCenter);
     }
     return l;
 }
@@ -1952,7 +1947,7 @@ void CDurLength::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, 
     SignsToPlay.append(Symbol.ticks()+1, 0, new CDurLength(Symbol));
 }
 
-OCGraphicsList CDurLength::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CDurLength::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
 {
     int SignType=XMLIntValue("PerformanceType") % 3;
     return OCNoteList::PlotLengths(SignType,PrintProps.Pos,UpDown,PrintProps.size(),ScreenObj);
@@ -2039,12 +2034,12 @@ void CDynChange::AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType &
     }
 }
 
-OCGraphicsList CDynChange::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CDynChange::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
+    OCGraphicsItem l;
     //ScreenObj.DM(XFysic, 37 * 12,XMLSymbol);
     ScreenObj.moveTo(XFysic,ScoreBottomSymbolY,Symbol);
-    l.append(ScreenObj.plLet(DynamicChangeList[Symbol.getIntVal("DynamicType")], Symbol.size(), Score.DynamicFont.font(), Qt::AlignBottom));
+    l = ScreenObj.plLet(DynamicChangeList[Symbol.getIntVal("DynamicType")], Symbol.size(), Score.DynamicFont.font(), Qt::AlignBottom);
     return l;
 }
 
@@ -2099,7 +2094,7 @@ void CFermata::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OC
     SignsToPlay.append(KillInstantly, 0, new CFermata(Symbol));
 }
 
-OCGraphicsList CFermata::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CFermata::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic, 1628,Symbol);
     return ScreenObj.plLet(OCTTFFermata, Symbol.size(), 1200, Qt::AlignHCenter);
@@ -2121,7 +2116,7 @@ void CFine::fibPlay(const XMLSymbolWrapper& /*Symbol*/, OCMIDIFile& /*MFile*/, O
     }
 }
 
-OCGraphicsList CFine::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CFine::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
     ScreenObj.moveTo(XFysic, ScoreTopSymbolY, Symbol);
     return ScreenObj.plLet("Fine", Symbol.size(), "times new roman", true, true, 156);
@@ -2236,15 +2231,15 @@ OCProperties* CHairpin::GetDefaultProperties(int Button)
     return &m_PropColl;
 }
 
-OCGraphicsList CHairpin::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CHairpin::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     return OCNoteList::PlotHairPin(NoteList.CreateList(CountIt.CurrentIndex,Symbol.ticks()), Symbol, false, ScreenObj);
 }
 
-OCGraphicsList CHairpin::plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj)
+OCGraphicsItem CHairpin::plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj)
 {
     const OCRhythmObjectList l = NoteList.CreateList(0,int(s.RemainingTicks));
-    return  (l.size() > 1) ? OCNoteList::PlotHairPin(l, s.XMLSymbol, true, ScreenObj) : OCGraphicsList();
+    return (l.size() > 1) ? OCNoteList::PlotHairPin(l, s.XMLSymbol, true, ScreenObj) : ScreenObj.nullItem();
 }
 
 
@@ -2303,7 +2298,7 @@ void CGliss::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCount
     SignsToPlay.append(KillInstantly, 1, new CGliss(Symbol));
 }
 
-OCGraphicsList CGliss::PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CGliss::PrintSign(StemDirection /*UpDown*/, int &/*SignsUp*/, OCDraw& ScreenObj)
 {
     const int Range = XMLIntValue("Range");
     PrintProps.moveTo(144, Sgn<int>(Range) * 24, ScreenObj);
@@ -2429,13 +2424,13 @@ void CLength::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCoun
     if (Symbol.getIntVal("PerformanceType") > 2) SignsToPlay.append(KillInstantly, 0, new CLength(Symbol));
 }
 
-OCGraphicsList CLength::plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj) {
+OCGraphicsItem CLength::plot(const XMLSymbolWrapper& Symbol, double XFysic,OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj) {
 
     if ((Symbol.getIntVal("PerformanceType") % 3) == 0) return CSymbol::plotInvisibleIcon(this,Symbol,XFysic,ScreenObj);
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CLength::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CLength::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
 {
     const int Sign = XMLIntValue("PerformanceType") % 3;
     return OCNoteList::PlotLengths(Sign,PrintProps.Pos,UpDown,PrintProps.size(),ScreenObj);
@@ -2500,7 +2495,7 @@ void CMordent::Play(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCou
     SignsToPlay.append(KillInstantly, Modulate, new CMordent(Symbol));
 }
 
-OCGraphicsList CMordent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CMordent::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
     int SignChar=OCTTFMordent;
@@ -2582,35 +2577,43 @@ void COctave::fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars)
     voiceVars.MIDI.Octave = Symbol.getIntVal("OctaveType") - 2;
 }
 
-OCGraphicsList COctave::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem COctave::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     int d = 45 * 12;
     if ((Symbol.getIntVal("OctaveType") - 2) >= 0) d = ScoreTopSymbolY;
     ScreenObj.moveTo(XFysic-60, d, Symbol);
-    OCGraphicsList l;
+    OCContainerList l;
     switch (Symbol.getIntVal("OctaveType") - 2)
     {
     case 1:
-        l.append(ScreenObj.line(0, 60));
-        l.append(ScreenObj.line(60, 0));
+        ScreenObj.startPath();
+        ScreenObj.line(0, 60);
+        ScreenObj.line(60, 0);
+        l.append(ScreenObj.endPath());
         ScreenObj.move(36, 0);
         l.append(ScreenObj.plLet("8va", Symbol.size(), Score.DynamicFont.font()));
         break;
     case 2:
-        l.append(ScreenObj.line(0, 60));
-        l.append(ScreenObj.line(60, 0));
+        ScreenObj.startPath();
+        ScreenObj.line(0, 60);
+        ScreenObj.line(60, 0);
+        l.append(ScreenObj.endPath());
         ScreenObj.move(36, 0);
         l.append(ScreenObj.plLet("15ma", Symbol.size(), Score.DynamicFont.font()));
         break;
     case -2:
-        l.append(ScreenObj.line(0, -60));
-        l.append(ScreenObj.line(60, 0));
+        ScreenObj.startPath();
+        ScreenObj.line(0, -60);
+        ScreenObj.line(60, 0);
+        l.append(ScreenObj.endPath());
         ScreenObj.move(36, 0);
         l.append(ScreenObj.plLet("15ma", Symbol.size(), Score.DynamicFont.font()));
         break;
     case -1:
-        l.append(ScreenObj.line(0, -60));
-        l.append(ScreenObj.line(60, 0));
+        ScreenObj.startPath();
+        ScreenObj.line(0, -60);
+        ScreenObj.line(60, 0);
+        l.append(ScreenObj.endPath());
         ScreenObj.move(36, 0);
         l.append(ScreenObj.plLet("8va", Symbol.size(), Score.DynamicFont.font()));
         break;
@@ -2618,7 +2621,7 @@ OCGraphicsList COctave::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPa
         l.append(ScreenObj.plLet("loco", Symbol.size(), Score.DynamicFont.font()));
         break;
     }
-    return l;
+    return ScreenObj.containerItem(l);
 }
 
 
@@ -2691,7 +2694,7 @@ void CRepeat::ModifyProperties(OCProperties& p)
     }
 }
 
-OCGraphicsList CRepeat::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & XMLTemplateStaff, OCDraw& ScreenObj)
+OCGraphicsItem CRepeat::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & XMLTemplateStaff, OCDraw& ScreenObj)
 {
     double XMov=0;
     double Height = ScoreStaffLinesHeight;
@@ -2701,16 +2704,16 @@ OCGraphicsList CRepeat::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPa
     }
     if (Symbol.getIntVal("RepeatType") < 2) // End begin
     {
-        if ((Symbol.getIntVal("RepeatType") == 0) && CountIt.isFirstBeatOfFirstBar()) return OCGraphicsList();
+        if ((Symbol.getIntVal("RepeatType") == 0) && CountIt.isFirstBeatOfFirstBar()) return ScreenObj.nullItem();
         if (CountIt.isFirstBeat()) {
             XMov = BarList.paddingLeft(CountIt.barCount(), false, false, false) + 72;
             if (CountIt.isFirstBeatOfFirstBar()) XMov -= 48;
         }
         ScreenObj.moveTo(Symbol.moveX(XFysic - (16 * 12) - XMov), ScoreStaffHeight);
-        OCGraphicsList l;
-        l.append(ScreenObj.PlRect(24,-Height));
         if (Symbol.getIntVal("RepeatType") == 0) // End
         {
+            OCContainerList l;
+            l.append(ScreenObj.PlRect(24,-Height));
             ScreenObj.moveTo(Symbol.moveX(XFysic - (18 * 12) - XMov), ScoreStaffHeight);
             l.append(ScreenObj.line(0, -Height));
             ScreenObj.move(0, Height);
@@ -2721,49 +2724,52 @@ OCGraphicsList CRepeat::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPa
                 ScreenObj.moveTo(XFysic - (24 * 12) - XMov, ScoreStaffHeight + 96, Symbol);
                 l.append(ScreenObj.plLet(QString::number(Symbol.getIntVal("Repeats")) + "x", Symbol.size(), "times new roman", true, true, 156));
             }
-            if (ScreenObj.canColor()) return l;
+            return ScreenObj.containerItem(l);
         }
         else if (Symbol.getIntVal("RepeatType") == 1) // Begin
         {
+            OCContainerList l;
+            l.append(ScreenObj.PlRect(24,-Height));
             ScreenObj.moveTo(Symbol.moveX(XFysic - (12 * 12) - XMov), ScoreStaffHeight);
             l.append(ScreenObj.line(0, -Height));
             ScreenObj.move(0, Height);
             l.append(ScreenObj.plDot(3,36,-144));
             l.append(ScreenObj.plDot(3,36,-240));
-            if (ScreenObj.canColor()) return l;
+            return ScreenObj.containerItem(l);
         }
     }
     else if (Symbol.getIntVal("RepeatType") == 2) // Volta
     {
         ScreenObj.moveTo(XFysic - (12 * 12), 1680, Symbol);
-        OCGraphicsList l=ScreenObj.plLet(QString::number(Symbol.getIntVal("Volta")) + ".", Symbol.size(), "times new roman", true, true, 156);
+        OCContainerList l;
+        l.append(ScreenObj.plLet(QString::number(Symbol.getIntVal("Volta")) + ".", Symbol.size(), "times new roman", true, true, 156));
         ScreenObj.moveTo(XFysic - (16 * 12), 1680, Symbol);
-        l.append(ScreenObj.line(0, 180));
-        l.append(ScreenObj.line(480, 0));
-        return l;
+        ScreenObj.startPath();
+        ScreenObj.line(0, 180);
+        ScreenObj.line(480, 0);
+        l.append(ScreenObj.endPath());
+        return ScreenObj.containerItem(l);
     }
     else if (Symbol.getIntVal("RepeatType") == 3) // Barline
     {
-        if (CountIt.isFirstBeatOfFirstBar()) return OCGraphicsList();
+        if (CountIt.isFirstBeatOfFirstBar()) return ScreenObj.nullItem();
         if (CountIt.isFirstBeat())
         {
             XMov = BarList.paddingLeft(CountIt.barCount(), true, !CountIt.isFirstBar(), true)+72;
         }
         ScreenObj.moveTo(Symbol.moveX(XFysic - (18 * 12) - XMov), ScoreStaffHeight);
-        OCGraphicsList l;
-        l.append(ScreenObj.line(0,-Height));
-        if (ScreenObj.canColor()) return l;
+        return ScreenObj.line(0,-Height);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CRepeat::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper & XMLTemplateStaff, OCDraw& ScreenObj)
+OCGraphicsItem CRepeat::plotSystemEnd(const XMLSymbolWrapper& Symbol, double /*XFysic*/,OCPageBarList& BarList, OCCounter& CountIt, OCPrintSignList& SignsToPrint, QColor /*SignCol*/, const XMLScoreWrapper& Score, OCNoteList& NoteList, OCPrintVarsType& voiceVars, const XMLTemplateStaffWrapper & XMLTemplateStaff, OCDraw& ScreenObj)
 {
     if ((Symbol.getIntVal("RepeatType") == 0) || (Symbol.getIntVal("RepeatType") == 3))
     {
         return plot(Symbol, ScreenObj.spaceX(BarList.systemLength() + (15 * 12)), BarList, CountIt, SignsToPrint, unselectablecolor, Score, NoteList, voiceVars, XMLTemplateStaff, ScreenObj);
     }
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void CRepeat::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode &RefreshMode, bool &esc, QWidget *parent)
@@ -2847,18 +2853,18 @@ void CSegno::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& /*MFile*/, OCCo
     }
 }
 
-OCGraphicsList CSegno::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CSegno::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
+    OCGraphicsItem l;
     if (Symbol.getIntVal("SegnoType") == 1)
     {
         ScreenObj.moveTo(XFysic, ScoreTopSymbolY + 144+72, Symbol);
-        l.append(ScreenObj.plLet(OCTTFSegno, Symbol.size(), 1200, Qt::AlignHCenter));
+        l = ScreenObj.plLet(OCTTFSegno, Symbol.size(), 1200, Qt::AlignHCenter);
     }
     else
     {
         ScreenObj.moveTo(XFysic, ScoreTopSymbolY + 12, Symbol);
-        l.append(ScreenObj.plLet("DS", Symbol.size(), "times new roman", true, true, 156));
+        l = ScreenObj.plLet("DS", Symbol.size(), "times new roman", true, true, 156);
     }
     return l;
 }
@@ -2930,13 +2936,13 @@ void CDurSlur::AfterNote(const XMLSymbolWrapper& XMLNote, OCPlayBackVarsType &vo
     //TickCount += XMLNote.ticks();
 }
 */
-OCGraphicsList CDurSlur::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CDurSlur::plot(const XMLSymbolWrapper& Symbol, double /*XFysic*/, OCPageBarList& /*BarList*/, OCCounter& CountIt, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& NoteList, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     const OCRhythmObjectList slurlist = NoteList.CreateList(CountIt.CurrentIndex,Symbol.ticks());
     return OCNoteList::PlotSlur(slurlist, Symbol, false, ScreenObj);
 }
 
-OCGraphicsList CDurSlur::plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj)
+OCGraphicsItem CDurSlur::plotRemaining(const OCDurSignType& s, OCNoteList& NoteList, OCDraw& ScreenObj)
 {
     return OCNoteList::PlotSlur(NoteList.CreateList(0,int(s.RemainingTicks)), s.XMLSymbol, true, ScreenObj);
 }
@@ -2953,7 +2959,7 @@ void CStopped::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Signs
     SignsToPrint.append(SignCol, Location, new CStopped(Symbol));
 }
 
-OCGraphicsList CStopped::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CStopped::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
 #ifndef __Lelandfont
@@ -2976,7 +2982,7 @@ void CHarmonic::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Sign
     SignsToPrint.append(SignCol, Location, new CHarmonic(Symbol));
 }
 
-OCGraphicsList CHarmonic::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CHarmonic::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
 #ifndef __Lelandfont
@@ -3000,7 +3006,7 @@ void CComma::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsTo
     SignsToPrint.append(SignCol, Location, new CComma(Symbol));
 }
 
-OCGraphicsList CComma::PrintSign(StemDirection /*UpDown*/, int& /*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CComma::PrintSign(StemDirection /*UpDown*/, int& /*SignsUp*/, OCDraw& ScreenObj)
 {
     //PrintProps.moveToVertical(UpDown, (18 + (SignsUp * 12)) * 12, ScreenObj);
     PrintProps.moveTo(ScreenObj);
@@ -3060,23 +3066,19 @@ void CTempoChange::fibPlay(const XMLSymbolWrapper& Symbol, OCMIDIFile& MFile, OC
     SignsToPlay.append(NotDecrementable, Modulate, new CTempoChange(Symbol));
 }
 
-OCGraphicsList CTempoChange::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
+OCGraphicsItem CTempoChange::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& Score, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
     ScreenObj.moveTo(XFysic, ScoreTempoY, Symbol);
     switch (Symbol.getIntVal("TempoType"))
     {
     case 0:
-        l.append(ScreenObj.plLet("a tempo", Symbol.size(), Score.TempoFont.font()));
-        break;
+        return ScreenObj.plLet("a tempo", Symbol.size(), Score.TempoFont.font());
     case 1:
-        l.append(ScreenObj.plLet("rit", Symbol.size(), Score.TempoFont.font()));
-        break;
+        return ScreenObj.plLet("rit", Symbol.size(), Score.TempoFont.font());
     case 2:
-        l.append(ScreenObj.plLet("accel", Symbol.size(), Score.TempoFont.font()));
-        break;
+        return ScreenObj.plLet("accel", Symbol.size(), Score.TempoFont.font());
     }
-    return l;
+    return ScreenObj.nullItem();
 }
 
 void CTempoChange::fib(const XMLSymbolWrapper& /*Symbol*/, OCPrintVarsType& voiceVars)
@@ -3135,28 +3137,27 @@ void CText::Edit(XMLSimpleSymbolWrapper& Symbol, OCRefreshMode &RefreshMode, boo
     RefreshMode = tsRedrawActiveStave;
 }
 
-OCGraphicsList CText::PlotText(const XMLSymbolWrapper& Symbol, double XFysic, OCDraw& ScreenObj)
+OCGraphicsItem CText::PlotText(const XMLSymbolWrapper& Symbol, double XFysic, OCDraw& ScreenObj)
 {
-    OCGraphicsList l;
     XMLTextElementWrapper t(Symbol);
     if (!t.empty())
     {
         ScreenObj.moveTo(XFysic,ScoreTopSymbolY,Symbol);
-        l.append(ScreenObj.plLet(t.text(), Symbol.size(), t.fontName(), t.bold(), t.italic(), t.fontSize() * 10));
+        return ScreenObj.plLet(t.text(), Symbol.size(), t.fontName(), t.bold(), t.italic(), t.fontSize() * 10);
     }
-    return l;
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CText::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CText::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType &/*voiceVars*/, const XMLTemplateStaffWrapper & /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
     if (!Symbol.getBoolVal("Master")) return PlotText(Symbol, XFysic, ScreenObj);
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
-OCGraphicsList CText::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
+OCGraphicsItem CText::PlotMTrack(double XFysic, const XMLSymbolWrapper& Symbol, int /*stavedistance*/, OCPrintVarsType &/*voiceVars*/, const XMLScoreWrapper& /*Score*/, OCDraw& ScreenObj)
 {
     if (Symbol.getBoolVal("Master")) return PlotText(Symbol, XFysic, ScreenObj);
-    return OCGraphicsList();
+    return ScreenObj.nullItem();
 }
 
 void CText::fib(const XMLSymbolWrapper& Symbol, OCPrintVarsType& voiceVars)
@@ -3196,7 +3197,7 @@ void CTremolo::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& Signs
     SignsToPrint.append(SignCol, Location, new CTremolo(Symbol));
 }
 
-OCGraphicsList CTremolo::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
+OCGraphicsItem CTremolo::PrintSign(StemDirection UpDown, int &/*SignsUp*/, OCDraw& ScreenObj)
 {
     PrintProps.moveTo((12 * -4) * UpDown, 144 + ((12 * -14) * UpDown), ScreenObj);
     return ScreenObj.plLet(MakeUnicode(QChar(OCTTFTremolo0 + XMLIntValue("Beams"))), PrintProps.size(), OCTTFname, false, false, 1200, Qt::AlignHCenter);
@@ -3232,7 +3233,7 @@ void CTrill::appendSign(const XMLSymbolWrapper& Symbol, OCPrintSignList& SignsTo
     SignsToPrint.append(SignCol, Location, new CTrill(Symbol));
 }
 
-OCGraphicsList CTrill::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
+OCGraphicsItem CTrill::PrintSign(StemDirection UpDown, int &SignsUp, OCDraw& ScreenObj)
 {
     MoveToSignUp(UpDown,SignsUp,ScreenObj);
     int Sign=OCTTFTrill;
@@ -3348,7 +3349,7 @@ QList<OCToolButtonProps*> CPedal::CreateButtons()
     return m_ButtonList;
 }
 
-OCGraphicsList CPedal::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
+OCGraphicsItem CPedal::plot(const XMLSymbolWrapper& Symbol, double XFysic, OCPageBarList& /*BarList*/, OCCounter& /*CountIt*/, OCPrintSignList& /*SignsToPrint*/, QColor /*SignCol*/, const XMLScoreWrapper& /*Score*/, OCNoteList& /*NoteList*/, OCPrintVarsType& /*voiceVars*/, const XMLTemplateStaffWrapper& /*XMLTemplateStaff*/, OCDraw& ScreenObj)
 {
 #ifndef __Lelandfont
     QString a = (Symbol.getIntVal("PedalSign")==0) ? QChar(uint(OCTTFPedalDown)) : QChar(uint(OCTTFPedalUp));

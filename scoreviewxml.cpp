@@ -16,6 +16,7 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     ui(new Ui::ScoreViewXML)
 {
     ui->setupUi(this);
+    setScene(&Scene);
     viewport()->setAttribute(Qt::WA_AcceptTouchEvents,true);
     touchDown=false;
     swipeDelta=0;
@@ -25,10 +26,17 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     swipeLine.setEasingCurve(QEasingCurve::InCurve);
     connect(&swipeLine, &QTimeLine::frameChanged, this, &ScoreViewXML::swipeProc);
     setAutoFillBackground(true);
-    SelectRubberband=new QiPhotoRubberband(this);
-    HoverRubberband=new QHoverRubberband(QRubberBand::Rectangle,this);
-    SelectRubberband->hide();
-    HoverRubberband->hide();
+    //SelectRubberband=new QiPhotoRubberband(this);
+    selectRect = new QGraphicsIPhotoRubberband(this);
+    selectRect->setPenWidth(2);
+    selectRect->setZValue(2);
+    //HoverRubberband=new QHoverRubberband(QRubberBand::Rectangle,this);
+    hoverRect = new QGraphicsRubberBand(this);
+    hoverRect->setPenWidth(2);
+    hoverRect->setZValue(1);
+    //SelectRubberband->hide();
+    //HoverRubberband->hide();
+    hoverRect->hide();
     m_XMLLastPasted.clear();
     turnpagebutton=new QHoverButton(this,QIcon(":/turnpage.png"),QSize(96,96),QHoverButton::TopRight);
     connect(turnpagebutton,&QAbstractButton::clicked,this,&ScoreViewXML::NavigationForwardClicked);
@@ -44,11 +52,10 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
     setOptimizationFlags(QGraphicsView::DontSavePainterState | QGraphicsView::DontAdjustForAntialiasing);
     setRenderHints(renderinghints);
     setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
-    Scene = new QGraphicsScene(this);
-    Scene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    setScene(Scene);
-    Scene->setBackgroundBrush(paperbrush);
-    ScreenObj.Scene = Scene;
+    //Scene = new QGraphicsScene(this);
+    Scene.setItemIndexMethod(QGraphicsScene::NoIndex);
+    Scene.setBackgroundBrush(paperbrush);
+    ScreenObj.Scene = &Scene;
     ScreenObj.Cursor = &Cursor;
     ScreenObj.ColorOn = true;
     CursorFrame = new OCCursorFrame(this);
@@ -120,14 +127,15 @@ ScoreViewXML::ScoreViewXML(QWidget* parent) : QGraphicsView(parent),
 
     connect(setAction(Qt::Key_Return),&QAction::triggered,this,&ScoreViewXML::accepted);
     connect(setAction(Qt::Key_Escape),&QAction::triggered,this,&ScoreViewXML::canceled);
-
+    //Scene.addItem(hoverRect);
+    //Scene.addItem(selectRect);
     Paint(tsReformat);
 }
 
 ScoreViewXML::~ScoreViewXML()
 {
     soundTimer.disconnect();
-    Score.eraseAll(Scene);
+    //Score.eraseAll(Scene);
     delete ui;
 }
 
@@ -216,7 +224,8 @@ void ScoreViewXML::writeMoveSymbol(const QPointF &moved, const Qt::KeyboardModif
     QPoint qp=(scaledFromScene(moved) * SizeFactor(ActiveTemplate.staffFromId(Cursor.location().StaffId).size())).toPoint();
     if (MouseButton != Qt::RightButton) {
         setCursor(Qt::PointingHandCursor);
-        HoverRubberband->hide();
+        //HoverRubberband->hide();
+        hoverRect->hide();
         for (const int& i : Cursor.SelectedPointers()) {
             XMLSimpleSymbolWrapper XMLSymbol=GetSymbol(i);
             if (!XMLSymbol.IsPitchedNote()) {
@@ -296,9 +305,11 @@ void ScoreViewXML::turnpage()
 
 void ScoreViewXML::leaveEvent(QEvent *event)
 {
-    if (HoverRubberband->isVisible())
+    //if (HoverRubberband->isVisible())
+    if (hoverRect->isVisible())
     {
-        HoverRubberband->hide();
+    //    HoverRubberband->hide();
+        hoverRect->hide();
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
@@ -337,9 +348,11 @@ void ScoreViewXML::wheelEvent(QWheelEvent* event)
         QGraphicsView::wheelEvent(event);
         return;
     }
-    if (HoverRubberband->isVisible())
+    //if (HoverRubberband->isVisible())
+    if (hoverRect->isVisible())
     {
-        HoverRubberband->hide();
+    //    HoverRubberband->hide();
+        hoverRect->hide();
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
@@ -491,7 +504,8 @@ void ScoreViewXML::keyPressEvent(QKeyEvent *event)
     QGraphicsView::keyPressEvent(event);
     if ((event->key() == Qt::Key_Shift) || (event->key() == Qt::Key_Control)) return;
     if (event->key() == Qt::Key_Return) emit accepted();
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
 }
 
 void ScoreViewXML::keyReleaseEvent(QKeyEvent * event) {
@@ -501,7 +515,8 @@ void ScoreViewXML::keyReleaseEvent(QKeyEvent * event) {
 
 void ScoreViewXML::selectNextSymbolExtend()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (Cursor.SelCount()==0) {
         if (Cursor.SelEnd() + 1 < VoiceLen()) Cursor.ExtendSel(Cursor.SelEnd(),VoiceLen());
     }
@@ -522,7 +537,8 @@ void ScoreViewXML::selectNextSymbolExtend()
 
 void ScoreViewXML::selectPrevSymbolExtend()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (Cursor.SelStart() > 0)
     {
         (Cursor.SelCount() == 0) ? Cursor.SetRange(OCSymbolRange(Cursor.currentPointer()-1,Cursor.currentPointer()),VoiceLen()) :
@@ -542,7 +558,8 @@ void ScoreViewXML::selectPrevSymbolExtend()
 
 void ScoreViewXML::selectNextSymbol()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (Cursor.currentPointer() < VoiceLen())
     {
         Cursor.SetPos(Cursor.currentPointer() + 1, VoiceLen());
@@ -563,7 +580,8 @@ void ScoreViewXML::selectNextSymbol()
 
 void ScoreViewXML::selectPrevSymbol()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (Cursor.currentPointer() > 0)
     {
         Cursor.SetPos(Cursor.currentPointer()-1);
@@ -584,7 +602,8 @@ void ScoreViewXML::selectPrevSymbol()
 
 void ScoreViewXML::selectEnd()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     while (Cursor.currentPointer()+1 < VoiceLen())
     {
         Cursor.SetPos(Cursor.currentPointer()+1);
@@ -605,7 +624,8 @@ void ScoreViewXML::selectEnd()
 
 void ScoreViewXML::selectHome()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     Cursor.SetPos(0);
     if (FollowResize() != PageSizeUnlimited)
     {
@@ -644,7 +664,8 @@ void ScoreViewXML::selectAll()
 
 void ScoreViewXML::selectEndExtend()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     Cursor.ExtendSel(VoiceLen()-1);
     if (FollowResize() != PageSizeUnlimited)
     {
@@ -662,7 +683,8 @@ void ScoreViewXML::selectEndExtend()
 
 void ScoreViewXML::selectHomeExtend()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     Cursor.ExtendSel(0);
     if (FollowResize() != PageSizeUnlimited)
     {
@@ -690,7 +712,8 @@ void ScoreViewXML::selectPrevStaff()
 
 void ScoreViewXML::selectNextVoice()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     setActiveVoice(boundRoll(0, Cursor.location().Voice + 1, VoiceCount()-1));
     Cursor.MaxSel(VoiceLen());
     Paint(tsVoiceIndexChanged);
@@ -700,7 +723,8 @@ void ScoreViewXML::selectNextVoice()
 
 void ScoreViewXML::selectPrevVoice()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     setActiveVoice(boundRoll(0, Cursor.location().Voice - 1, VoiceCount()-1));
     Cursor.MaxSel(VoiceLen());
     Paint(tsVoiceIndexChanged);
@@ -918,7 +942,8 @@ void ScoreViewXML::Delete()
 
 void ScoreViewXML::selectBackSpace()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (m_Locked) return;
     if (Cursor.SelCount()==0)
     {
@@ -952,7 +977,8 @@ void ScoreViewXML::selectBackSpace()
 
 void ScoreViewXML::selectDelete()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (m_Locked) return;
     if (Cursor.SelCount()==0)
     {
@@ -977,7 +1003,8 @@ void ScoreViewXML::selectDelete()
 
 void ScoreViewXML::selectSwapForward()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (m_Locked) return;
     if (Cursor.currentPointer() + 1 < VoiceLen())
     {
@@ -1001,7 +1028,8 @@ void ScoreViewXML::selectSwapForward()
 
 void ScoreViewXML::selectSwapBack()
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     if (m_Locked) return;
     if (Cursor.currentPointer() > 0)
     {
@@ -1075,9 +1103,11 @@ void ScoreViewXML::soundOff()
 
 void ScoreViewXML::scrollContentsBy(int dx, int dy)
 {
-    if (HoverRubberband->isVisible())
+    //if (HoverRubberband->isVisible())
+    if (hoverRect->isVisible())
     {
-        HoverRubberband->hide();
+        hoverRect->hide();
+    //    HoverRubberband->hide();
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
@@ -1089,7 +1119,7 @@ void ScoreViewXML::resizeEvent(QResizeEvent *event)
 {
     if (FollowResize()==PageSizeFollowsResize)
     {
-        if (!closeEnough<double>(Scene->width(),width()))
+        if (!closeEnough<double>(Scene.width(),width()))
         {
             Paint(tsReformat);
             return;
@@ -1104,11 +1134,18 @@ void ScoreViewXML::resizeEvent(QResizeEvent *event)
 
 void ScoreViewXML::Paint(const OCRefreshMode DrawMode, const bool UpdateSelection)
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    //selectRect->hide();
     setUpdatesEnabled(false);
     if (DrawMode != tsRedrawActiveStave)
     {
-        Score.eraseAll(Scene);
+        selectRect->hide();
+        Score.eraseAll();
+        Scene.removeItem(hoverRect);
+        Scene.removeItem(selectRect);
+        Scene.clear();
+        Scene.addItem(selectRect);
+        Scene.addItem(hoverRect);
         setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         if (FollowResize() == PageSizeFollowsResize)
         {
@@ -1156,7 +1193,7 @@ void ScoreViewXML::Paint(const OCRefreshMode DrawMode, const bool UpdateSelectio
     }
     Cursor.MaxSel(VoiceLen());
     ScreenObj.init(staffRect(ActiveStaffId()).topLeft());
-    if (DrawMode == tsRedrawActiveStave) Score.eraseSystem(Cursor.location().StaffId,Scene);
+    if (DrawMode == tsRedrawActiveStave) Score.eraseSystem(Cursor.location().StaffId,&Scene);
     Score.plotStaff(Cursor.location().StaffId, XMLScore, ActiveTemplate, ActiveOptions, activestaffcolor, ScreenObj);
     viewport()->update();
     setUpdatesEnabled(true);
@@ -1233,7 +1270,7 @@ void ScoreViewXML::flashSelected()
 
 void ScoreViewXML::changeZoom(double zoom)
 {
-    if (HoverRubberband->isVisible()) HoverRubberband->hide();
+    //if (HoverRubberband->isVisible()) HoverRubberband->hide();
     if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom() < defaultscorezoom)) Paint(tsReformat,true);
     emit ZoomChanged(zoom);
 }
@@ -1241,7 +1278,7 @@ void ScoreViewXML::changeZoom(double zoom)
 void ScoreViewXML::setZoom(const double Zoom)
 {
     zoomer->setZoom(Zoom);
-    if (HoverRubberband->isVisible()) HoverRubberband->hide();
+    //if (HoverRubberband->isVisible()) HoverRubberband->hide();
     if ((FollowResize()==PageSizeFollowsResize) && (zoomer->getZoom() < defaultscorezoom)) Paint(tsReformat,true);
 }
 
@@ -1264,6 +1301,7 @@ void ScoreViewXML::mousePressEvent(QMouseEvent *event)
 {
     //qDebug() << "Press";
     if (m_Locked) return;
+    selectRect->hide();
     Paint(tsRedrawActiveStave);
     Dragging=false;
     MouseDown = true;
@@ -1278,7 +1316,8 @@ void ScoreViewXML::mousePressEvent(QMouseEvent *event)
     {
         if (newstaffId != Cursor.location().StaffId)
         {
-            HoverRubberband->hide();
+            //HoverRubberband->hide();
+            hoverRect->hide();
             setActiveStaffId(newstaffId);
             Paint(tsVoiceIndexChanged);
             emit StaffIndexChanged(Cursor.location().StaffId);
@@ -1288,7 +1327,8 @@ void ScoreViewXML::mousePressEvent(QMouseEvent *event)
     {
         if ((newLocation.StaffId != Cursor.location().StaffId) || (newLocation.Voice != Cursor.location().Voice))
         {
-            HoverRubberband->hide();
+            //HoverRubberband->hide();
+            hoverRect->hide();
             Cursor.setLocation(newLocation);
             Paint(tsVoiceIndexChanged);
             emit StaffIndexChanged(Cursor.location().StaffId);
@@ -1303,7 +1343,8 @@ void ScoreViewXML::mousePressEvent(QMouseEvent *event)
     {
         MouseArea = MouseOnSymbol;
         MouseAreaIndex=newLocation.Pointer;
-        SelectRubberband->hide();
+        //SelectRubberband->hide();
+        selectRect->hide();
         if (event->modifiers() & Qt::ShiftModifier)
         {
             Cursor.ExtendSel(newLocation.Pointer,VoiceLen());
@@ -1348,14 +1389,16 @@ void ScoreViewXML::mousePressEvent(QMouseEvent *event)
             emit SelectionChanged();
         }
         sound();
-        HoverRubberband->hide();
+        //HoverRubberband->hide();
+        hoverRect->hide();
         CursorFrame->showAnimated(CurrentFrame().TranslateBounding());
     }
     else if (newstaffId > -1)
     {
         MouseArea=MouseOutside;
         MouseAreaIndex=-1;
-        HoverRubberband->hide();
+        //HoverRubberband->hide();
+        hoverRect->hide();
         setActiveStaffId(newstaffId);
         Paint(tsVoiceIndexChanged);
         emit StaffIndexChanged(Cursor.location().StaffId);
@@ -1392,7 +1435,8 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
     const QPointF mappedPos(mapToScene(event->pos()));
     if (!MouseDown)
     {
-        if (!SelectRubberband->isVisible())
+        //if (!SelectRubberband->isVisible())
+        if (!selectRect->isVisible())
         {
             const int newStaffId = insideStaffId(mappedPos);
             int newBar = Score.insideBarline(mappedPos);
@@ -1403,15 +1447,17 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 if (newBar > -1)
                 {
                     setCursor(Qt::PointingHandCursor);
-                    HoverRubberband->setGeometry(mapFromSceneRect(barFrame(newStaffId, newBar)));
-                    HoverRubberband->show(40);
+                    //HoverRubberband->setGeometry(mapFromSceneRect(barFrame(newStaffId, newBar)));
+                    //HoverRubberband->show(40);
+                    hoverRect->show(barFrame(newStaffId, newBar));
                     setToolTip("Bar "+QString::number(newBar + 1));
                 }
                 else if (newLocation.Pointer > -1)
                 {
                     setCursor(Qt::PointingHandCursor);
-                    HoverRubberband->setGeometry(mapFromSceneRect(Score.getFrame(newLocation).TranslateBounding()));
-                    HoverRubberband->show(40);
+                    //HoverRubberband->setGeometry(mapFromSceneRect(Score.getFrame(newLocation).TranslateBounding()));
+                    //HoverRubberband->show(40);
+                    hoverRect->show(Score.getFrame(newLocation).TranslateBounding());
                     const XMLSimpleSymbolWrapper& XMLSymbol=GetSymbol(newLocation);
                     setToolTip("<b>"+XMLSymbol.description()+"</b><br>"+Score.toolTipText(newLocation)+"<br><b>"+ XMLScore.StaffName(newLocation.StaffId)+"</b> Voice <b>"+QString::number(newLocation.Voice+1)+"</b>");
                     sound(newLocation);
@@ -1419,21 +1465,24 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 else if (newStaffId > -1)
                 {
                     setCursor(Qt::PointingHandCursor);
-                    HoverRubberband->setGeometry(mapFromSceneRect(scaledToScene(staffRect(newStaffId).adjusted(-4,-4,4,4))));
-                    HoverRubberband->show(40);
+                    //HoverRubberband->setGeometry(mapFromSceneRect(scaledToScene(staffRect(newStaffId).adjusted(-4,-4,4,4))));
+                    //HoverRubberband->show(40);
+                    hoverRect->show(scaledToScene(staffRect(newStaffId).adjusted(-4,-4,4,4)));
                     setToolTip(XMLScore.StaffName(newStaffId));
                 }
                 else
                 {
                     setCursor(Qt::ArrowCursor);
-                    HoverRubberband->hide();
+                    //HoverRubberband->hide();
+                    hoverRect->hide();
                     setToolTip(QString());
                 }
             }
             else // altKey
             {
                 Paint(tsRedrawActiveStave);
-                HoverRubberband->hide();
+                //HoverRubberband->hide();
+                hoverRect->hide();
                 if ((newLocation.Pointer > -1) && (newLocation.Pointer < VoiceLen(newLocation)))
                 {
                     if ((LastSymbol.isValid()) && (GetSymbol(newLocation).IsAnyNote()))
@@ -1485,27 +1534,32 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 Paint(tsRedrawActiveStave);
                 setCursor(QCursor(OCSymbolsCollection::SymbolIcon(LastSymbol).pixmap(64,64)));
             }
-            SelectRubberband->setGeometry(rect());
-            SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
-            SelectRubberband->show();
-            HoverRubberband->hide();
+            //SelectRubberband->setGeometry(rect());
+            //SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
+            //SelectRubberband->show();
+            selectRect->show(QRectF(m_HoldMappedPos,mappedPos));
+            //HoverRubberband->hide();
+            hoverRect->hide();
         }
         else if (MouseArea==MouseOnBar)
         {
             QRectF r(scaledToScene(staffRect(ActiveStaffId())));
             r.setLeft(m_HoldMappedPos.x());
             r.setRight(mappedPos.x());
-            SelectRubberband->setGeometry(rect());
-            SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
-            SelectRubberband->show();
+            //SelectRubberband->setGeometry(rect());
+            //SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
+            //SelectRubberband->show();
+            selectRect->show(r.normalized().adjusted(-4,-4,4,4));
             setCursor(Qt::SizeHorCursor);
-            HoverRubberband->hide();
+            //HoverRubberband->hide();
+            hoverRect->hide();
         }
         else if (MouseArea==MouseOnSymbol)
         {
             Dragging=true;
             setCursor(Qt::PointingHandCursor);
-            HoverRubberband->hide();
+            //HoverRubberband->hide();
+            hoverRect->hide();
             const QPointF moved = mappedPos-m_HoldMappedPos;
 
             QList<XMLSimpleSymbolWrapper> oldVoice;
@@ -1522,7 +1576,8 @@ void ScoreViewXML::mouseMoveEvent(QMouseEvent *event)
                 currentVoice.XMLSimpleSymbol(oldPointers[i]).copy(oldVoice[i].xml());
             }
 
-            HoverRubberband->hide();
+            //HoverRubberband->hide();
+            hoverRect->hide();
             if (CurrentSymbol().IsPitchedNote() && (MouseButton == Qt::RightButton)){
                 if (qAbs<qreal>(moved.x()) >= qAbs<qreal>(moved.y())){
                     CursorFrame->showAnimated(CurrentFrame().TranslateAccidental());
@@ -1544,7 +1599,8 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
     if (m_Locked) return;
     Dragging=false;
     setCursor(Qt::ArrowCursor);
-    HoverRubberband->hide();
+    //HoverRubberband->hide();
+    hoverRect->hide();
     if (MouseDown)
     {
         const QPointF mappedPos(mapToScene(event->pos()));
@@ -1557,22 +1613,25 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
             {
                 if (MouseArea==MouseOutside)
                 {
-                    SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
+                    //SelectRubberband->setWindowGeometry(mapFromSceneRect(m_HoldMappedPos,mappedPos));
+                    selectRect->setWindowGeometry(QRectF(m_HoldMappedPos,mappedPos));
                 }
                 else
                 {
                     QRectF r(scaledToScene(staffRect(ActiveStaffId())));
                     r.setLeft(m_HoldMappedPos.x());
                     r.setRight(mappedPos.x());
-                    SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
+                    //SelectRubberband->setWindowGeometry(mapFromSceneRect(r.normalized().adjusted(-4,-4,4,4)));
+                    selectRect->setWindowGeometry(r.normalized().adjusted(-4,-4,4,4));
                 }
-                QRect r = SelectRubberband->windowGeometry();
+                //QRect r = SelectRubberband->windowGeometry();
+                QRect r = mapFromSceneRect(selectRect->windowGeometry());
                 popupPoint = mapToGlobal(r.bottomRight());
                 OCPointerList Ptrs;
                 if (MouseArea == MouseOnBar)
                 {
                     r.setTop(0);
-                    r.setHeight(int(scaledFromScene(Scene->height())));
+                    r.setHeight(int(scaledFromScene(Scene.height())));
                     Ptrs = Score.pointersInsideVoice(mapToSceneRect(r),Cursor.location());
                 }
                 else
@@ -1627,7 +1686,8 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
                 emit BackMeUp("Drag");
                 writeMoveSymbol(mappedPos - m_HoldMappedPos, event->modifiers());
             }
-            SelectRubberband->hide();
+            //SelectRubberband->hide();
+            //selectRect->hide();
         }
         else
         {
@@ -1713,11 +1773,14 @@ void ScoreViewXML::mouseReleaseEvent(QMouseEvent *event)
 
 void ScoreViewXML::ensureVisible(const int iStaff)
 {
-    const auto i = int(scaledToScene(staffRect(iStaff).top()));
-    verticalScrollBar()->setValue(i-(height()/3));
-    if (HoverRubberband->isVisible())
+    const qreal i = scaledToScene(staffRect(iStaff).top());
+    //verticalScrollBar()->setValue(i-(height()/3));
+    zoomer->scrollYTo(i-(height()/3));
+    //if (HoverRubberband->isVisible())
+    if (hoverRect->isVisible())
     {
-        HoverRubberband->hide();
+        hoverRect->hide();
+    //    HoverRubberband->hide();
         setToolTip(QString());
         setCursor(Qt::ArrowCursor);
     }
@@ -1730,18 +1793,21 @@ void ScoreViewXML::ensureVisible()
 
 void ScoreViewXML::scrollToBar(const int Bar)
 {
-    const int x = Score.getBarlineX(Bar).x()*zoomer->getZoom();
-    if (x > horizontalScrollBar()->maximum())
+    const double x = Score.getBarlineX(Bar).x()*zoomer->getZoom();
+    if (x > zoomer->maxScrollX())
     {
-        horizontalScrollBar()->setValue(horizontalScrollBar()->maximum());
+        //horizontalScrollBar()->setValue(horizontalScrollBar()->maximum());
+        zoomer->scrollXTo(zoomer->maxScrollX());
     }
     else if (x < 0)
     {
-        horizontalScrollBar()->setValue(0);
+        //horizontalScrollBar()->setValue(0);
+        zoomer->scrollXTo(0);
     }
     else
     {
-        horizontalScrollBar()->setValue(x);
+        //horizontalScrollBar()->setValue(x);
+        zoomer->scrollXTo(x);
     }
 }
 
@@ -1762,7 +1828,8 @@ const QByteArray ScoreViewXML::MIDIPointer(const int PlayFromBar, const int Sile
 
 void ScoreViewXML::nextStaff(const int Direction)
 {
-    SelectRubberband->hide();
+    //SelectRubberband->hide();
+    selectRect->hide();
     const int newstaffId = boundRoll(0, Cursor.location().StaffId + Direction, XMLScore.NumOfStaffs() - 1);
     setActiveStaffId(newstaffId);
     Paint(tsVoiceIndexChanged);

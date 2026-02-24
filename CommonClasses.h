@@ -775,6 +775,47 @@ private:
 //--------------------------------------------------------------------------
 
 typedef QGraphicsItemList OCGraphicsList;
+typedef QGraphicsItem* OCGraphicsItem;
+/*
+class QGraphicsNullItem : public QGraphicsItem
+{
+public:
+    QGraphicsNullItem(QGraphicsScene* s = nullptr) {
+        if (s != nullptr) s->addItem(this);
+    }
+    QRectF boundingRect() const override
+    {
+        return QRectF(); // tom
+    }
+
+    void paint(QPainter*, const QStyleOptionGraphicsItem*, QWidget*) override
+    {
+        // gör ingenting
+    }
+};
+*/
+class OCContainerList : public QList<OCGraphicsItem> {
+public:
+    OCContainerList() {
+        ContainerCount++;
+    }
+    ~OCContainerList() {
+        if (!decremented) ContainerCount--;
+        if (ContainerCount < 0) ContainerCount = 0;
+    }
+    QGraphicsItem* containerItem() {
+        if (item) return item;
+        ContainerCount--;
+        if (ContainerCount < 0) ContainerCount = 0;
+        decremented = true;
+        item = new QGraphicsContainerItem(*this);
+        return item;
+    }
+    inline static int ContainerCount = 0;
+private:
+    bool decremented = false;
+    QGraphicsContainerItem* item = nullptr;
+};
 
 class OCDraw
 {
@@ -810,25 +851,24 @@ public:
     {
         MovingPoint += (Size != 0) ? QPointF(xs,-ys)/SizeFactor(Size) : QPointF(xs,-ys);
     }
-    inline const OCGraphicsList line(const QPointF& Pos, const double a, const double b, const double bold = 1) {
+    inline OCGraphicsItem line(const QPointF& Pos, const double a, const double b, const double bold = 1) {
         moveTo(Pos);
         return DJ(a,b,bold);
     }
-    inline const OCGraphicsList line(const QPointF& Pos1, const QPointF& Pos2, const double bold = 1) {
+    inline OCGraphicsItem line(const QPointF& Pos1, const QPointF& Pos2, const double bold = 1) {
         moveTo(Pos1);
         return DJ(Pos2.x()-Pos1.x(),Pos2.y()-Pos1.y(),bold);
     }
-    inline const OCGraphicsList line(const double a, const double b, const double bold = 1) { return DJ(a,b,bold); }
-    inline const OCGraphicsList line(const double x, const double y, const double a, const double b, const double bold = 1)
+    inline OCGraphicsItem line(const double a, const double b, const double bold = 1) { return DJ(a,b,bold); }
+    inline OCGraphicsItem line(const double x, const double y, const double a, const double b, const double bold = 1)
     {
         moveTo(x,y);
         return DJ(a,b,bold);
     }
-    inline const OCGraphicsList plDot(const int SignSize, const double offsetX = 0,const double offsetY = 0, const int Size = 0)
+    inline OCGraphicsItem plDot(const int SignSize, const double offsetX = 0,const double offsetY = 0, const int Size = 0)
     {
-        OCGraphicsList l;
         move(offsetX, offsetY, Size);
-        l.append(plChar(WDDot, SignSize, DoubleDiv(24, SizeFactor(Size)), WingDingsName));
+        OCGraphicsItem l = plChar(WDDot, SignSize, DoubleDiv(24, SizeFactor(Size)), WingDingsName);
         move(-offsetX, -offsetY, Size);
         return l;
     }
@@ -846,37 +886,36 @@ public:
         path.setFillRule(Qt::WindingFill);
         return path;
     }
-    inline const OCGraphicsList plLet(const OCTTF letter, const int SignSize, const double FontSize=1200, const Qt::Alignment Align=Qt::AlignLeft)
+    inline OCGraphicsItem plLet(const OCTTF letter, const int SignSize, const double FontSize=1200, const Qt::Alignment Align=Qt::AlignLeft)
     {
         return plLet(QChar(uint(letter)),SignSize,OCTTFname,false,false,FontSize,Align);
     }
-    inline const OCGraphicsList plChar(const uint ch, const int SignSize, const double FontSize = 1200, const QString FontName = OCTTFname, const bool FontBold = false, const Qt::Alignment Align = Qt::AlignCenter)
+    inline OCGraphicsItem plChar(const uint ch, const int SignSize, const double FontSize = 1200, const QString FontName = OCTTFname, const bool FontBold = false, const Qt::Alignment Align = Qt::AlignCenter)
     {
         return plLet(QChar(ch),SignSize,FontName,FontBold,false,FontSize,Align);
     }
 #ifdef __Lelandfont
-    inline const OCGraphicsList plLet(const Leland letter, const int SignSize, const double FontSize=LelandDefaultSize, const Qt::Alignment Align=Qt::AlignLeft)
+    inline OCGraphicsItem plLet(const Leland letter, const int SignSize, const double FontSize=LelandDefaultSize, const Qt::Alignment Align=Qt::AlignLeft)
     {
         return plLet(QChar(letter),SignSize,"Leland",false,false,FontSize,Align);
     }
 #endif
-    inline const OCGraphicsList plLet(const QString& Letter, const int SignSize, const QFont& Font, const Qt::Alignment Align=Qt::AlignLeft)
+    inline OCGraphicsItem plLet(const QString& Letter, const int SignSize, const QFont& Font, const Qt::Alignment Align=Qt::AlignLeft)
     {
         return plLet(Letter, SignSize, Font.family(), Font.bold(), Font.italic(), Font.pointSizeF(), Align);
     }
-    inline const OCGraphicsList plLet(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const double FontSize, const Qt::Alignment Align=Qt::AlignLeft)
+    inline OCGraphicsItem plLet(const QString& Letter, const int SignSize, const QString& Name, const bool Bold, const bool Italic, const double FontSize, const Qt::Alignment Align=Qt::AlignLeft)
     {
-        if (Letter.isEmpty()) return OCGraphicsList();
-        QPainterPath p=TextPath(Letter,SignSize,Name,Bold,Italic,FontSize);
+        if (Letter.isEmpty()) return nullItem();
+        QPainterPath p = TextPath(Letter,SignSize,Name,Bold,Italic,FontSize);
         if (Align & Qt::AlignBottom) p.translate(0,sized(-DoubleDiv(FontSize,8)));
         if (Align & Qt::AlignRight) p.translate(-p.boundingRect().width(), 0);
         if (Align & Qt::AlignHCenter) p.translate(-p.boundingRect().width() / 2, 0);
         if (Align & Qt::AlignVCenter) p.translate(0,(sized(MovingPoint.y()) - p.boundingRect().top()) - p.boundingRect().height() / 2);
         return plTextPath(p);
     }
-    inline const OCGraphicsList plTextPath(const QPainterPath& path, const bool UsePen=false, const double PenWidth = -1, const bool Fill = false)
+    inline OCGraphicsItem plTextPath(const QPainterPath& path, const bool UsePen=false, const double PenWidth = -1, const bool Fill = false)
     {
-        OCGraphicsList l;
         QBrush b=QBrush(col);
         QPen p(Qt::NoPen);
         if (UsePen)
@@ -900,15 +939,11 @@ public:
                 if ((col == selectedcolor) || (col == markedcolor)) p = QPen(col);
             }
         }
-        QGraphicsItem* i = Scene->addPath(path,p,b);
-        l.append(i);
-        AppendToList(i);
-        return l;
+        return AppendToList(pathItem(path,p,b));
     }
     inline void translatePath(QPainterPath &p) { p.translate(sized(MovingPoint)); }
-    inline const OCGraphicsList PlRect(const double width, const double height, const int Size=0, const bool fill=true, const bool LineThickness=false)
+    inline OCGraphicsItem PlRect(const double width, const double height, const int Size=0, const bool fill=true, const bool LineThickness=false)
     {
-        OCGraphicsList l;
         const double factor=SizeFactor(Size);
         QBrush b(col);
         if (!fill) b=QBrush(Qt::NoBrush);
@@ -917,22 +952,16 @@ public:
 
         QPen p(col);
         if (LineThickness) p.setWidth(int(sized(LineHalfThickNess*4)/factor));
-        QGraphicsItem* i = Scene->addRect(r, p, b);
-        AppendToList(i);
-        l.append(i);
-        return l;
+        return AppendToList(rectItem(r, p, b));
     }
-    inline const OCGraphicsList PlIcon(const QIcon& icon, const double width, const double height, const int Size = 0)
+    inline OCGraphicsItem PlIcon(const QIcon& icon, const double width, const double height, const int Size = 0)
     {
-        OCGraphicsList l;
         const double factor=SizeFactor(Size);
         const QPointF ep(MovingPoint + (QPointF(width, -height) / factor));
         const QRectF r = sized(MovingPoint, ep).normalized();
-        QGraphicsItem* i = Scene->addPixmap(icon.pixmap(r.size().toSize()));
-        i->moveBy(r.left(), r.top());
-        AppendToList(i);
-        l.append(i);
-        return l;
+        OCGraphicsItem l = new QGraphicsPixmapItem(icon.pixmap(r.size().toSize()));
+        l->moveBy(r.left(), r.top());
+        return AppendToList(l);
     }
     void PlSquare1(const double h, const double ah, const double t)
     {
@@ -947,7 +976,7 @@ public:
             s.lineTo(thickness, height);
             s.lineTo(thickness, 0);
             s.lineTo(0, 0);
-            AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
+            AppendToList(pathItem(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
         }
         else
         {
@@ -957,7 +986,7 @@ public:
             s.lineTo(thickness, height);
             s.lineTo(thickness, 0);
             s.cubicTo(QPointF(thickness + (3 * arcfragment), -2 * arcfragment), QPointF(archeight, -4 * arcfragment), QPointF(archeight, -arcfragment * 6));
-            AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
+            AppendToList(pathItem(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
         }
     }
     void PlSquare2(const double h, const double ah, const double t)
@@ -972,7 +1001,7 @@ public:
         s.cubicTo(QPointF(archeight, height + (4 * arcfragment)), QPointF(thickness + (3 * arcfragment), height + (2 * arcfragment)), QPointF(thickness, height));
         s.lineTo(thickness, 0);
         s.lineTo(0, 0);
-        AppendToList(Scene->addPath(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
+        AppendToList(pathItem(s.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
     }
     void PlCurly(const double h, const double w, const double t)
     {
@@ -986,7 +1015,7 @@ public:
         b.cubicTo(QPointF(xdist, height / 2), QPointF(-xdist * 4, height - ydist), QPointF(0, height));
         b.cubicTo(QPointF(-(xdist * 4) + thickness, height - (ydist / 2)), QPointF(xdist + thickness,(height / 2) + (ydist / 2)), QPointF(-xdist * 2,height / 2));
         b.cubicTo(QPointF(xdist + thickness, (height / 2) - (ydist / 2)), QPointF(-(xdist * 4) + thickness, ydist / 2), QPointF(0,0));
-        AppendToList(Scene->addPath(b.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
+        AppendToList(pathItem(b.translated(sized(MovingPoint)), QPen(col), QBrush(col)));
     }
     inline void init(const double X, const double Y) { ZeroPoint = QPointF(X,Y); }
     inline void init(const QPointF p) { ZeroPoint = p; }
@@ -1028,7 +1057,7 @@ public:
     }
     void PrintFontElement(const double X, const double Y, const QString& Text, const XMLFontWrapper& FontElem, const double scalesize)
     {
-        QGraphicsSimpleTextItem* item =Scene->addSimpleText(Text);
+        QGraphicsSimpleTextItem* item = new QGraphicsSimpleTextItem(Text);
         QFont F(FontElem.printerFont());
         F.setPointSizeF(F.pointSizeF()/scalesize);
         item->setFont(F);
@@ -1041,76 +1070,111 @@ public:
     {
         PrintFontElement(X,Y,TextElem.text(), TextElem, scalesize);
     }
-    inline QGraphicsItemGroup* MakeGroup(const OCGraphicsList &l)
+    inline OCGraphicsItem MakeGroup(const OCGraphicsItem l)
     {
-        if (l.isEmpty()) return nullptr;
+        if (l == nullptr) return l;
+        if (l->boundingRect() == QRectF()) return nullptr;
         if (!ColorOn) return nullptr;
-        return Scene->createItemGroup(l);
+        return l;
     }
-    inline const QRectF boundingRect(const OCGraphicsList &l)
+    inline OCGraphicsItem nullItem() {
+        return nullptr;
+    }
+    inline QGraphicsItem* containerItem(OCContainerList& l) {
+        QGraphicsItem* i = l.containerItem();
+        if (l.isEmpty()) {
+            delete i;
+            return nullItem();
+        }
+        if (i->childItems().size() == 1) {
+            const QList<QGraphicsItem*> children(i->childItems());
+            QGraphicsItem* child = children.first();
+            child->setParentItem(nullptr);
+            delete i;
+            i = child;
+        }
+        return AppendToList(i);
+    }
+    inline const QRectF boundingRect(const OCGraphicsItem l)
     {
-        /*
-        QGraphicsItemGroup* g=Scene->createItemGroup(l);
-        return (g) ? g->boundingRect() : QRectF();
-        */
-        QRectF r;
-        for (QGraphicsItem* i : l) r = r.united(i->boundingRect());
-        return r;
+        if (UsePath) return (m_Path.boundingRect());
+        return l->boundingRect();
     }
     inline void StartList()
     {
-        UseList=true;
+        UseList = true;
         items.clear();
+
     }
     inline const OCGraphicsList& EndList()
     {
-        UseList=false;
+        UseList = false;
         return items;
     }
     QRectF lastSlur;
+    void startPath(const double bold = 1) {
+        UsePath = true;
+        m_Path.clear();
+        m_PathPen.setColor(col);
+        m_PathPen.setWidth(qRound(sized(LineHalfThickNess * 3.0 * bold)));
+        m_PathPen.setCapStyle(Qt::RoundCap);
+        m_PathBrush.setColor(col);
+    }
+    QGraphicsItem* endPath() {
+        UsePath = false;
+        return AppendToList(pathItem(m_Path,m_PathPen,m_PathBrush));
+    }
 private:
     double ScreenSize = defaultscreensize;
     double TempSize = ScreenSize;
     double XFactor = 1;
     bool UseList = false;
+    bool UsePath = false;
     QColor lastCol;
     QPointF ZeroPoint;
     QPointF MovingPoint;
-    inline const OCGraphicsList DJ(const double xs, const double ys,const double bold = 1)
+    QPainterPath m_Path;
+    QPen m_PathPen;
+    QBrush m_PathBrush;
+    inline OCGraphicsItem DJ(const double xs, const double ys,const double bold = 1)
     {
         QPointF temp = sized(MovingPoint);
         MovingPoint += QPointF(xs,-ys);
         return MyLine(temp, sized(MovingPoint), col, false, bold);
     }
-    inline const OCGraphicsList MyLine(const QPointF p1, const QPointF p2, const QColor& color, const bool BF, const double bold = 1)
+    inline OCGraphicsItem MyLine(const QPointF p1, const QPointF p2, const QColor& color, const bool BF, const double bold = 1)
     {
         return MyLine(p1.x(), p1.y(), p2.x(), p2.y(), color, BF, bold);
     }
-    inline const OCGraphicsList MyLine(const double x1, const double y1, const double x2, const double y2, const QColor& color, const bool BF=false, const double bold = 1)
+    inline OCGraphicsItem MyLine(const double x1, const double y1, const double x2, const double y2, const QColor& color, const bool BF = false, const double bold = 1)
     {
-        OCGraphicsList l;
+        if (UsePath) {
+            if (BF) {
+                m_Path.addRect(QRectF(x1,y1,x2,y2).normalized());
+                return nullptr;
+            }
+            m_Path.moveTo(x1,y1);
+            m_Path.lineTo(x2,y2);
+            return nullptr;
+        }
         if (BF)
         {
-            QRectF r=QRectF(x1,y1,x2,y2).normalized();
-            QGraphicsItem* i=Scene->addRect(r,QPen(color),QBrush(color));
-            AppendToList(i);
-            l.append(i);
-            return l;
+            QRectF r = QRectF(x1,y1,x2,y2).normalized();
+            return AppendToList(rectItem(r,QPen(color),QBrush(color)));
         }
         QPen p(color);
-        //if (!isOne(bold))
-        //{
-            p.setWidth(qRound(sized(LineHalfThickNess * 3.0 * bold)));
-            p.setCapStyle(Qt::RoundCap);
-        //}
-        QGraphicsItem* i=Scene->addLine(x1,y1,x2,y2,p);
-        AppendToList(i);
-        l.append(i);
-        return l;
+        p.setWidth(qRound(sized(LineHalfThickNess * 3.0 * bold)));
+        p.setCapStyle(Qt::RoundCap);
+        return AppendToList(lineItem(x1,y1,x2,y2,p));
     }
     OCGraphicsList items;
-    inline void AppendToList(QGraphicsItem* item) { if (UseList) items.append(item); }
-    inline void AppendToList(const OCGraphicsList& list) { if (UseList) items.append(list); }
+    inline QGraphicsItem* AppendToList(QGraphicsItem* item) {
+        if (item == nullptr) return item;
+        if (OCContainerList::ContainerCount) return item;
+        Scene->addItem(item);
+        if (UseList) items.append(item);
+        return item;
+    }
 };
 
 //--------------------------------------------------------------------------
@@ -1198,7 +1262,7 @@ static OCFrameProperties nullFrame = OCFrameProperties(OCSymbolLocation());
 class OCFrameArray : public QList<OCFrameProperties>
 {
 private:
-    inline QRectF getBoundingRect(QGraphicsItemGroup* g)
+    inline QRectF getBoundingRect(OCGraphicsItem g)
     {
         if (g == nullptr) return QRectF();
         return widenRect(g->boundingRect().normalized());
@@ -1211,18 +1275,18 @@ private:
     }
 public:
     OCFrameArray(){}
-    void AppendGroup(QGraphicsItemGroup* g, const OCSymbolLocation& l)//, const QRectF& bounding = QRectF())
+    void AppendGroup(OCGraphicsItem g, const OCSymbolLocation& l)//, const QRectF& bounding = QRectF())
     {
-        if (g==nullptr) return;
-        if (g->childItems().empty()) return;
+        if (g == nullptr) return;
+        //if (g->childItems().empty()) return;
         //const QRectF r = (bounding.isNull()) ? getBoundingRect(g) : widenRect(bounding.normalized());
         OCFrameProperties F = OCFrameProperties(getBoundingRect(g),l);
         append(F);
     }
-    void AppendAccidentalGroup(QGraphicsItemGroup* g, QGraphicsItemGroup* a, QGraphicsItemGroup* t, const OCSymbolLocation& l)
+    void AppendAccidentalGroup(OCGraphicsItem g, OCGraphicsItem a, OCGraphicsItem t, const OCSymbolLocation& l)
     {
-        if (g==nullptr) return;
-        if (g->childItems().empty()) return;
+        if (g == nullptr) return;
+        //if (g->childItems().empty()) return;
         OCFrameProperties F=OCFrameProperties(getBoundingRect(g),getBoundingRect(a),getBoundingRect(t),l);
         append(F);
     }
@@ -1449,7 +1513,7 @@ public:
             plotSlur(QPointF(-20 * 12, 0), (UpDown * TieDirection), 0, 0, ScreenObj);
         }
     }
-    OCGraphicsList plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const double Curve, const double Weight, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
+    OCGraphicsItem plotTie(const bool IsWrap, const int Count, const int UpDown, const int TieDirection, const double Curve, const double Weight, const int TieLen, const int CenterY, int NextCenterY, OCDraw& ScreenObj, double bold = 1)
     {
         if (IsWrap | (Count != 1))
         {
@@ -1480,9 +1544,8 @@ public:
             EraseTies = false;
         }
     }
-    const static OCGraphicsList plotSlur(QPointF endpoint, const int updown, const double curve, const double weight, OCDraw& ScreenObj, double bold = 1.0)
+    static OCGraphicsItem plotSlur(QPointF endpoint, const int updown, const double curve, const double weight, OCDraw& ScreenObj, double bold = 1.0)
     {
-        OCGraphicsList l;
         int moveleft = 0;
         if (qAbs(endpoint.x()) < 9 * 12) {
             moveleft = (7 * 12) - qAbs(endpoint.x());
@@ -1516,8 +1579,7 @@ public:
         b.translate(ScreenObj.sized(QPointF((8 * 12) - moveleft, (-updown * 5 * 12))));
         ScreenObj.translatePath(b);
         ScreenObj.lastSlur=b.boundingRect();
-        l.append(ScreenObj.plTextPath(b,true,bold,true));
-        return l;
+        return ScreenObj.plTextPath(b,true,bold,true);
     }
 };
 

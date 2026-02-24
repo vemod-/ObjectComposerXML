@@ -31,7 +31,7 @@ public:
 	Effect effect() const
 		{ return effect_; }
 	void setEffect(Effect effect)
-		{ effect_ = effect; repaint(); }
+        { effect_ = effect; update(); }
 private:
     void drawTextEffect(QPainter* painter, QPoint offset);
 	Effect effect_;

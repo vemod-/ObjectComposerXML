@@ -2330,112 +2330,54 @@ void CScoreDoc::SaveDoc(QString path)
 
 void CScoreDoc::ExportMidi()
 {
-    QFileDialog d(m_MainWindow,Qt::Sheet);
-    d.setWindowTitle("Export MIDI");
-    d.setNameFilter(tr("MIDI Files (*.mid)"));
-    d.setAcceptMode(QFileDialog::AcceptSave);
-    d.setFileMode(QFileDialog::AnyFile);
-    if (MainMenu->FileName.isEmpty())
-    {
-        d.selectFile("Untitled.mid");
-    }
-    else
-    {
-        d.selectFile(MainMenu->FileName.replace("." + QFileInfo(MainMenu->FileName).completeSuffix(),".mid",Qt::CaseInsensitive));
-    }
-    if (d.exec() != QDialog::Accepted) return;
-    const QStringList l = d.selectedFiles();
-    if (!l.empty())  sv->play(0,0,l.first());
+    QString f = MainMenu->exportDialog("Export MIDI",".mid","MIDI Files (*.mid)");
+    if (!f.isEmpty()) sv->play(0,0,f);
 }
 
 void CScoreDoc::ExportWave()
 {
-    QFileDialog d(m_MainWindow,Qt::Sheet);
-    d.setWindowTitle("Export Audio");
-    d.setNameFilter(tr("Wave Files (*.wav)"));
-    d.setAcceptMode(QFileDialog::AcceptSave);
-    d.setFileMode(QFileDialog::AnyFile);
-    if (MainMenu->FileName.isEmpty())
-    {
-        d.selectFile("Untitled.wav");
+    QString f = MainMenu->exportDialog("Export Audio",".wav","Wave Files (*.wav)");
+    if (!f.isEmpty()) {
+        //CConcurrentDialog::run(this,&CScoreDoc::Render,l.first());
+        Render(f);
     }
-    else
-    {
-        d.selectFile(MainMenu->FileName.replace("." + QFileInfo(MainMenu->FileName).completeSuffix(),".wav",Qt::CaseInsensitive));
-    }
-    if (d.exec() != QDialog::Accepted) return;
-    const QStringList l = d.selectedFiles();
-    if (!l.empty()) CConcurrentDialog::run(this,&CScoreDoc::Render,l.first());
 }
 
 void CScoreDoc::ExportPDFDialog() {
-    QFileDialog d(m_MainWindow,Qt::Sheet);
-    d.setWindowTitle("Export PDF");
-    d.setNameFilter(tr("PDF Files (*.pdf)"));
-    d.setAcceptMode(QFileDialog::AcceptSave);
-    d.setFileMode(QFileDialog::AnyFile);
-    if (MainMenu->FileName.isEmpty())
-    {
-        d.selectFile("Untitled.pdf");
-    }
-    else
-    {
+    QString path;
+    if (!MainMenu->FileName.isEmpty()) {
         QFileInfo f(MainMenu->FileName);
         QString LayoutName = f.baseName();
         int index = lv->activeLayoutIndex();
         if (index > -1) LayoutName = lv->LayoutName(index);
-        QString path = f.path() + "/" + LayoutName + ".pdf";
-        d.selectFile(path);
+        path = f.path() + "/" + LayoutName + ".pdf";
     }
-    if (d.exec() != QDialog::Accepted) return;
-    const QStringList l = d.selectedFiles();
-    if (!l.empty()) ExportPDF(l.first());
+    QString f = MainMenu->exportDialog("Export PDF",".pdf","PDF Files (*.pdf)",path);
+    if (!f.isEmpty()) ExportPDF(f);
 }
 
 void CScoreDoc::ExportMXLDialog() {
-    QFileDialog d(m_MainWindow,Qt::Sheet);
-    d.setWindowTitle("Export MXL");
-    d.setNameFilter(tr("MXL Files (*.mxl)"));
-    d.setAcceptMode(QFileDialog::AcceptSave);
-    d.setFileMode(QFileDialog::AnyFile);
-    if (MainMenu->FileName.isEmpty())
-    {
-        d.selectFile("Untitled.mxl");
-    }
-    else
-    {
+    QString path;
+    if (!MainMenu->FileName.isEmpty()) {
         QFileInfo f(MainMenu->FileName);
         QString LayoutName = f.baseName();
         int index = lv->activeLayoutIndex();
         if (index > -1) LayoutName = lv->LayoutName(index);
-        QString path = f.path() + "/" + LayoutName + ".mxl";
-        d.selectFile(path);
+        path = f.path() + "/" + LayoutName + ".mxl";
     }
-    if (d.exec() != QDialog::Accepted) return;
-    const QStringList l = d.selectedFiles();
-    if (!l.empty()) ExportMXL(l.first());
+    QString f = MainMenu->exportDialog("Export MXL",".mxl","MXL Files (*.mxl)",path);
+    if (!f.isEmpty()) ExportMXL(f);
 }
 
 void CScoreDoc::ExportMusicXMLDialog() {
-    QFileDialog d(m_MainWindow,Qt::Sheet);
-    d.setWindowTitle("Export musicXML");
-    d.setNameFilter(tr("musicXML Files (*.musicxml)"));
-    d.setAcceptMode(QFileDialog::AcceptSave);
-    d.setFileMode(QFileDialog::AnyFile);
-    if (MainMenu->FileName.isEmpty())
-    {
-        d.selectFile("Untitled.mxl");
-    }
-    else
-    {
+    QString path;
+    if (!MainMenu->FileName.isEmpty()) {
         QFileInfo f(MainMenu->FileName);
         QString LayoutName = f.baseName();
         int index = lv->activeLayoutIndex();
         if (index > -1) LayoutName = lv->LayoutName(index);
-        QString path = f.path() + "/" + LayoutName + ".musicxml";
-        d.selectFile(path);
+        path = f.path() + "/" + LayoutName + ".musicxml";
     }
-    if (d.exec() != QDialog::Accepted) return;
-    const QStringList l = d.selectedFiles();
-    if (!l.empty()) ExportMusicXML(l.first());
+    QString f = MainMenu->exportDialog("Export musicXML",".musicxml","musicXML Files (*.musicxml)",path);
+    if (!f.isEmpty()) ExportMusicXML(f);
 }

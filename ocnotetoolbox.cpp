@@ -294,7 +294,9 @@ void OCNoteToolbox::TriggerNotes(OCInputNoteList &Notes)
 void OCNoteToolbox::GetCurrentNote(XMLSimpleSymbolWrapper& note)
 {
     //QString UndoText="Note";
-    note.copy(OCSymbolsCollection::GetDefaultSymbol("Note").xml());
+    QDomLiteElement* e = OCSymbolsCollection::GetDefaultSymbol("Note").xml();
+    if (!e) return;
+    note.copy(e);
     note.setAttribute("NoteType",0);
     note.setPitch(60);
     note.setNoteValue(ui->NoteButtons->value());

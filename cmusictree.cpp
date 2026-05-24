@@ -183,7 +183,7 @@ void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int BarCount,
 {
     int Pointer=BarMap.GetPointer(BarLocation).Pointer;
     int EndPointer=BarMap.GetPointer(OCBarLocation(BarLocation,BarLocation.Bar+BarCount)).Pointer;
-    int FirstMeter=BarMap.GetMeter(BarLocation);
+    //int FirstMeter=BarMap.GetMeter(BarLocation);
     table->setUpdatesEnabled(false);
     table->blockSignals(true);
     Cursor=C;
@@ -202,7 +202,7 @@ void CMusicTree::Fill(XMLScoreWrapper& XMLScore, OCBarMap& BarMap, int BarCount,
         {
             //CountIt.reset();
             col=activestaffcolor;
-            FirstMeter=BarMap.GetMeter(OCBarLocation(BarLocation,CountIt.barCount()));
+            int FirstMeter = BarMap.GetMeter(OCBarLocation(BarLocation,CountIt.barCount()));
             int SymbolCount=0;
             QTreeWidgetItem* BarItem=table->createTopLevelItem(tr("Bar")+" "+QString::number(CountIt.barCount()+1));
             BarItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsDropEnabled);
